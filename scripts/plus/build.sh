@@ -5,7 +5,7 @@
 # Needs Python 3, the Android SDK and NDK (ANDROID_HOME, ANDROID_NDK_HOME), Java and Ninja.
 # CI runs it and caches the result; run it locally once before building the Plus edition.
 set -euo pipefail
-ORT_VERSION=1.22.0
+ORT_VERSION=1.20.1
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 HERE="$ROOT/scripts/plus"
 OUT="$ROOT/build/plus"

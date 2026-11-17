@@ -58,9 +58,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get install -y ninja-build > /dev/null
-          echo "ANDROID_NDK_HOME=${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}" >> "$GITHUB_ENV"
           SDKMANAGER=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | head -1)
           yes | "$SDKMANAGER" --licenses > /dev/null || true
+          # ONNX Runtime 1.20's Android build is tested with NDK r27.
+          NDK=$(ls -d "$ANDROID_HOME"/ndk/27.* 2>/dev/null | sort -V | tail -1)
+          if [ -z "$NDK" ]; then "$SDKMANAGER" "ndk;27.2.12479018" > /dev/null; NDK="$ANDROID_HOME/ndk/27.2.12479018"; fi
+          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
       - if: steps.cache.outputs.cache-hit != 'true'
         run: scripts/plus/build.sh
 
