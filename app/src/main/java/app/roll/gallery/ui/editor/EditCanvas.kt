@@ -25,6 +25,11 @@ import androidx.compose.ui.unit.dp
 import app.roll.gallery.data.CropHandle
 import app.roll.gallery.data.CropRect
 import app.roll.gallery.data.dragCrop
+import app.roll.gallery.data.straightenScale
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -38,31 +43,50 @@ private fun fit(imageSize: Size, area: Size): Rect {
 }
 
 /**
- * The photo as it will be saved: only the [crop]ped part, fitted to the space, with [filter]
- * applied (null shows the original colours, while the user holds to compare).
+ * Draws [image] tilted by [degrees] (and enlarged by [straightenScale] so it fills its frame)
+ * as if its whole frame were [frame] on screen, showing only the part inside [visible]. The
+ * tilt is done while drawing, so dragging the straighten slider stays smooth.
  */
-@Composable
-fun EditedImage(image: ImageBitmap, crop: CropRect, filter: ColorFilter?, modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val srcX = (crop.left * image.width).roundToInt().coerceIn(0, image.width - 1)
-        val srcY = (crop.top * image.height).roundToInt().coerceIn(0, image.height - 1)
-        val srcW = ((crop.right - crop.left) * image.width).roundToInt().coerceIn(1, image.width - srcX)
-        val srcH = ((crop.bottom - crop.top) * image.height).roundToInt().coerceIn(1, image.height - srcY)
-        val dst = fit(Size(srcW.toFloat(), srcH.toFloat()), size)
-        drawImage(
-            image,
-            srcOffset = IntOffset(srcX, srcY),
-            srcSize = IntSize(srcW, srcH),
-            dstOffset = IntOffset(dst.left.roundToInt(), dst.top.roundToInt()),
-            dstSize = IntSize(dst.width.roundToInt(), dst.height.roundToInt()),
-            colorFilter = filter,
-            filterQuality = FilterQuality.High,
-        )
+private fun DrawScope.drawStraightened(image: ImageBitmap, frame: Rect, visible: Rect, degrees: Float, filter: ColorFilter?) {
+    val zoom = straightenScale(image.width.toFloat(), image.height.toFloat(), degrees)
+    clipRect(visible.left, visible.top, visible.right, visible.bottom) {
+        rotate(degrees, frame.center) {
+            scale(zoom, frame.center) {
+                drawImage(
+                    image,
+                    dstOffset = IntOffset(frame.left.roundToInt(), frame.top.roundToInt()),
+                    dstSize = IntSize(frame.width.roundToInt(), frame.height.roundToInt()),
+                    colorFilter = filter,
+                    filterQuality = FilterQuality.High,
+                )
+            }
+        }
     }
 }
 
 /**
- * The crop frame over the whole (turned) photo: the part outside is dimmed, with thirds lines
+ * The photo as it will be saved: tilted by [degrees], only the [crop]ped part, fitted to the
+ * space, with [filter] applied (null shows the original colours, while the user holds to
+ * compare).
+ */
+@Composable
+fun EditedImage(image: ImageBitmap, crop: CropRect, degrees: Float, filter: ColorFilter?, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val cropW = ((crop.right - crop.left) * image.width).coerceAtLeast(1f)
+        val cropH = ((crop.bottom - crop.top) * image.height).coerceAtLeast(1f)
+        val dst = fit(Size(cropW, cropH), size)
+        // Where the whole (uncropped) frame would be, at the same scale, for the crop to land on dst.
+        val k = dst.width / cropW
+        val frame = Rect(
+            Offset(dst.left - crop.left * image.width * k, dst.top - crop.top * image.height * k),
+            Size(image.width * k, image.height * k),
+        )
+        drawStraightened(image, frame, dst, degrees, filter)
+    }
+}
+
+/**
+ * The crop frame over the whole (turned and tilted by [degrees]) photo: the part outside is dimmed, with thirds lines
  * inside. Drag a corner to resize (keeping [ratio], width ÷ height, when set) or the middle to
  * move; [onChange] gets each new crop.
  */
@@ -71,6 +95,7 @@ fun CropView(
     image: ImageBitmap,
     crop: CropRect,
     ratio: Float?,
+    degrees: Float,
     filter: ColorFilter?,
     onChange: (CropRect) -> Unit,
     modifier: Modifier = Modifier,
@@ -116,13 +141,7 @@ fun CropView(
         },
     ) {
         val box = fit(imageSize, size)
-        drawImage(
-            image,
-            dstOffset = IntOffset(box.left.roundToInt(), box.top.roundToInt()),
-            dstSize = IntSize(box.width.roundToInt(), box.height.roundToInt()),
-            colorFilter = filter,
-            filterQuality = FilterQuality.High,
-        )
+        drawStraightened(image, box, box, degrees, filter)
         val frame = Rect(
             box.left + crop.left * box.width, box.top + crop.top * box.height,
             box.left + crop.right * box.width, box.top + crop.bottom * box.height,

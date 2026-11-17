@@ -76,6 +76,8 @@ import app.roll.gallery.data.Edits
 import app.roll.gallery.data.Filter
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.canOverwrite
+import app.roll.gallery.data.MAX_STRAIGHTEN
+import androidx.compose.material.icons.outlined.Straighten
 import app.roll.gallery.data.colorMatrix
 import app.roll.gallery.data.filterMatrix
 import app.roll.gallery.data.fitAspect
@@ -115,7 +117,7 @@ private enum class Adjustment(val label: Int, val icon: ImageVector) {
 private fun colorFilterOf(matrix: FloatArray): ColorFilter = ColorFilter.colorMatrix(ColorMatrix(matrix))
 
 /**
- * The photo editor: crop (with fixed shapes), turn, mirror, brightness, contrast, saturation,
+ * The photo editor: crop (with fixed shapes), straighten, turn, mirror, brightness, contrast, saturation,
  * warmth and filters, previewed live on a screen-sized copy. Hold the photo to see the original.
  * Save writes over the original (after Android's write confirmation) when its format allows,
  * or Save as copy keeps the original and adds an "-edited" file beside it. Nothing is changed
@@ -199,6 +201,7 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit)
                         image = image,
                         crop = edits.crop,
                         ratio = if (edits.aspect == CropAspect.Original) image.width.toFloat() / image.height else edits.aspect.ratio,
+                        degrees = edits.straighten,
                         filter = filter,
                         onChange = { edits = edits.copy(crop = it) },
                         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -206,6 +209,7 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit)
                     else -> EditedImage(
                         image = image,
                         crop = edits.crop,
+                        degrees = edits.straighten,
                         filter = if (comparing) null else filter,
                         modifier = Modifier
                             .fillMaxSize()
@@ -224,10 +228,12 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit)
                 }
             }
 
-            Box(Modifier.fillMaxWidth().height(132.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().height(176.dp), contentAlignment = Alignment.Center) {
                 when (tab) {
                     EditTab.Crop -> CropTools(
                         aspect = edits.aspect,
+                        straighten = edits.straighten,
+                        onStraighten = { edits = edits.copy(straighten = it) },
                         onTurn = {
                             val next = edits.copy(quarterTurns = (edits.quarterTurns + 1) % 4)
                             // The photo's sides swap, so the crop starts again from the chosen shape.
@@ -236,10 +242,15 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit)
                         },
                         onFlip = {
                             val c = edits.crop
-                            edits = edits.copy(flipped = !edits.flipped, crop = CropRect(1f - c.right, c.top, 1f - c.left, c.bottom))
+                            // Mirroring also mirrors the tilt.
+                            edits = edits.copy(
+                                flipped = !edits.flipped,
+                                straighten = -edits.straighten,
+                                crop = CropRect(1f - c.right, c.top, 1f - c.left, c.bottom),
+                            )
                         },
                         onAspect = { aspect -> edits = edits.copy(aspect = aspect, crop = cropFor(aspect, turned)) },
-                        onReset = { edits = edits.copy(quarterTurns = 0, flipped = false, crop = CropRect(), aspect = CropAspect.Free) },
+                        onReset = { edits = edits.copy(quarterTurns = 0, flipped = false, straighten = 0f, crop = CropRect(), aspect = CropAspect.Free) },
                     )
                     EditTab.Adjust -> AdjustTools(
                         selected = adjustment,
@@ -289,10 +300,35 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit)
     }
 }
 
-/** Turn, mirror, the crop shapes, and reset. */
+/** The straighten slider, turn, mirror, the crop shapes, and reset. */
 @Composable
-private fun CropTools(aspect: CropAspect, onTurn: () -> Unit, onFlip: () -> Unit, onAspect: (CropAspect) -> Unit, onReset: () -> Unit) {
+private fun CropTools(
+    aspect: CropAspect,
+    straighten: Float,
+    onStraighten: (Float) -> Unit,
+    onTurn: () -> Unit,
+    onFlip: () -> Unit,
+    onAspect: (CropAspect) -> Unit,
+    onReset: () -> Unit,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Straighten, stringResource(R.string.edit_straighten), tint = Color.White)
+            Spacer(Modifier.width(12.dp))
+            Slider(
+                value = straighten,
+                onValueChange = { onStraighten((it * 2).roundToInt() / 2f) },
+                valueRange = -MAX_STRAIGHTEN..MAX_STRAIGHTEN,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                stringResource(R.string.edit_degrees, straighten),
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.width(52.dp).clickable { onStraighten(0f) },
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             IconButton(onClick = onTurn) { Icon(Icons.Outlined.Rotate90DegreesCw, stringResource(R.string.edit_rotate), tint = Color.White) }
             IconButton(onClick = onFlip) { Icon(Icons.Outlined.Flip, stringResource(R.string.edit_flip), tint = Color.White) }

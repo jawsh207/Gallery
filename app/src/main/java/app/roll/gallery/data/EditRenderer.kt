@@ -38,7 +38,7 @@ class EditRenderer(private val context: Context) {
 
     /** Every edit applied to [bitmap]: turn and flip, crop, then colour. */
     fun apply(bitmap: Bitmap, edits: Edits): Bitmap {
-        val turned = turnBitmap(bitmap, edits.quarterTurns, edits.flipped)
+        val turned = straightenBitmap(turnBitmap(bitmap, edits.quarterTurns, edits.flipped), edits.straighten)
         val c = edits.crop
         val x = (c.left * turned.width).roundToInt().coerceIn(0, turned.width - 1)
         val y = (c.top * turned.height).roundToInt().coerceIn(0, turned.height - 1)
@@ -134,6 +134,24 @@ fun canOverwrite(mimeType: String): Boolean = mimeType.lowercase() in setOf("ima
 fun editedName(fileName: String, extension: String): String {
     val base = fileName.substringBeforeLast('.', fileName).ifBlank { "photo" }
     return "$base-edited.$extension"
+}
+
+/**
+ * [bitmap] tilted [degrees] clockwise about its centre and enlarged by [straightenScale], in a
+ * bitmap the same size, so the edges stay filled.
+ */
+fun straightenBitmap(bitmap: Bitmap, degrees: Float): Bitmap {
+    if (degrees == 0f) return bitmap
+    val w = bitmap.width.toFloat()
+    val h = bitmap.height.toFloat()
+    val scale = straightenScale(w, h, degrees)
+    val out = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+    Canvas(out).apply {
+        rotate(degrees, w / 2, h / 2)
+        scale(scale, scale, w / 2, h / 2)
+        drawBitmap(bitmap, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
+    }
+    return out
 }
 
 /** [bitmap] turned [quarterTurns] times clockwise and, when [flipped], mirrored left to right. */

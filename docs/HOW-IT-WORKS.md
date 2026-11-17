@@ -108,12 +108,15 @@ photo. Drag down to close, drag up to open the details. The thumbnail shows at o
 full photo loads.
 
 **Editing.** Edit (next to Share in the viewer, for photos) opens the editor on a screen-sized
-copy of the photo, so every change shows at once. Crop has a frame you drag by its corners or
+copy of the photo, so every change shows at once. Crop has a straighten slider (up to 45° either way,
+in half-degree steps; tap the number to put it back to 0), a frame you drag by its corners or
 middle, a choice of shapes (free, the photo's own, square, 4:3, 3:4, 16:9), a button that turns
 the photo a quarter clockwise, one that mirrors it, and a reset. Adjust has brightness, contrast,
 saturation and warmth, each a slider from -100 to 100 (tap the number to put it back to 0).
 Filters has Vivid, Warm, Cool, Fade, Mono, Noir and Sepia, each shown on a small copy of the
-photo. Holding the photo shows the original colours. Nothing changes until you save. **Save**
+photo. Straightening zooms the photo in just enough that its tilted edges never leave empty
+corners, so a small tilt loses a little of the edges. Holding the photo shows the original
+colours. Nothing changes until you save. **Save**
 writes over the original, after Android asks you to allow it (unless Media management is on);
 it's offered only for JPEG, PNG and WebP, the formats Android can write back. **Save as copy**
 leaves the original and adds "name-edited" next to it (or in Pictures/Edited if that folder
@@ -199,7 +202,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Grouping duplicates and choosing what to keep | `data/Duplicates.kt` |
 | Working out a photo's fingerprint from its thumbnail | `data/PhotoHash.kt` |
 | Running the duplicate search in the background | `ui/GalleryViewModel.kt` |
-| What an edit is, colour maths, crop shapes and dragging the crop frame | `data/Edits.kt` |
+| What an edit is, colour maths, straighten zoom, crop shapes and dragging the crop frame | `data/Edits.kt` |
 | Drawing edits and saving the result | `data/EditRenderer.kt` |
 | Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |

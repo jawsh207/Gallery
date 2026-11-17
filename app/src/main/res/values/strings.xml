@@ -189,6 +189,8 @@
     <string name="edit_filters">Filters</string>
     <string name="edit_rotate">Rotate</string>
     <string name="edit_flip">Flip</string>
+    <string name="edit_straighten">Straighten</string>
+    <string name="edit_degrees"><xliff:g id="degrees" example="2.5">%1$.1f</xliff:g>°</string>
     <string name="edit_reset">Reset crop</string>
     <string name="edit_aspect_free">Free</string>
     <string name="edit_aspect_original">Original</string>

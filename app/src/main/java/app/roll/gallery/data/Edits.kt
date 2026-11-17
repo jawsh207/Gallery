@@ -1,5 +1,10 @@
 package app.roll.gallery.data
 
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.sin
+
 /**
  * A crop as fractions of the (turned and flipped) photo: 0 is the left or top edge, 1 the right
  * or bottom. Fractions rather than pixels, so the same crop fits the small preview and the
@@ -28,12 +33,14 @@ enum class CropAspect(val ratio: Float?) {
 
 /**
  * Everything done to a photo in the editor, applied in this order: turned [quarterTurns] times
- * clockwise, mirrored left to right when [flipped], cropped to [crop], then recoloured by
- * [filter] and [adjustments]. Nothing touches the photo until it's saved.
+ * clockwise, mirrored left to right when [flipped], tilted by [straighten] degrees (clockwise,
+ * zoomed just enough to leave no empty corners, see [straightenScale]), cropped to [crop], then
+ * recoloured by [filter] and [adjustments]. Nothing touches the photo until it's saved.
  */
 data class Edits(
     val quarterTurns: Int = 0,
     val flipped: Boolean = false,
+    val straighten: Float = 0f,
     val crop: CropRect = CropRect(),
     val aspect: CropAspect = CropAspect.Free,
     val filter: Filter = Filter.None,
@@ -41,7 +48,23 @@ data class Edits(
 ) {
     /** True when saving would change nothing. */
     val isUnchanged: Boolean
-        get() = quarterTurns % 4 == 0 && !flipped && crop.isFull && filter == Filter.None && adjustments == Adjustments()
+        get() = quarterTurns % 4 == 0 && !flipped && straighten == 0f && crop.isFull && filter == Filter.None && adjustments == Adjustments()
+}
+
+/** How far the straighten slider goes either way, in degrees. */
+const val MAX_STRAIGHTEN = 45f
+
+/**
+ * How much a [width] × [height] photo tilted by [degrees] must be enlarged so that it still
+ * covers its original frame, leaving no empty corners: the frame, tilted back the other way,
+ * has to fit inside the enlarged photo. 1 when it isn't tilted.
+ */
+fun straightenScale(width: Float, height: Float, degrees: Float): Float {
+    if (degrees == 0f || width <= 0f || height <= 0f) return 1f
+    val radians = Math.toRadians(degrees.toDouble())
+    val c = abs(cos(radians)).toFloat()
+    val s = abs(sin(radians)).toFloat()
+    return max((width * c + height * s) / width, (width * s + height * c) / height)
 }
 
 /** The 4 × 5 colour matrix (row by row, offsets in 0–255) that changes nothing. */
