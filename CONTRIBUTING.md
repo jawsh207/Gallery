@@ -65,3 +65,7 @@ When the owner says "Build release":
 
 The **Build release** workflow in the Actions tab does the same, writing the notes from commit
 titles.
+
+To try a release build without publishing, run the **Build** workflow by hand in the Actions
+tab with "Shrunk test build" ticked: it builds the release variant, shrunk by R8, signs it
+with the dev key, shows each edition's size and opens both on an emulator.

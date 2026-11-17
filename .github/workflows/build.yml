@@ -15,7 +15,15 @@ on:
     branches: [main, release]
     tags: ['v*']
   pull_request:
+  # Run by hand. "Shrunk test build" builds the release variant (shrunk by R8, like a real
+  # release) but signs it with the dev key and publishes nothing, to check its size and that
+  # it still opens.
   workflow_dispatch:
+    inputs:
+      shrunk:
+        description: Shrunk test build (release variant with the dev key, not published)
+        type: boolean
+        default: false
   # Called by release.yml once it has committed the new version.
   workflow_call:
     inputs:
@@ -92,6 +100,7 @@ jobs:
       contents: write   # to publish GitHub Releases for version tags
     env:
       IS_RELEASE: ${{ inputs.release || startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/release' }}
+      SHRUNK_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.shrunk }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -140,7 +149,11 @@ jobs:
             echo "VARIANT=release" >> "$GITHUB_ENV"
           else
             KEY="$DEV_KEYSTORE_BASE64"; PASS="$DEV_KEYSTORE_PASSWORD"; ALIAS=gallery-dev
-            echo "VARIANT=dev" >> "$GITHUB_ENV"
+            if [ "$SHRUNK_TEST" = "true" ]; then
+              echo "VARIANT=release" >> "$GITHUB_ENV"
+            else
+              echo "VARIANT=dev" >> "$GITHUB_ENV"
+            fi
           fi
           if [ -n "$KEY" ]; then
             echo "$KEY" | base64 -d > "$RUNNER_TEMP/signing.jks"
@@ -206,13 +219,13 @@ jobs:
       # dev build can't. The crash trace, with R8's short names mapped back, is shown on
       # the run page.
       - name: Enable KVM for the emulator
-        if: env.IS_RELEASE == 'true'
+        if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
 
       - name: Launch check
-        if: env.IS_RELEASE == 'true'
+        if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -223,7 +236,7 @@ jobs:
             for edition in standard plus; do adb install -r app/build/outputs/apk/$edition/release/*.apk; adb logcat -c; adb shell am start -W -n app.roll.gallery/.MainActivity; sleep 15; adb logcat -d -b crash >> "$RUNNER_TEMP/crash.txt" || true; if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "$edition opened and is still running."; else touch "$RUNNER_TEMP/launch-failed"; fi; adb shell am force-stop app.roll.gallery; done
 
       - name: Report launch failure
-        if: env.IS_RELEASE == 'true'
+        if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'
         run: |
           [ -e "$RUNNER_TEMP/launch-failed" ] || exit 0
           RETRACE=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/retrace | head -1)
