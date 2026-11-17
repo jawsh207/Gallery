@@ -2,6 +2,9 @@ package app.roll.gallery.ui.viewer
 
 import android.app.Activity
 import android.app.WallpaperManager
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.outlined.Slideshow
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.outlined.LibraryAdd
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material.icons.rounded.MoreVert
@@ -77,7 +80,8 @@ import kotlinx.coroutines.launch
  * [set], tap to show or hide the controls (and Android's status and navigation bars), pinch or
  * double-tap to zoom, drag down to close and drag up for details. The bottom bar has the same
  * actions as a selection: share, favorite and trash, or restore and delete inside the trash;
- * the top bar's menu has Add to album and, for photos, Set as wallpaper.
+ * the top bar's menu has Slideshow, Add to album and, for photos, Set as wallpaper. A slideshow
+ * starts straight away when [slideshowAtStart] (opening a memory).
  * [onCurrentChange] reports the item on screen so the back stack reopens it after a restart.
  */
 @Composable
@@ -88,6 +92,7 @@ fun ViewerScreen(
     startId: Long,
     onCurrentChange: (Long) -> Unit,
     onBack: () -> Unit,
+    slideshowAtStart: Boolean = false,
 ) {
     val words = rememberSearchWords()
     val locale = currentLocale()
@@ -104,9 +109,32 @@ fun ViewerScreen(
         items.getOrNull(pager.settledPage)?.let { onCurrentChange(it.id) }
     }
 
-    var controls by rememberSaveable { mutableStateOf(true) }
+    var slideshow by rememberSaveable { mutableStateOf(slideshowAtStart) }
+    var controls by rememberSaveable { mutableStateOf(!slideshowAtStart) }
     var showInfo by rememberSaveable { mutableStateOf(false) }
     SystemBarsVisible(controls)
+    // Slideshow: a new photo every few seconds, controls hidden and the screen kept on; it ends
+    // at the last photo or with a tap.
+    LaunchedEffect(slideshow, pager.settledPage) {
+        if (!slideshow) return@LaunchedEffect
+        controls = false
+        delay(SLIDE_MILLIS)
+        if (pager.settledPage < items.lastIndex) {
+            pager.animateScrollToPage(pager.settledPage + 1, animationSpec = tween(700))
+        } else {
+            slideshow = false
+            controls = true
+        }
+    }
+    KeepScreenOn(slideshow)
+    val onTap: () -> Unit = {
+        if (slideshow) {
+            slideshow = false
+            controls = true
+        } else {
+            controls = !controls
+        }
+    }
 
     // Drag up or down: the page follows the finger and the black fades; far enough down closes.
     val scope = rememberCoroutineScope()
@@ -133,6 +161,7 @@ fun ViewerScreen(
     var addingToAlbum by remember { mutableStateOf(false) }
     var wallpaper by remember { mutableStateOf(false) }
     val menu = buildList {
+        if (items.size > 1) add(BarAction(Icons.Outlined.Slideshow, stringResource(R.string.slideshow)) { slideshow = true })
         if (set != MediaSet.Trash) add(BarAction(Icons.Outlined.LibraryAdd, stringResource(R.string.add_to_album)) { addingToAlbum = true })
         if (set != MediaSet.Trash && !current.isVideo) {
             add(BarAction(Icons.Outlined.Wallpaper, stringResource(R.string.set_wallpaper)) { wallpaper = true })
@@ -154,7 +183,7 @@ fun ViewerScreen(
                         media = media,
                         active = page == pager.settledPage,
                         controlsVisible = controls,
-                        gestures = Modifier.viewerGestures(null, { controls = !controls }, onDrag, onDragEnd),
+                        gestures = Modifier.viewerGestures(null, onTap, onDrag, onDragEnd),
                     )
                 } else {
                     val zoom = remember(media.id) {
@@ -163,7 +192,7 @@ fun ViewerScreen(
                     PhotoPage(
                         media = media,
                         zoom = zoom,
-                        gestures = Modifier.viewerGestures(zoom, { controls = !controls }, onDrag, onDragEnd),
+                        gestures = Modifier.viewerGestures(zoom, onTap, onDrag, onDragEnd),
                     )
                 }
             }
@@ -243,6 +272,19 @@ internal fun TopControls(takenAt: Long, onBack: () -> Unit, menu: List<BarAction
                 }
             }
         }
+    }
+}
+
+/** How long each photo stays on screen in a slideshow. */
+private const val SLIDE_MILLIS = 4_000L
+
+/** Keeps the screen from turning off while [on] (during a slideshow). */
+@Composable
+private fun KeepScreenOn(on: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(view, on) {
+        view.keepScreenOn = on
+        onDispose { view.keepScreenOn = false }
     }
 }
 

@@ -27,6 +27,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material.icons.outlined.History
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,7 +57,8 @@ import app.roll.gallery.ui.components.segmentShape
 
 /**
  * Settings, in grouped cards as in Contacts: what the app may see, Android's "Media
- * management" access (which skips the confirmation on every change), and About.
+ * management" access (which skips the confirmation on every change), whether memories show,
+ * and About.
  * Access can change in Android's settings, so it's read again whenever this screen returns.
  */
 @Composable
@@ -73,6 +77,7 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
     }
     var showLicenses by remember { mutableStateOf(false) }
+    val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -124,6 +129,19 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
                             Intent(Settings.ACTION_REQUEST_MANAGE_MEDIA, Uri.parse("package:${context.packageName}")),
                         )
                     },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
+            item(key = "display-header") { SectionHeader(stringResource(R.string.settings_display)) }
+            item(key = "memories") {
+                ListRow(
+                    icon = Icons.Outlined.History,
+                    title = stringResource(R.string.settings_memories),
+                    summary = stringResource(R.string.settings_memories_summary),
+                    shape = segmentShape(0, 1),
+                    onClick = { viewModel.setShowMemories(!showMemories) },
+                    trailing = { Switch(checked = showMemories, onCheckedChange = viewModel::setShowMemories) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }

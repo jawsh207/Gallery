@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
 
+    // The app's own settings (memories on or off).
+    implementation(libs.androidx.datastore.preferences)
     // Camera details (aperture, shutter speed, ISO) in a photo's info sheet.
     implementation(libs.androidx.exifinterface)
     // Video playback in the viewer.

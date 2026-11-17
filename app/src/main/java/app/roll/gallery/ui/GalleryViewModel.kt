@@ -11,6 +11,7 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.R
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
+import app.roll.gallery.data.AppSettings
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -35,6 +36,16 @@ import kotlinx.coroutines.withContext
 class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     private val source = MediaStoreSource(app.contentResolver)
     private val writer = MediaWriter(app)
+    private val settings = AppSettings(app)
+
+    /** Whether the Photos tab shows "On this day" memories. */
+    val showMemories: StateFlow<Boolean> = settings.showMemories
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Turns memories on or off. */
+    fun setShowMemories(show: Boolean) {
+        viewModelScope.launch { settings.setShowMemories(show) }
+    }
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     /** Short messages for the user ("Copied 3 items"), shown as a snackbar. */

@@ -24,10 +24,27 @@ import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
 import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Media
+import app.roll.gallery.data.Memory
+import app.roll.gallery.image.Thumbnail
+import coil3.compose.AsyncImage
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import app.roll.gallery.ui.components.EmptyState
 
 /**
- * The Photos tab: every photo and video, newest first, in the date-grouped grid. With only
+ * The Photos tab: every photo and video, newest first, in the date-grouped grid, under a row
+ * of "On this day" [memories] when there are any ([onOpenMemory] plays one). With only
  * some photos shared with the app ("Select photos" access), a card at the top offers to allow
  * all of them.
  */
@@ -43,6 +60,8 @@ fun PhotosTab(
     onOpen: (Media) -> Unit,
     gridState: LazyGridState,
     contentPadding: PaddingValues,
+    memories: List<Memory> = emptyList(),
+    onOpenMemory: (Memory) -> Unit = {},
 ) {
     if (items.isEmpty() && !partialAccess) {
         EmptyState(
@@ -63,6 +82,11 @@ fun PhotosTab(
         state = gridState,
         contentPadding = contentPadding,
         header = {
+            if (memories.isNotEmpty()) {
+                item(key = "memories", span = { GridItemSpan(maxLineSpan) }, contentType = "memories") {
+                    MemoriesRow(memories, onOpenMemory)
+                }
+            }
             if (partialAccess) {
                 item(key = "partial", span = { GridItemSpan(maxLineSpan) }, contentType = "banner") {
                     PartialAccessCard(onAllowAll)
@@ -70,6 +94,50 @@ fun PhotosTab(
             }
         },
     )
+}
+
+/** "On this day": a card per earlier year with photos from around today's date. */
+@Composable
+private fun MemoriesRow(memories: List<Memory>, onOpen: (Memory) -> Unit) {
+    Column(Modifier.padding(vertical = 8.dp)) {
+        Text(
+            stringResource(R.string.on_this_day),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(memories, key = { it.yearsAgo }) { memory ->
+                val label = pluralStringResource(R.plurals.years_ago, memory.yearsAgo, memory.yearsAgo)
+                Box(
+                    Modifier
+                        .size(width = 120.dp, height = 168.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClickLabel = label) { onOpen(memory) },
+                ) {
+                    AsyncImage(
+                        model = Thumbnail(memory.cover.uri, memory.cover.modifiedAt),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.6f))),
+                    )
+                    Text(
+                        label,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
+                    )
+                }
+            }
+        }
+    }
 }
 
 /** Explains that the app sees only the photos the user picked, with a button to allow all. */

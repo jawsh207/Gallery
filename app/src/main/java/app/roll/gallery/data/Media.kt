@@ -3,6 +3,7 @@ package app.roll.gallery.data
 import android.content.ContentUris
 import android.net.Uri
 import android.provider.MediaStore
+import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 
@@ -66,6 +67,8 @@ sealed interface MediaSet {
     data object Videos : MediaSet
     data object Trash : MediaSet
     data class Album(val id: Long) : MediaSet
+    /** Today's "On this day" photos from [yearsAgo] years ago (see [memoriesFor]). */
+    data class Memory(val yearsAgo: Int) : MediaSet
     /** The results of a search for [query] (see [searchMedia]). */
     data class Search(val query: String) : MediaSet
 }
@@ -86,4 +89,5 @@ fun Library.itemsIn(
     MediaSet.Trash -> trash
     is MediaSet.Album -> album(set.id)
     is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone)
+    is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()
 }

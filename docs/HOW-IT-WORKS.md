@@ -27,8 +27,8 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | --- | --- | --- |
 | Access | Asking for permission to see photos, with a way into Android's settings | `ui/access/AccessScreen.kt` |
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
-| Settings | Photo access, Media management, version and licenses | `ui/settings/SettingsScreen.kt` |
-| Photos tab | Every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
+| Settings | Photo access, Media management, On this day, version and licenses | `ui/settings/SettingsScreen.kt` |
+| Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Collections tab | Favorites, Videos and Trash shortcuts, and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
@@ -70,10 +70,20 @@ the library in the usual grid, showing only the kinds the app asked for (photos,
 both). If it takes one, tapping a photo hands it back; if it takes several, tap or drag to
 select and press Done. The app gets access to just the photos you chose.
 
-**Settings.** Photo access shows whether Gallery sees everything or only photos you picked,
+**Settings.** On this day turns the memories row on or off; it's the only setting Gallery
+stores itself, in its own private settings file. Photo access shows whether Gallery sees everything or only photos you picked,
 and opens the dialog to pick more (or Android's settings, to take access back). Media
 management opens Android's switch for it and shows whether it's on. About shows the version
 and the licenses.
+
+**On this day.** At the top of Photos, a card for each earlier year with at least three photos
+taken within three days of today's date, labelled "1 year ago", "3 years ago" and so on.
+Screenshots don't count. Tapping a card opens those photos as a slideshow. The row can be
+turned off in Settings.
+
+**Slideshow.** From the viewer's menu, or by opening a memory. The controls hide and a new
+photo slides in every four seconds, from the one on screen onwards; the screen stays on. It
+stops at the last photo, or when you tap.
 
 **Zoom levels.** Pinching changes the grid between three levels: large (2 across), normal (4
 across, grouped by day) and months (7 across, grouped by month). The grid keeps the same photos
@@ -150,6 +160,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Formatting lengths, sizes, megapixels and camera settings | `data/Formats.kt` |
 | Keeping the library loaded and refreshing it when the media store changes | `ui/GalleryViewModel.kt`, `util/ContentChanges.kt` |
 | Grid thumbnails from Android's own thumbnail cache | `image/Thumbnails.kt`, `GalleryApplication.kt` |
+| Picking each year's "On this day" photos | `data/Memories.kt` |
+| Gallery's own settings | `data/Settings.kt` |
 | Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
@@ -159,6 +171,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

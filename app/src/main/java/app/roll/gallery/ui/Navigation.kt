@@ -19,8 +19,8 @@ sealed interface Screen {
     data object Settings : Screen
     /** Choosing the photos for a new album called [name]. */
     data class NewAlbum(val name: String) : Screen
-    /** One photo or video full screen, paging through the rest of [set]. */
-    data class Viewer(val set: MediaSet, val id: Long) : Screen
+    /** One photo or video full screen, paging through the rest of [set]; as a slideshow when [slideshow]. */
+    data class Viewer(val set: MediaSet, val id: Long, val slideshow: Boolean = false) : Screen
 }
 
 /** [MediaSet] as text, for saving the back stack. */
@@ -32,6 +32,7 @@ fun MediaSet.encode(): String = when (this) {
     is MediaSet.Album -> "album:$id"
     // Encoded, so a query can't contain the "|" that separates the saved parts.
     is MediaSet.Search -> "search:" + URLEncoder.encode(query, "UTF-8")
+    is MediaSet.Memory -> "memory:$yearsAgo"
 }
 
 /** The [MediaSet] [text] was saved as, or null if it can't be read. */
@@ -41,6 +42,7 @@ fun decodeMediaSet(text: String): MediaSet? = when {
     text == "videos" -> MediaSet.Videos
     text == "trash" -> MediaSet.Trash
     text.startsWith("album:") -> text.removePrefix("album:").toLongOrNull()?.let { MediaSet.Album(it) }
+    text.startsWith("memory:") -> text.removePrefix("memory:").toIntOrNull()?.let { MediaSet.Memory(it) }
     text.startsWith("search:") -> MediaSet.Search(URLDecoder.decode(text.removePrefix("search:"), "UTF-8"))
     else -> null
 }
@@ -52,7 +54,7 @@ private fun Screen.encode(): String = when (this) {
     Screen.Settings -> "settings"
     is Screen.NewAlbum -> "newalbum|" + URLEncoder.encode(name, "UTF-8")
     is Screen.Grid -> "grid|${set.encode()}"
-    is Screen.Viewer -> "viewer|$id|${set.encode()}"
+    is Screen.Viewer -> "viewer|$id|${set.encode()}|$slideshow"
 }
 
 private fun decode(text: String): Screen? {
@@ -67,7 +69,7 @@ private fun decode(text: String): Screen? {
         "viewer" -> {
             val id = parts.getOrNull(1)?.toLongOrNull()
             val set = parts.getOrNull(2)?.let(::decodeMediaSet)
-            if (id != null && set != null) Screen.Viewer(set, id) else null
+            if (id != null && set != null) Screen.Viewer(set, id, slideshow = parts.getOrNull(3) == "true") else null
         }
         else -> null
     }

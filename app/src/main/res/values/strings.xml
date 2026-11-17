@@ -152,4 +152,14 @@
     <string name="wallpaper_both">Home and lock screens</string>
     <string name="wallpaper_set">Wallpaper set</string>
     <string name="wallpaper_failed">Couldn\'t set the wallpaper</string>
+    <!-- Memories and slideshow -->
+    <string name="on_this_day">On this day</string>
+    <plurals name="years_ago">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> year ago</item>
+        <item quantity="other"><xliff:g id="count" example="3">%1$d</xliff:g> years ago</item>
+    </plurals>
+    <string name="slideshow">Slideshow</string>
+    <string name="settings_display">Display</string>
+    <string name="settings_memories">On this day</string>
+    <string name="settings_memories_summary">Show photos from this date in past years at the top of Photos</string>
 </resources>

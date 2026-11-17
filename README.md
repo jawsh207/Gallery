@@ -17,6 +17,8 @@ store, so other apps see the same favorites and trash.
 - **Search:** a search bar across the top, as in Contacts, with Settings on its right. Search
   by file or album name, year, month, or kind ("videos", "favorites", "screenshots"), with
   shortcuts for each before you type.
+- **On this day:** cards at the top of Photos with photos from around today's date in past
+  years; tap one to play it as a slideshow. Can be turned off in Settings.
 - **Selecting:** long-press a photo, then keep your finger down and drag across others to
   select a run of them (the grid scrolls when you reach its edge). A circle by each date
   selects that whole day. Share, favorite, add to an album or trash the selection.
@@ -26,11 +28,12 @@ store, so other apps see the same favorites and trash.
   shutter speed, ISO and focal length stored in the photo.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
   and screenshots first). Make new albums, and move or copy photos into albums.
+- **Slideshow:** from the viewer's menu; a new photo every four seconds, tap to stop.
 - **Wallpaper:** set a photo as the home screen, lock screen or both, from the viewer's menu.
 - **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can
   pick them from Gallery, one or several.
-- **Settings:** photo access, Media management, version and licenses.
+- **Settings:** photo access, Media management, On this day, version and licenses.
 - **Trash:** Android's own trash, shared with other apps. Items are deleted for good after
   30 days; restore or delete them sooner, one at a time, by selection, or all at once.
 

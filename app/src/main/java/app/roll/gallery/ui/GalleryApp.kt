@@ -64,6 +64,9 @@ import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.MediaSet
+import app.roll.gallery.data.memoriesFor
+import java.time.LocalDate
+import java.time.ZoneId
 import app.roll.gallery.ui.access.AccessScreen
 import app.roll.gallery.ui.access.PHOTO_PERMISSIONS
 import app.roll.gallery.ui.access.PhotoAccess
@@ -171,6 +174,7 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
                 viewModel, loaded, screen.set, screen.id,
                 onCurrentChange = { id -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = screen.copy(id = id) },
                 onBack = back,
+                slideshowAtStart = screen.slideshow,
             )
         }
         SnackbarHost(
@@ -204,6 +208,10 @@ private fun Home(
     BackHandler(enabled = !selecting && tab != Tab.Photos) { tab = Tab.Photos }
     val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
     val openMedia: (Media) -> Unit = { open(Screen.Viewer(MediaSet.All, it.id)) }
+    val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
+    val memories = remember(library.items, showMemories) {
+        if (showMemories) memoriesFor(library.items, LocalDate.now(), ZoneId.systemDefault()) else emptyList()
+    }
 
     Scaffold(
         topBar = {
@@ -261,6 +269,10 @@ private fun Home(
                     onOpen = openMedia,
                     gridState = gridState,
                     contentPadding = padding,
+                    memories = memories,
+                    onOpenMemory = { memory ->
+                        open(Screen.Viewer(MediaSet.Memory(memory.yearsAgo), memory.cover.id, slideshow = true))
+                    },
                 )
                 Tab.Collections -> CollectionsTab(
                     library = library,
