@@ -156,7 +156,15 @@ jobs:
             fi
           fi
           if [ -n "$KEY" ]; then
-            echo "$KEY" | base64 -d > "$RUNNER_TEMP/signing.jks"
+            # Pasting can add spaces or line breaks, which base64 can't decode; they're dropped.
+            if ! printf '%s' "$KEY" | tr -d ' \t\r\n' | base64 -d > "$RUNNER_TEMP/signing.jks" 2>/dev/null; then
+              echo "::error::The keystore secret isn't valid base64 (${#KEY} characters); paste it again from the file."
+              exit 1
+            fi
+            if ! keytool -list -keystore "$RUNNER_TEMP/signing.jks" -storepass "$PASS" -alias "$ALIAS" > /dev/null 2>&1; then
+              echo "::error::The keystore secret decodes, but keytool can't open it with its password and alias $ALIAS; check both secrets were pasted whole."
+              exit 1
+            fi
             {
               echo "ORG_GRADLE_PROJECT_RELEASE_STORE_FILE=$RUNNER_TEMP/signing.jks"
               echo "ORG_GRADLE_PROJECT_RELEASE_STORE_PASSWORD=$PASS"
