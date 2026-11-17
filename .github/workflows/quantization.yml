@@ -31,7 +31,8 @@ jobs:
           # Same Eigen archive fix as scripts/plus/build.sh.
           sed -i 's/be8be39fdbc6e60e94fa7870b280707069b5b81a/32b145f525a8308d7ab1c09388b2e288312d8eba/' onnxruntime/cmake/deps.txt
           # GitLab re-generated KleidiAI's v0.2.0 archive (XNNPACK's Arm routines) the same way.
-          sed -i 's/b1e3173992fd91f20db904ab77d6e901778c2681/61886eac853e2235359cbcc73c5830b8abf71467/' onnxruntime/cmake/deps.txt
+          grep -rl b1e3173992fd91f20db904ab77d6e901778c2681 onnxruntime/cmake | xargs -r sed -i 's/b1e3173992fd91f20db904ab77d6e901778c2681/61886eac853e2235359cbcc73c5830b8abf71467/'
+          grep -rn 61886eac853e2235359cbcc73c5830b8abf71467 onnxruntime/cmake
           python3 onnxruntime/tools/ci_build/build.py --build_dir ort-build --config Release \
             --build_wheel --use_xnnpack --parallel --skip_tests --skip_submodule_sync \
             --compile_no_warning_as_error --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF
