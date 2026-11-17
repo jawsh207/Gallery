@@ -415,7 +415,8 @@ for key, title, original, feeds_for in MODELS:
             feeds = feeds_for(session(model))
             one = timing(model, feeds, 1)
             many = timing(model, feeds, min(4, cores))
-            if XNNPACK:
+            # XNNPACK crashes the whole process on the text half, so it's left out there.
+            if XNNPACK and key != "clip_text":
                 try:
                     x_one = f"{timing(model, feeds, 1, True):.1f} ms"
                     x_many = f"{timing(model, feeds, min(4, cores), True):.1f} ms"
