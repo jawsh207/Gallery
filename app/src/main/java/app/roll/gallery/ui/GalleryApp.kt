@@ -83,6 +83,7 @@ import app.roll.gallery.ui.collections.CollectionsTab
 import app.roll.gallery.ui.collections.NewAlbumScreen
 import app.roll.gallery.ui.collections.DuplicatesScreen
 import app.roll.gallery.ui.locked.LockedScreen
+import app.roll.gallery.ui.people.PersonScreen
 import app.roll.gallery.ui.editor.EditorScreen
 import app.roll.gallery.ui.collections.SetScreen
 import app.roll.gallery.ui.collections.TrashScreen
@@ -184,6 +185,12 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
             )
             Screen.Settings -> SettingsScreen(viewModel, onBack = back)
             Screen.Duplicates -> DuplicatesScreen(viewModel, loaded, onBack = back)
+            is Screen.Person -> PersonScreen(
+                viewModel, loaded, screen.key,
+                onKeyChange = { key -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = Screen.Person(key) },
+                onBack = back,
+                onOpen = { open(Screen.Viewer(MediaSet.Person(screen.key), it.id)) },
+            )
             Screen.Locked -> LockedScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Locked, it.id)) })
             is Screen.NewAlbum -> NewAlbumScreen(viewModel, loaded, screen.name, onDone = back)
             Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
@@ -238,6 +245,7 @@ private fun Home(
     val lockMenu = BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(selected) }
     val openMedia: (Media) -> Unit = { open(Screen.Viewer(MediaSet.All, it.id)) }
     val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
+    val people by viewModel.people.collectAsStateWithLifecycle()
     val memories = remember(library.items, showMemories) {
         if (showMemories) memoriesFor(library.items, LocalDate.now(), ZoneId.systemDefault()) else emptyList()
     }
@@ -332,6 +340,8 @@ private fun Home(
                     onOpenDuplicates = { open(Screen.Duplicates) },
                     onOpenLocked = { open(Screen.Locked) },
                     contentPadding = padding,
+                    people = people,
+                    onOpenPerson = { open(Screen.Person(it.key)) },
                 )
             }
         }

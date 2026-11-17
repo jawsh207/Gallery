@@ -45,7 +45,9 @@ store, so other apps see the same favorites and trash.
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can
   pick them from Gallery, one or several.
 - **Settings:** photo access, Media management, On this day, version and licenses, and in
-  Gallery Plus, Text in photos.
+  Gallery Plus, Text and people.
+- **People (Gallery Plus):** finds faces in your photos on the phone and groups them into
+  people at the top of Collections. Name someone and search their name to find their photos.
 - **Text in photos (Gallery Plus):** reads the text in your photos in the background, on the
   phone (by default only while charging), so search finds signs, receipts, screenshots and
   documents. Latin alphabet languages.
@@ -68,7 +70,7 @@ Gallery doesn't ask for location access, so it doesn't read where photos were ta
 | | What's in it |
 | --- | --- |
 | **Gallery** | Everything above. |
-| **Gallery Plus** | Everything above, plus reading text in photos, on the phone, for search. Bigger, because it carries recognition models and a small engine to run them. |
+| **Gallery Plus** | Everything above, plus reading text in photos and finding people, on the phone, for search. Bigger, because it carries recognition models and a small engine to run them. |
 
 Both have the same app id and signing keys, so either installs over the other and keeps its
 settings and Locked folder.

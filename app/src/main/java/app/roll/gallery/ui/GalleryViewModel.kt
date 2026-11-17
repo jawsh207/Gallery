@@ -13,7 +13,13 @@ import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
 import app.roll.gallery.Edition
 import app.roll.gallery.recognition.TextIndex
-import app.roll.gallery.recognition.TextIndexWorker
+import app.roll.gallery.recognition.RecognitionWorker
+import app.roll.gallery.recognition.FaceEntry
+import app.roll.gallery.recognition.FaceIndex
+import app.roll.gallery.recognition.PeopleNames
+import app.roll.gallery.recognition.Person
+import app.roll.gallery.recognition.buildPeople
+import app.roll.gallery.recognition.searchableText
 import androidx.work.WorkManager
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.merge
@@ -81,46 +87,89 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settings.setReadTextOnlyCharging(on) }
     }
 
+    /** Whether faces are found and grouped into people (Gallery Plus). */
+    val findPeople: StateFlow<Boolean> = settings.findPeople.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Turns finding people on (and starts it) or off (stopping it and forgetting the faces found). */
+    fun setFindPeople(on: Boolean) {
+        viewModelScope.launch { settings.setFindPeople(on) }
+    }
+
     private val textIndex = TextIndex(app)
+    private val faceIndex = FaceIndex(app)
+    private val peopleNames = PeopleNames(app)
     private val _photoText = MutableStateFlow<Map<Long, String>>(emptyMap())
+    private val _faces = MutableStateFlow<Map<Long, FaceEntry>>(emptyMap())
+    private val _names = MutableStateFlow<Map<String, String>>(emptyMap())
 
     /** The text read in each photo so far, lower-cased for searching, by photo id (Gallery Plus). */
     val photoText: StateFlow<Map<Long, String>> = _photoText
 
-    /** Re-reads the text index, to pick up what the background reading has added. */
-    fun refreshPhotoText() {
-        if (!Edition.HAS_TEXT_SEARCH) return
+    /** The faces found so far, by photo id, including photos found to have none (Gallery Plus). */
+    val faces: StateFlow<Map<Long, FaceEntry>> = _faces
+
+    /** Everyone found in the photos, worked out again whenever faces or names change (Gallery Plus). */
+    val people: StateFlow<List<Person>> = combine(_faces, _names) { faces, names -> faces to names }
+        .debounce(300)
+        .map { (faces, names) -> buildPeople(faces, names) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** What search matches each photo against beyond its name and date: its text and its people's names. */
+    val searchText: StateFlow<Map<Long, String>> = combine(_photoText, people) { text, people -> searchableText(text, people) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /** Gives [person] a [name], or takes it away when blank. */
+    fun renamePerson(person: Person, name: String) {
         viewModelScope.launch {
-            _photoText.value = withContext(Dispatchers.IO) {
-                textIndex.load().mapValues { (_, entry) -> entry.text.lowercase() }
+            val names = app.roll.gallery.recognition.renamePerson(_names.value, person, name)
+            withContext(Dispatchers.IO) { peopleNames.save(names) }
+            _names.value = names
+        }
+    }
+
+    /** Re-reads what the background work has found (text, faces and names). */
+    fun refreshRecognition() {
+        if (!Edition.HAS_TEXT_SEARCH && !Edition.HAS_PEOPLE) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                _photoText.value = textIndex.load().mapValues { (_, entry) -> entry.text.lowercase() }
+                _faces.value = faceIndex.load()
+                _names.value = peopleNames.load()
             }
         }
     }
 
     init {
-        if (Edition.HAS_TEXT_SEARCH) {
-            // Keep the background reading in step with the settings.
+        if (Edition.HAS_TEXT_SEARCH || Edition.HAS_PEOPLE) {
+            // Keep the background work in step with the settings. The first time (the app
+            // opening) a run already under way is left alone; after a change it starts over.
             viewModelScope.launch {
-                combine(settings.readText, settings.readTextOnlyCharging) { on, charging -> on to charging }
-                    .collect { (on, charging) ->
-                        if (on) TextIndexWorker.schedule(app, charging) else TextIndexWorker.stop(app)
-                        refreshPhotoText()
-                    }
+                var first = true
+                combine(settings.readText, settings.findPeople, settings.readTextOnlyCharging) { text, faces, charging ->
+                    Triple(text, faces, charging)
+                }.distinctUntilChanged().collect { (text, faces, charging) ->
+                    withContext(Dispatchers.IO) { RecognitionWorker.schedule(app, text, faces, charging, restart = !first) }
+                    first = false
+                    refreshRecognition()
+                }
             }
-            // Re-read the index whenever the background reading saves a batch or finishes, so
-            // counts and search stay current without leaving the screen.
+            // Re-read the indexes whenever the background work saves a batch or finishes, so
+            // counts, people and search stay current without leaving the screen.
             viewModelScope.launch {
                 val work = WorkManager.getInstance(app)
-                TextIndexWorker.WORK_NAMES
+                RecognitionWorker.WORK_NAMES
                     .map { name -> work.getWorkInfosForUniqueWorkFlow(name) }
                     .merge()
                     .map { infos -> infos.joinToString { "${it.id}:${it.state}:${it.progress}" } }
                     .distinctUntilChanged()
                     .debounce(500)
-                    .collect { refreshPhotoText() }
+                    .collect { refreshRecognition() }
             }
         }
     }
+
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     /** Short messages for the user ("Copied 3 items"), shown as a snackbar. */

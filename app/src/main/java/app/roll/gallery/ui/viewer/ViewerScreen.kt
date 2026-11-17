@@ -124,9 +124,14 @@ fun ViewerScreen(
     }
     val words = rememberSearchWords()
     val locale = currentLocale()
-    val photoText by viewModel.photoText.collectAsStateWithLifecycle()
-    val items = remember(library, set, words, locale, photoText) {
-        library.itemsIn(set, words, locale, photoText = { photoText[it] })
+    val photoText by viewModel.searchText.collectAsStateWithLifecycle()
+    val people by viewModel.people.collectAsStateWithLifecycle()
+    val items = remember(library, set, words, locale, photoText, people) {
+        library.itemsIn(
+            set, words, locale,
+            photoText = { photoText[it] },
+            personPhotos = { key -> people.firstOrNull { it.key == key }?.photoIds.orEmpty() },
+        )
     }
     if (items.isEmpty()) {
         // The last item was trashed or deleted.

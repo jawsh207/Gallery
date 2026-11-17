@@ -49,6 +49,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
+import app.roll.gallery.recognition.Person
+import app.roll.gallery.ui.people.PeopleRow
 import app.roll.gallery.data.Album
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.MediaSet
@@ -58,7 +60,7 @@ import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: shortcuts to Favorites and Trash, the duplicate finder and the
+ * The Collections tab: shortcuts to Favorites and Trash, [people] (Gallery Plus), the duplicate finder and the
  * Locked folder, then every folder with photos
  * as an album, camera and screenshots first, with a button to make a new one ([onNewAlbum]
  * gets its name once it's been checked).
@@ -72,8 +74,11 @@ fun CollectionsTab(
     onOpenDuplicates: () -> Unit,
     onOpenLocked: () -> Unit,
     contentPadding: PaddingValues,
+    people: List<Person> = emptyList(),
+    onOpenPerson: (Person) -> Unit = {},
 ) {
     val albums = remember(library.items) { buildAlbums(library.items) }
+    val photosById = remember(library.items) { library.items.associateBy { it.id } }
     var naming by remember { mutableStateOf(false) }
     if (naming) {
         NewAlbumDialog(
@@ -100,6 +105,11 @@ fun CollectionsTab(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Shortcut(Icons.Outlined.FavoriteBorder, stringResource(R.string.favorites), Modifier.weight(1f)) { onOpenSet(MediaSet.Favorites) }
                 Shortcut(Icons.Outlined.Delete, stringResource(R.string.trash), Modifier.weight(1f), onClick = onOpenTrash)
+            }
+        }
+        if (people.isNotEmpty()) {
+            item(key = "people", span = { GridItemSpan(maxLineSpan) }) {
+                PeopleRow(people, photosById, onOpenPerson)
             }
         }
         item(key = "tools", span = { GridItemSpan(maxLineSpan) }) {

@@ -31,7 +31,7 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[READ_TEXT] = on }
     }
 
-    /** Whether reading text waits for the phone to be charging. On unless turned off. */
+    /** Whether reading text and finding people wait for the phone to be charging. On unless turned off. */
     val readTextOnlyCharging: Flow<Boolean> = context.settingsStore.data.map { it[READ_TEXT_CHARGING] ?: true }
 
     /** Sets whether reading text waits for charging. */
@@ -39,7 +39,16 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[READ_TEXT_CHARGING] = on }
     }
 
+    /** Whether Gallery Plus finds faces and groups them into people. On unless turned off. */
+    val findPeople: Flow<Boolean> = context.settingsStore.data.map { it[FIND_PEOPLE] ?: true }
+
+    /** Turns finding people on or off. */
+    suspend fun setFindPeople(on: Boolean) {
+        context.settingsStore.edit { it[FIND_PEOPLE] = on }
+    }
+
     private companion object {
+        val FIND_PEOPLE = booleanPreferencesKey("find_people")
         val SHOW_MEMORIES = booleanPreferencesKey("show_memories")
         val READ_TEXT = booleanPreferencesKey("read_text")
         val READ_TEXT_CHARGING = booleanPreferencesKey("read_text_only_charging")

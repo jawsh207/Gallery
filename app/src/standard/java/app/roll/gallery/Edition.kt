@@ -1,6 +1,7 @@
 package app.roll.gallery
 
 import android.content.Context
+import app.roll.gallery.recognition.FaceFinder
 import app.roll.gallery.recognition.TextReader
 
 /** What this edition of Gallery includes. The plain edition: no recognition, so no models or runtime. */
@@ -11,4 +12,11 @@ object Edition {
     /** No text reader in this edition. */
     @Suppress("UNUSED_PARAMETER")
     fun textReader(context: Context): TextReader? = null
+
+    /** Whether faces are found and grouped into people. */
+    const val HAS_PEOPLE = false
+
+    /** No face finder in this edition. */
+    @Suppress("UNUSED_PARAMETER")
+    fun faceFinder(context: Context): FaceFinder? = null
 }

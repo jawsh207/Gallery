@@ -25,12 +25,13 @@ Nothing goes over the network: the app has no internet access and uses no Google
 
 Gallery comes as **Gallery** and **Gallery Plus**. They're the same app (same app id, so either
 installs over the other and keeps its settings and Locked folder); Plus adds reading the text
-in photos, which needs recognition models and a small engine to run them, so it's bigger. Code
+in photos and finding people, which needs recognition models and a small engine to run them, so it's bigger. Code
 for Plus only lives in `app/src/plus/`, and the plain edition's stand-ins in `app/src/standard/`;
 `Edition.kt` in each says what that edition includes.
 
 The models are PaddleOCR's small text finder (about 2.5 MB) and Latin-script text reader (about
-8 MB). They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
+8 MB), and the OpenCV Zoo's YuNet face finder (about 0.2 MB) and 8-bit SFace face matcher
+(about 10 MB). They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
 64-bit phones; about 1.3 MB) are built by `scripts/plus/build.sh`, which CI runs and caches. The
 script tries shrinking the reader's numbers to 8 bits and keeps that only if the shrunk model
 reads a set of test lines exactly as the original does. With the current model, shrinking every
@@ -43,10 +44,10 @@ nothing, so the reader is effectively as published.
 | --- | --- | --- |
 | Access | Asking for permission to see photos, with a way into Android's settings | `ui/access/AccessScreen.kt` |
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
-| Settings | Photo access, Media management, On this day, Text in photos (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
+| Settings | Photo access, Media management, On this day, Text and people (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Videos tab | Every video, newest first, in the same grid as Photos | `ui/GalleryApp.kt` |
-| Collections tab | Favorites and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
+| Collections tab | People (Plus), Favorites and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
@@ -57,6 +58,7 @@ nothing, so the reader is effectively as published.
 | Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
 | Editor | Cropping, turning, colour adjustments and filters, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt` |
 | Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
+| Person | One person's photos, and giving them a name (Plus) | `ui/people/People.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
 The main screen (the search bar with its Settings button, the three tabs — Photos, Videos and
@@ -81,6 +83,21 @@ be selected and opened like the Photos tab, and the viewer pages through just th
 In Gallery, search doesn't look inside photos. In **Gallery Plus** a word also matches text read
 in the photo (see Text in photos).
 
+**People (Gallery Plus).** In the same background pass as the text, Gallery Plus looks for faces
+in every photo (not videos, never the Locked folder), on the phone. YuNet finds each face and
+where its eyes, nose and mouth are; the face is turned and scaled so those land in the same
+places every time, and SFace turns it into a "fingerprint" of 128 numbers that comes out
+similar for the same person. Only the face's box and fingerprint are kept, in a file in
+Gallery's private storage, never pictures of faces. Faces are then grouped: each joins the
+group whose average it's most like, if alike enough, or starts a new one. A group seen in at
+least three photos (or given a name) is a person, shown as a round picture at the top of
+Collections. Tapping one shows their photos; the pencil gives them a name, and searching that
+name finds their photos. Grouping is redone as more photos are looked at, and a name stays with
+the face it was given on. The same person may sometimes be split into two people, or two
+lookalikes joined; there's no merging or splitting yet. Settings → Text and people → Find
+people shows how far it's got and can turn it off, which forgets the faces found but keeps the
+names.
+
 **Text in photos (Gallery Plus).** In the background, Gallery Plus reads the text in every
 photo (not videos, and never the Locked folder) with its built-in models, on the phone: the
 finder marks where there's text, each spot is cut out and read, and the words go into a small
@@ -89,7 +106,7 @@ documents. Each photo is read once, and again if it's edited; photos with no tex
 they aren't read twice, and deleted photos are dropped from the file. Android runs the reading
 when the battery isn't low and, unless that setting is turned off, only while charging, and
 pauses it otherwise; it picks up where it stopped, and checks for new photos every 12 hours.
-Settings → Text in photos shows how many photos have been read, updating as it goes, can turn reading off (which
+Settings → Text and people shows how many photos have been read, updating as it goes, can turn reading off (which
 deletes the text file) and can let it run without charging. The reader knows the Latin
 alphabet: English and most European languages.
 
@@ -261,7 +278,12 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Reading text in a photo (Plus) | `app/src/plus/.../recognition/PaddleTextReader.kt`, `recognition/TextReader.kt` |
 | Sizing images for the models, finding text boxes, turning scores into characters | `recognition/OcrMath.kt` |
 | The file of text read in photos | `recognition/TextIndex.kt` |
-| Reading photos in the background, and scheduling it | `recognition/TextIndexWorker.kt` |
+| Looking at photos in the background (text and faces), and scheduling it | `recognition/RecognitionWorker.kt` |
+| Finding faces and fingerprinting them (Plus) | `app/src/plus/.../recognition/YuNetFaceFinder.kt`, `recognition/FaceFinder.kt` |
+| Reading the face finder's output, straightening faces, comparing and grouping them | `recognition/FaceMath.kt` |
+| The file of faces found, and people's names | `recognition/FaceIndex.kt` |
+| Turning faces into people, naming them, making names searchable | `recognition/People.kt` |
+| Round face pictures | `image/Thumbnails.kt` |
 | Building the models and the cut-down runtime | `scripts/plus/build.sh`, `prepare_models.py`, `models.txt`, `ort_settings.json` |
 | Video playback | `ui/viewer/Pages.kt` |
 | Finding the video inside a motion photo | `data/MotionPhotos.kt` |
@@ -270,6 +292,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

@@ -73,13 +73,16 @@ sealed interface MediaSet {
     data class Album(val id: Long) : MediaSet
     /** Today's "On this day" photos from [yearsAgo] years ago (see [memoriesFor]). */
     data class Memory(val yearsAgo: Int) : MediaSet
+    /** The photos of one person, by the person's key (Gallery Plus). */
+    data class Person(val key: String) : MediaSet
     /** The results of a search for [query] (see [searchMedia]). */
     data class Search(val query: String) : MediaSet
 }
 
 /**
  * The items of [set], newest first. [words], [locale], [zone] and [photoText] are only used by
- * searches, to read the query the way the search screen did.
+ * searches, to read the query the way the search screen did; [personPhotos] gives a person's
+ * photos by their key.
  */
 fun Library.itemsIn(
     set: MediaSet,
@@ -87,6 +90,7 @@ fun Library.itemsIn(
     locale: Locale = Locale.getDefault(),
     zone: ZoneId = ZoneId.systemDefault(),
     photoText: (Long) -> String? = { null },
+    personPhotos: (String) -> Set<Long> = { emptySet() },
 ): List<Media> = when (set) {
     MediaSet.All -> items
     MediaSet.Favorites -> favorites
@@ -95,5 +99,6 @@ fun Library.itemsIn(
     MediaSet.Locked -> locked
     is MediaSet.Album -> album(set.id)
     is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, photoText)
+    is MediaSet.Person -> personPhotos(set.key).let { ids -> items.filter { it.id in ids } }
     is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()
 }

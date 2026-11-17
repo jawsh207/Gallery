@@ -81,7 +81,8 @@ import java.time.ZoneId
  * Search, as in Contacts: the field opens focused, with shortcuts underneath (videos, favorites,
  * screenshots, each year, the biggest albums) until something is typed. In Gallery Plus it also
  * matches the text read in photos. Results show as you
- * type, in the same grid as the Photos tab, and can be selected the same way. [onOpen] gets the
+ * type, in the same grid as the Photos tab, and can be selected the same way. In Gallery Plus
+ * a person's name finds their photos. [onOpen] gets the
  * query too, so the viewer pages through the same results.
  */
 @Composable
@@ -90,9 +91,10 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     val words = rememberSearchWords()
     val locale = currentLocale()
     val zone = remember { ZoneId.systemDefault() }
-    // Gallery Plus: the text read in photos counts too; picked up fresh each time search opens.
-    val photoText by viewModel.photoText.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { viewModel.refreshPhotoText() }
+    // Gallery Plus: the text read in photos and people's names count too; picked up fresh each
+    // time search opens.
+    val photoText by viewModel.searchText.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.refreshRecognition() }
     val results = remember(library, query, words, locale, photoText) {
         searchMedia(library.items, query, words, locale, zone) { photoText[it] }
     }

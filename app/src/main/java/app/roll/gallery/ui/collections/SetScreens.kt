@@ -59,6 +59,7 @@ fun MediaSet.title(library: Library): String = when (this) {
     is MediaSet.Album -> library.album(id).firstOrNull()?.albumName.orEmpty()
     is MediaSet.Search -> query
     is MediaSet.Memory -> pluralStringResource(R.plurals.years_ago, yearsAgo, yearsAgo)
+    is MediaSet.Person -> stringResource(R.string.person)
 }
 
 /** One album, Favorites or Videos as its own grid, with the same selecting as the Photos tab. */

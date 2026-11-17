@@ -3,3 +3,6 @@
 det.onnx https://huggingface.co/monkt/paddleocr-onnx/resolve/main/detection/v3/det.onnx ee40e80071ba3a320d4efda75f3e22047a7d049e9bf7bcaaf9daea23fc21b935
 rec.onnx https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/latin/rec.onnx 614ffc2d6d3902d360fad7f1b0dd455ee45e877069d14c4e51a99dc4ef144409
 rec_dict.txt https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/latin/dict.txt 3c0a8a79b612653c25f765271714f71281e4e955962c153e272b7b8c1d2b13ff
+# Faces: YuNet finds faces (MIT), SFace tells people apart (Apache 2.0, 8-bit version), from the OpenCV Zoo.
+yunet.onnx https://huggingface.co/opencv/face_detection_yunet/resolve/main/face_detection_yunet_2023mar.onnx unpinned
+sface.onnx https://huggingface.co/opencv/face_recognition_sface/resolve/main/face_recognition_sface_2021dec_int8.onnx unpinned

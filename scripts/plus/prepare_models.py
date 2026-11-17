@@ -1,15 +1,16 @@
 """
-Prepares the Plus edition's text-recognition models: shrinks the reading model's weights to
-8-bit numbers (the text-finding model is small and kept as it is), then converts both to ONNX
-Runtime's own format, which also writes the list of operators they use. That list is what the
-cut-down runtime is built with.
+Prepares the Plus edition's models: the text finder and reader, and the face finder (YuNet)
+and face matcher (SFace, already 8-bit). The text reader's weights are shrunk to 8-bit numbers
+where that's safe (below); the rest are used as published. All are converted to ONNX Runtime's
+own format, which also writes the list of operators they use. That list is what the cut-down
+runtime is built with.
 
 Shrinking can cost accuracy, so the shrunk reader is checked against the original on a few
 lines of test text drawn here: it must read every line the same. Shrinking every layer is
 tried first (smallest); if that reads anything differently, only the matrix layers are shrunk;
 if even that differs, the original is kept.
 
-Usage: python3 prepare_models.py <folder with det.onnx, rec.onnx, rec_dict.txt> <output folder>
+Usage: python3 prepare_models.py <folder with det.onnx, rec.onnx, rec_dict.txt, yunet.onnx, sface.onnx> <output folder>
 """
 import pathlib
 import shutil
@@ -79,6 +80,8 @@ if chosen is None:
 
 shutil.copy(src / "det.onnx", work / "det.onnx")
 shutil.copy(chosen, work / "rec.onnx")
+shutil.copy(src / "yunet.onnx", work / "yunet.onnx")
+shutil.copy(src / "sface.onnx", work / "sface.onnx")
 subprocess.run(
     [
         sys.executable, "-m", "onnxruntime.tools.convert_onnx_models_to_ort", str(work),
@@ -88,3 +91,8 @@ subprocess.run(
 )
 for f in sorted(work.iterdir()):
     print(f"{f.name}: {f.stat().st_size} bytes")
+
+# Print each model's inputs and outputs, so a changed model shows up in the build log.
+for name in ["det.onnx", "rec.onnx", "yunet.onnx", "sface.onnx"]:
+    session = ort.InferenceSession(str(work / name), providers=["CPUExecutionProvider"])
+    print(name, "in:", [(i.name, i.shape) for i in session.get_inputs()], "out:", [(o.name, o.shape) for o in session.get_outputs()])

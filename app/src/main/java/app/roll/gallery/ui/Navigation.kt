@@ -19,6 +19,8 @@ sealed interface Screen {
     data object Settings : Screen
     data object Duplicates : Screen
     data object Locked : Screen
+    /** One person's photos, by the person's key. */
+    data class Person(val key: String) : Screen
     /** The editor, for the photo with this id. */
     data class Editor(val id: Long) : Screen
     /** Choosing the photos for a new album called [name]. */
@@ -38,6 +40,7 @@ fun MediaSet.encode(): String = when (this) {
     // Encoded, so a query can't contain the "|" that separates the saved parts.
     is MediaSet.Search -> "search:" + URLEncoder.encode(query, "UTF-8")
     is MediaSet.Memory -> "memory:$yearsAgo"
+    is MediaSet.Person -> "person:" + URLEncoder.encode(key, "UTF-8")
 }
 
 /** The [MediaSet] [text] was saved as, or null if it can't be read. */
@@ -48,6 +51,7 @@ fun decodeMediaSet(text: String): MediaSet? = when {
     text == "trash" -> MediaSet.Trash
     text == "locked" -> MediaSet.Locked
     text.startsWith("album:") -> text.removePrefix("album:").toLongOrNull()?.let { MediaSet.Album(it) }
+    text.startsWith("person:") -> MediaSet.Person(URLDecoder.decode(text.removePrefix("person:"), "UTF-8"))
     text.startsWith("memory:") -> text.removePrefix("memory:").toIntOrNull()?.let { MediaSet.Memory(it) }
     text.startsWith("search:") -> MediaSet.Search(URLDecoder.decode(text.removePrefix("search:"), "UTF-8"))
     else -> null
@@ -60,6 +64,7 @@ private fun Screen.encode(): String = when (this) {
     Screen.Settings -> "settings"
     Screen.Duplicates -> "duplicates"
     Screen.Locked -> "lockedfolder"
+    is Screen.Person -> "person|" + URLEncoder.encode(key, "UTF-8")
     is Screen.Editor -> "editor|$id"
     is Screen.NewAlbum -> "newalbum|" + URLEncoder.encode(name, "UTF-8")
     is Screen.Grid -> "grid|${set.encode()}"
@@ -75,6 +80,7 @@ private fun decode(text: String): Screen? {
         "settings" -> Screen.Settings
         "duplicates" -> Screen.Duplicates
         "lockedfolder" -> Screen.Locked
+        "person" -> parts.getOrNull(1)?.let { Screen.Person(URLDecoder.decode(it, "UTF-8")) }
         "editor" -> parts.getOrNull(1)?.toLongOrNull()?.let { Screen.Editor(it) }
         "newalbum" -> parts.getOrNull(1)?.let { Screen.NewAlbum(URLDecoder.decode(it, "UTF-8")) }
         "grid" -> parts.getOrNull(1)?.let(::decodeMediaSet)?.let { Screen.Grid(it) }

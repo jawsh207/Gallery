@@ -1,6 +1,7 @@
 package app.roll.gallery.image
 
 import android.content.ContentResolver
+import android.graphics.Bitmap
 import android.media.ThumbnailUtils
 import android.net.Uri
 import app.roll.gallery.data.Media
@@ -72,3 +73,35 @@ class ThumbnailFetcher(
 
 /** The longer side Coil wants the image drawn at, or 512 when the layout doesn't say. */
 private fun Options.longestSide(): Int = maxOf(size.width.pxOrElse { 512 }, size.height.pxOrElse { 512 })
+
+/**
+ * A round person picture: the part of photo [uri] around a face whose box is given as fractions
+ * of the photo ([left], [top], [width], [height]), from Android's thumbnail of the photo.
+ */
+data class FaceCrop(val uri: Uri, val modifiedAt: Long, val left: Float, val top: Float, val width: Float, val height: Float)
+
+/** Lets Coil keep [FaceCrop]s in its memory cache. */
+class FaceCropKeyer : Keyer<FaceCrop> {
+    override fun key(data: FaceCrop, options: Options): String =
+        "face:${data.uri}:${data.modifiedAt}:${data.left},${data.top},${data.width},${data.height}"
+}
+
+/** Cuts a [FaceCrop] out of the photo's thumbnail: a square around the face with some room around it. */
+class FaceCropFetcher(private val resolver: ContentResolver, private val data: FaceCrop) : Fetcher {
+    override suspend fun fetch(): FetchResult {
+        val thumb = resolver.loadThumbnail(data.uri, AndroidSize(512, 512), null)
+        val cx = (data.left + data.width / 2) * thumb.width
+        val cy = (data.top + data.height / 2) * thumb.height
+        val side = (maxOf(data.width * thumb.width, data.height * thumb.height) * 1.8f)
+            .coerceAtMost(minOf(thumb.width, thumb.height).toFloat()).coerceAtLeast(1f)
+        val x = (cx - side / 2).coerceIn(0f, thumb.width - side).toInt()
+        val y = (cy - side / 2).coerceIn(0f, thumb.height - side).toInt()
+        val crop = Bitmap.createBitmap(thumb, x, y, side.toInt().coerceAtMost(thumb.width - x), side.toInt().coerceAtMost(thumb.height - y))
+        return ImageFetchResult(image = crop.asImage(), isSampled = true, dataSource = DataSource.DISK)
+    }
+
+    /** Hands Coil a [FaceCropFetcher] for each [FaceCrop]. */
+    class Factory(private val resolver: ContentResolver) : Fetcher.Factory<FaceCrop> {
+        override fun create(data: FaceCrop, options: Options, imageLoader: ImageLoader): Fetcher = FaceCropFetcher(resolver, data)
+    }
+}

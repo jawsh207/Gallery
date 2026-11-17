@@ -249,10 +249,20 @@
 
     <!-- Text in photos (Gallery Plus) -->
     <string name="search_no_results_body_text">Nothing matches \u201c<xliff:g id="query" example="beach">%1$s</xliff:g>\u201d. Search looks at text in photos, file and album names, dates, months and years.</string>
-    <string name="settings_text">Text in photos</string>
+    <string name="settings_text">Text and people</string>
     <string name="settings_read_text">Read text in photos</string>
     <string name="settings_read_text_progress">Read <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone, for search</string>
     <string name="settings_read_text_off">Off. Turning it off forgets what was read.</string>
     <string name="settings_read_text_charging">Only while charging</string>
-    <string name="settings_read_text_charging_summary">Reading a big library takes a while and uses the battery</string>
+    <string name="settings_read_text_charging_summary">Looking through a big library takes a while and uses the battery</string>
+
+    <!-- People (Gallery Plus) -->
+    <string name="people">People</string>
+    <string name="person">Person</string>
+    <string name="person_add_name">Add a name</string>
+    <string name="person_rename">Name this person</string>
+    <string name="person_name">Name</string>
+    <string name="settings_find_people">Find people</string>
+    <string name="settings_find_people_progress">Looked at <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone; <xliff:g id="people" example="12">%3$d</xliff:g> people so far</string>
+    <string name="settings_find_people_off">Off. Turning it off forgets the faces found; names are kept.</string>
 </resources>
