@@ -20,7 +20,13 @@ python3 -m pip install --quiet "onnxruntime==$ORT_VERSION" "onnx==1.17.0" "pillo
 # Download each model and check it against its pinned SHA-256.
 grep -v '^#' "$HERE/models.txt" | while read -r name url sha; do
   [ -z "$name" ] && continue
-  curl -fsSL --retry 3 -o "$WORK/download/$name" "$url"
+  if ! curl -fsSL --retry 3 -o "$WORK/download/$name" "$url"; then
+    echo "::error title=Model download failed::$name from $url"
+    # For a Hugging Face file, list what the repository does have, to make fixing the path easy.
+    repo=$(echo "$url" | sed -n 's#https://huggingface.co/\([^/]*/[^/]*\)/resolve/.*#\1#p')
+    [ -n "$repo" ] && curl -fsSL "https://huggingface.co/api/models/$repo" | python3 -c 'import json,sys; print("\n".join(s["rfilename"] for s in json.load(sys.stdin)["siblings"]))' || true
+    exit 1
+  fi
   actual=$(sha256sum "$WORK/download/$name" | cut -d' ' -f1)
   if [ "$sha" = "unpinned" ]; then
     echo "::notice title=Unpinned model::$name sha256 $actual"
