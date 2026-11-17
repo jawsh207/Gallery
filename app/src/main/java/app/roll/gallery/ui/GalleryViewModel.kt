@@ -21,8 +21,6 @@ import app.roll.gallery.recognition.Person
 import app.roll.gallery.recognition.buildPeople
 import app.roll.gallery.recognition.searchableText
 import androidx.work.WorkManager
-import androidx.work.WorkInfo
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.merge
 import app.roll.gallery.data.LockedFolder
@@ -122,14 +120,6 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    private val _accelerated = MutableStateFlow<Boolean?>(null)
-
-    /**
-     * Whether the background work runs on the faster XNNPACK engine: true or false once a run
-     * has started since the app opened, null before then (Gallery Plus).
-     */
-    val accelerated: StateFlow<Boolean?> = _accelerated
-
     /** Gives [person] a [name], or takes it away when blank. */
     fun renamePerson(person: Person, name: String) {
         viewModelScope.launch {
@@ -172,11 +162,6 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
                 RecognitionWorker.WORK_NAMES
                     .map { name -> work.getWorkInfosForUniqueWorkFlow(name) }
                     .merge()
-                    .onEach { infos ->
-                        infos.firstOrNull { it.state == WorkInfo.State.RUNNING }?.progress
-                            ?.takeIf { RecognitionWorker.ACCELERATED in it.keyValueMap }
-                            ?.let { _accelerated.value = it.getBoolean(RecognitionWorker.ACCELERATED, false) }
-                    }
                     .map { infos -> infos.joinToString { "${it.id}:${it.state}:${it.progress}" } }
                     .distinctUntilChanged()
                     .debounce(500)

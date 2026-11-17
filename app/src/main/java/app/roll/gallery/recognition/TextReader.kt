@@ -7,9 +7,6 @@ import android.graphics.Bitmap
  * plain edition leaves text search out entirely.
  */
 interface TextReader : AutoCloseable {
-    /** Whether it runs on the faster XNNPACK engine (shown in Settings). */
-    val accelerated: Boolean
-
     /** The text found in [bitmap], lines in reading order separated by newlines; empty if none. */
     fun read(bitmap: Bitmap): String
 }

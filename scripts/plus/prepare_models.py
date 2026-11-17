@@ -85,9 +85,7 @@ shutil.copy(src / "sface.onnx", work / "sface.onnx")
 subprocess.run(
     [
         sys.executable, "-m", "onnxruntime.tools.convert_onnx_models_to_ort", str(work),
-        # Runtime style: the models keep the information the XNNPACK engine needs to rearrange
-        # them for itself when they're loaded (it only exists in the "extended" runtime build).
-        "--enable_type_reduction", "--optimization_style", "Runtime",
+        "--enable_type_reduction", "--optimization_style", "Fixed",
     ],
     check=True,
 )

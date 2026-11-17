@@ -1,7 +1,5 @@
 {
-  "build_abis": [
-    "arm64-v8a"
-  ],
+  "build_abis": ["arm64-v8a"],
   "android_min_sdk_version": 24,
   "android_target_sdk_version": 34,
   "build_params": [
@@ -12,11 +10,9 @@
     "--build_java",
     "--build_shared_lib",
     "--minimal_build",
-    "extended",
     "--disable_rtti",
     "--disable_ml_ops",
     "--enable_reduced_operator_type_support",
-    "--use_xnnpack",
     "--skip_tests"
   ]
 }

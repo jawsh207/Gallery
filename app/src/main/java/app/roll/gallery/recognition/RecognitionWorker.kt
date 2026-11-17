@@ -47,7 +47,6 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val reader = if (readText) Edition.textReader(context, threads) else null
         val finder = if (findFaces) Edition.faceFinder(context, threads) else null
         if (reader == null && finder == null) return Result.success()
-        val accelerated = listOfNotNull(reader?.accelerated, finder?.accelerated).all { it }
 
         val photos = MediaStoreSource(context.contentResolver).load().items.filter { !it.isVideo }
         val ids = photos.mapTo(HashSet()) { it.id }
@@ -67,7 +66,6 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val texts = ArrayList<IndexEntry>()
         val faces = ArrayList<FaceEntry>()
         var batches = 0
-        setProgress(workDataOf(PROGRESS to 0, ACCELERATED to accelerated))
         try {
             coroutineScope {
                 fun load(photo: Media) = async(Dispatchers.IO) { runCatching { renderer.decode(photo, MAX_SIDE) }.getOrNull() }
@@ -96,7 +94,7 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
                         faceIndex.append(faces)
                         texts.clear()
                         faces.clear()
-                        setProgress(workDataOf(PROGRESS to ++batches, ACCELERATED to accelerated))
+                        setProgress(workDataOf(PROGRESS to ++batches))
                     }
                 }
                 next?.cancel()
@@ -119,8 +117,6 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         private const val KEY_TEXT = "text"
         private const val KEY_FACES = "faces"
         private const val PROGRESS = "batches"
-        /** The progress key saying whether the faster XNNPACK engine is in use. */
-        const val ACCELERATED = "accelerated"
         private const val CHARGING_THREADS = 4
         private const val BATTERY_THREADS = 2
         private const val BATCH = 20

@@ -28,7 +28,6 @@ class YuNetFaceFinder(context: Context, threads: Int) : FaceFinder {
     private val matcherModel = loadModel(env, context.assets.open("faces/sface.ort").use { it.readBytes() }, threads)
     private val finder = finderModel.session
     private val matcher = matcherModel.session
-    override val accelerated: Boolean get() = finderModel.accelerated && matcherModel.accelerated
 
     override fun find(bitmap: Bitmap): List<StoredFace> {
         val scale = min(INPUT.toFloat() / bitmap.width, INPUT.toFloat() / bitmap.height)

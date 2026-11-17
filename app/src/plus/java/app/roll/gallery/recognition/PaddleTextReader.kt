@@ -26,7 +26,6 @@ class PaddleTextReader(context: Context, threads: Int) : TextReader {
     private val readerModel = loadModel(env, context.assets.open("ocr/rec.ort").use { it.readBytes() }, threads)
     private val finder = finderModel.session
     private val reader = readerModel.session
-    override val accelerated: Boolean get() = finderModel.accelerated && readerModel.accelerated
     private val characters = readerCharacters(context.assets.open("ocr/rec_dict.txt").use { it.readBytes().decodeToString() })
 
     override fun read(bitmap: Bitmap): String {
