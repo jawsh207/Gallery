@@ -12,8 +12,7 @@ For each model it tries:
     (convolutions and matrix multiplications), which is gentler on accuracy.
 
 and measures, on this machine (an Arm processor like a phone's): file size, time per photo
-with 1 and 4 cores (also with XNNPACK, a library of fast Arm routines, when the ONNX Runtime
-installed has it), and accuracy against the original:
+with 1 and 4 cores, and accuracy against the original:
   - text finder: overlap of the "text here" areas it marks
   - text reader: lines read exactly as the original reads them
   - face finder: overlap of where it finds faces
@@ -245,26 +244,15 @@ def variants(name, original):
 
 # --- Measuring -----------------------------------------------------------------------------
 
-XNNPACK = "XnnpackExecutionProvider" in ort.get_available_providers()
-
-
-def session(model, threads=1, xnnpack=False):
+def session(model, threads=1):
     options = ort.SessionOptions()
+    options.intra_op_num_threads = threads
     options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    if xnnpack:
-        # XNNPACK runs its own threads; ONNX Runtime's are kept to one and don't spin, as its
-        # documentation advises.
-        options.intra_op_num_threads = 1
-        options.add_session_config_entry("session.intra_op.allow_spinning", "0")
-        providers = [("XnnpackExecutionProvider", {"intra_op_num_threads": threads}), "CPUExecutionProvider"]
-    else:
-        options.intra_op_num_threads = threads
-        providers = ["CPUExecutionProvider"]
-    return ort.InferenceSession(str(model), options, providers=providers)
+    return ort.InferenceSession(str(model), options, providers=["CPUExecutionProvider"])
 
 
-def timing(model, feeds, threads, xnnpack=False):
-    s = session(model, threads, xnnpack)
+def timing(model, feeds, threads):
+    s = session(model, threads)
     for _ in range(3):
         s.run(None, feeds)
     times = []
@@ -415,16 +403,6 @@ for key, title, original, feeds_for in MODELS:
             feeds = feeds_for(session(model))
             one = timing(model, feeds, 1)
             many = timing(model, feeds, min(4, cores))
-            # XNNPACK crashes the whole process on the text half, so it's left out there.
-            if XNNPACK and key != "clip_text":
-                try:
-                    x_one = f"{timing(model, feeds, 1, True):.1f} ms"
-                    x_many = f"{timing(model, feeds, min(4, cores), True):.1f} ms"
-                except Exception as error:
-                    print(f"{title} {label} with XNNPACK: {error}")
-                    x_one = x_many = "-"
-            else:
-                x_one = x_many = "n/a"
             if key == "det":
                 accuracy = det_accuracy(original, model)
             elif key == "rec":
@@ -435,17 +413,14 @@ for key, title, original, feeds_for in MODELS:
                 accuracy = clip_image_accuracy(original, model, work / "clip_text.onnx")
             else:
                 accuracy = clip_text_accuracy(original, model, work / "clip_image.onnx")
-            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", f"{one:.1f} ms", f"{many:.1f} ms", x_one, x_many, accuracy)
+            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", f"{one:.1f} ms", f"{many:.1f} ms", accuracy)
         except Exception as error:
             print(f"{title} {label} can't run: {error}")
-            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", "-", "-", "-", "-", f"can't run: {str(error).splitlines()[0][:160]}")
+            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", "-", "-", f"can't run: {str(error).splitlines()[0][:160]}")
         print(" | ".join(row), flush=True)
         rows.append(row)
 
-table = [
-    "| Model | Way | Size | 1 core | 4 cores | XNNPACK, 1 core | XNNPACK, 4 cores | Accuracy against the original |",
-    "|---|---|---|---|---|---|---|---|",
-]
+table = ["| Model | Way | Size | 1 core | 4 cores | Accuracy against the original |", "|---|---|---|---|---|---|"]
 table += ["| " + " | ".join(r) + " |" for r in rows]
 report = "\n".join(table)
 print(report)
