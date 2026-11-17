@@ -27,6 +27,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import app.roll.gallery.Edition
+import androidx.compose.material.icons.outlined.DocumentScanner
+import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Switch
 import androidx.compose.material.icons.outlined.History
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,7 +62,8 @@ import app.roll.gallery.ui.components.segmentShape
 /**
  * Settings, in grouped cards as in Contacts: what the app may see, Android's "Media
  * management" access (which skips the confirmation on every change), whether memories show,
- * and About.
+ * reading text in photos (Gallery Plus only: on or off, only while charging, and how far it's
+ * got), and About.
  * Access can change in Android's settings, so it's read again whenever this screen returns.
  */
 @Composable
@@ -78,6 +83,16 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
     }
     var showLicenses by remember { mutableStateOf(false) }
     val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
+    val readText by viewModel.readText.collectAsStateWithLifecycle()
+    val onlyCharging by viewModel.readTextOnlyCharging.collectAsStateWithLifecycle()
+    val photoText by viewModel.photoText.collectAsStateWithLifecycle()
+    val library by viewModel.library.collectAsStateWithLifecycle()
+    LaunchedEffect(refresh) { viewModel.refreshPhotoText() }
+    // How many of the photos (not videos) have been read so far.
+    val textProgress = remember(photoText, library) {
+        val photos = library?.items.orEmpty().filter { !it.isVideo }
+        photos.count { it.id in photoText } to photos.size
+    }
 
     Scaffold(
         topBar = {
@@ -144,6 +159,38 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
                     trailing = { Switch(checked = showMemories, onCheckedChange = viewModel::setShowMemories) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
+            }
+
+            if (Edition.HAS_TEXT_SEARCH) {
+                item(key = "text-header") { SectionHeader(stringResource(R.string.settings_text)) }
+                item(key = "read-text") {
+                    ListRow(
+                        icon = Icons.Outlined.DocumentScanner,
+                        title = stringResource(R.string.settings_read_text),
+                        summary = if (!readText) {
+                            stringResource(R.string.settings_read_text_off)
+                        } else {
+                            stringResource(R.string.settings_read_text_progress, textProgress.first, textProgress.second)
+                        },
+                        shape = segmentShape(0, 2),
+                        onClick = { viewModel.setReadText(!readText) },
+                        trailing = { Switch(checked = readText, onCheckedChange = viewModel::setReadText) },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+                item(key = "read-text-charging") {
+                    ListRow(
+                        icon = Icons.Outlined.BatteryChargingFull,
+                        title = stringResource(R.string.settings_read_text_charging),
+                        summary = stringResource(R.string.settings_read_text_charging_summary),
+                        shape = segmentShape(1, 2),
+                        onClick = { viewModel.setReadTextOnlyCharging(!onlyCharging) },
+                        trailing = {
+                            Switch(checked = onlyCharging, enabled = readText, onCheckedChange = viewModel::setReadTextOnlyCharging)
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
             }
 
             item(key = "about-header") { SectionHeader(stringResource(R.string.settings_about)) }

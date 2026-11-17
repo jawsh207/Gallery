@@ -246,4 +246,13 @@
         <item quantity="one">Moved <xliff:g id="count" example="3">%1$d</xliff:g> item back to your photos</item>
         <item quantity="other">Moved <xliff:g id="count" example="3">%1$d</xliff:g> items back to your photos</item>
     </plurals>
+
+    <!-- Text in photos (Gallery Plus) -->
+    <string name="search_no_results_body_text">Nothing matches \u201c<xliff:g id="query" example="beach">%1$s</xliff:g>\u201d. Search looks at text in photos, file and album names, dates, months and years.</string>
+    <string name="settings_text">Text in photos</string>
+    <string name="settings_read_text">Read text in photos</string>
+    <string name="settings_read_text_progress">Read <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone, for search</string>
+    <string name="settings_read_text_off">Off. Turning it off forgets what was read.</string>
+    <string name="settings_read_text_charging">Only while charging</string>
+    <string name="settings_read_text_charging_summary">Reading a big library takes a while and uses the battery</string>
 </resources>

@@ -56,6 +56,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
+import app.roll.gallery.Edition
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.roll.gallery.ui.locked.rememberMoveToLocked
 import app.roll.gallery.ui.components.BarAction
 import androidx.compose.material.icons.outlined.Lock
@@ -77,7 +79,8 @@ import java.time.ZoneId
 
 /**
  * Search, as in Contacts: the field opens focused, with shortcuts underneath (videos, favorites,
- * screenshots, each year, the biggest albums) until something is typed. Results show as you
+ * screenshots, each year, the biggest albums) until something is typed. In Gallery Plus it also
+ * matches the text read in photos. Results show as you
  * type, in the same grid as the Photos tab, and can be selected the same way. [onOpen] gets the
  * query too, so the viewer pages through the same results.
  */
@@ -87,7 +90,12 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     val words = rememberSearchWords()
     val locale = currentLocale()
     val zone = remember { ZoneId.systemDefault() }
-    val results = remember(library, query, words, locale) { searchMedia(library.items, query, words, locale, zone) }
+    // Gallery Plus: the text read in photos counts too; picked up fresh each time search opens.
+    val photoText by viewModel.photoText.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.refreshPhotoText() }
+    val results = remember(library, query, words, locale, photoText) {
+        searchMedia(library.items, query, words, locale, zone) { photoText[it] }
+    }
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }
     val selected = results.filter { it.id in selectedIds }
@@ -134,7 +142,7 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
             results.isEmpty() -> EmptyState(
                 Icons.Rounded.SearchOff,
                 stringResource(R.string.search_no_results_title),
-                stringResource(R.string.search_no_results_body, query.trim()),
+                stringResource(if (Edition.HAS_TEXT_SEARCH) R.string.search_no_results_body_text else R.string.search_no_results_body, query.trim()),
                 Modifier.padding(padding).imePadding(),
             )
             else -> Column(Modifier.padding(top = padding.calculateTopPadding())) {

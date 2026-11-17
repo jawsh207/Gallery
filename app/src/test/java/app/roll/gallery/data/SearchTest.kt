@@ -56,4 +56,14 @@ class SearchTest {
         assertEquals(Month.JANUARY, months["jan"])
         assertEquals(Month.MAY, months["may"])
     }
+
+    @Test
+    fun textReadInPhotosMatches() {
+        val text = mapOf(1L to "open daily 9 to 5", 3L to "boarding pass")
+        val found = searchMedia(items, "boarding", SearchWords.ENGLISH, Locale.ENGLISH, UTC) { text[it] }.map { it.id }
+        assertEquals(listOf(3L), found)
+        // Every word must match somewhere: "open" in the text, "camera" in the album.
+        val both = searchMedia(items, "open camera", SearchWords.ENGLISH, Locale.ENGLISH, UTC) { text[it] }.map { it.id }
+        assertEquals(listOf(1L), both)
+    }
 }

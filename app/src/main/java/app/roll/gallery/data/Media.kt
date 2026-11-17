@@ -78,14 +78,15 @@ sealed interface MediaSet {
 }
 
 /**
- * The items of [set], newest first. [words], [locale] and [zone] are only used by searches, to
- * read the query the way the search screen did.
+ * The items of [set], newest first. [words], [locale], [zone] and [photoText] are only used by
+ * searches, to read the query the way the search screen did.
  */
 fun Library.itemsIn(
     set: MediaSet,
     words: SearchWords = SearchWords.ENGLISH,
     locale: Locale = Locale.getDefault(),
     zone: ZoneId = ZoneId.systemDefault(),
+    photoText: (Long) -> String? = { null },
 ): List<Media> = when (set) {
     MediaSet.All -> items
     MediaSet.Favorites -> favorites
@@ -93,6 +94,6 @@ fun Library.itemsIn(
     MediaSet.Trash -> trash
     MediaSet.Locked -> locked
     is MediaSet.Album -> album(set.id)
-    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone)
+    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, photoText)
     is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()
 }

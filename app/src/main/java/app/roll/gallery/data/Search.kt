@@ -32,15 +32,23 @@ data class SearchWords(
  * - a kind word from [words] ("videos", "favorites", "screenshots"),
  * - a year ("2024") or a month name in [locale] ("June", "jun"), matched against when the item
  *   was taken,
- * - or part of the file name, album name, folder path or file type ("png", "gif").
+ * - or part of the file name, album name, folder path or file type ("png", "gif"), or of the
+ *   text read in the photo ([photoText], lower-cased, by id; Gallery Plus only).
  *
  * Matching ignores case but not accents: "cafe" won't find "Café".
  */
-fun searchMedia(items: List<Media>, query: String, words: SearchWords, locale: Locale, zone: ZoneId): List<Media> {
+fun searchMedia(
+    items: List<Media>,
+    query: String,
+    words: SearchWords,
+    locale: Locale,
+    zone: ZoneId,
+    photoText: (Long) -> String? = { null },
+): List<Media> {
     val terms = query.trim().lowercase(locale).split(Regex("\\s+")).filter { it.isNotEmpty() }
     if (terms.isEmpty()) return emptyList()
     val months = monthNames(locale)
-    val matchers = terms.map { term -> termMatcher(term, words, months, zone, locale) }
+    val matchers = terms.map { term -> termMatcher(term, words, months, zone, locale, photoText) }
     return items.filter { item -> matchers.all { it(item) } }
 }
 
@@ -51,9 +59,11 @@ private fun termMatcher(
     months: Map<String, Month>,
     zone: ZoneId,
     locale: Locale,
+    photoText: (Long) -> String?,
 ): (Media) -> Boolean {
     val text: (Media) -> Boolean = { item ->
-        item.fileName.lowercase(locale).contains(term) ||
+        photoText(item.id)?.contains(term) == true ||
+            item.fileName.lowercase(locale).contains(term) ||
             item.albumName.lowercase(locale).contains(term) ||
             item.path.lowercase(locale).contains(term) ||
             item.mimeType.substringAfter('/').lowercase(locale) == term

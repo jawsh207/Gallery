@@ -12,7 +12,7 @@ OUT="$ROOT/build/plus"
 WORK="$OUT/work"
 rm -rf "$OUT"; mkdir -p "$WORK/download" "$OUT/assets/ocr"
 
-python3 -m pip install --quiet "onnxruntime==$ORT_VERSION" "onnx==1.17.0"
+python3 -m pip install --quiet "onnxruntime==$ORT_VERSION" "onnx==1.17.0" "pillow>=10.1" numpy
 
 # Download each model and check it against its pinned SHA-256.
 grep -v '^#' "$HERE/models.txt" | while read -r name url sha; do

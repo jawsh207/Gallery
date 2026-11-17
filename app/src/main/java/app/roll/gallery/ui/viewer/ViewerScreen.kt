@@ -124,7 +124,10 @@ fun ViewerScreen(
     }
     val words = rememberSearchWords()
     val locale = currentLocale()
-    val items = remember(library, set, words, locale) { library.itemsIn(set, words, locale) }
+    val photoText by viewModel.photoText.collectAsStateWithLifecycle()
+    val items = remember(library, set, words, locale, photoText) {
+        library.itemsIn(set, words, locale, photoText = { photoText[it] })
+    }
     if (items.isEmpty()) {
         // The last item was trashed or deleted.
         LaunchedEffect(Unit) { onBack() }

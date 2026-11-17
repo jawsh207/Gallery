@@ -12,7 +12,6 @@
     "--minimal_build",
     "--disable_rtti",
     "--disable_ml_ops",
-    "--disable_exceptions",
     "--enable_reduced_operator_type_support",
     "--skip_tests"
   ]

@@ -23,7 +23,25 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[SHOW_MEMORIES] = show }
     }
 
+    /** Whether Gallery Plus reads the text in photos for search. On unless turned off. */
+    val readText: Flow<Boolean> = context.settingsStore.data.map { it[READ_TEXT] ?: true }
+
+    /** Turns reading text in photos on or off. */
+    suspend fun setReadText(on: Boolean) {
+        context.settingsStore.edit { it[READ_TEXT] = on }
+    }
+
+    /** Whether reading text waits for the phone to be charging. On unless turned off. */
+    val readTextOnlyCharging: Flow<Boolean> = context.settingsStore.data.map { it[READ_TEXT_CHARGING] ?: true }
+
+    /** Sets whether reading text waits for charging. */
+    suspend fun setReadTextOnlyCharging(on: Boolean) {
+        context.settingsStore.edit { it[READ_TEXT_CHARGING] = on }
+    }
+
     private companion object {
         val SHOW_MEMORIES = booleanPreferencesKey("show_memories")
+        val READ_TEXT = booleanPreferencesKey("read_text")
+        val READ_TEXT_CHARGING = booleanPreferencesKey("read_text_only_charging")
     }
 }

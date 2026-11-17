@@ -11,6 +11,9 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.R
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
+import app.roll.gallery.Edition
+import app.roll.gallery.recognition.TextIndex
+import app.roll.gallery.recognition.TextIndexWorker
 import app.roll.gallery.data.LockedFolder
 import kotlinx.coroutines.flow.combine
 import app.roll.gallery.data.EditRenderer
@@ -57,6 +60,51 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     /** Turns memories on or off. */
     fun setShowMemories(show: Boolean) {
         viewModelScope.launch { settings.setShowMemories(show) }
+    }
+
+    /** Whether text in photos is read for search (Gallery Plus). */
+    val readText: StateFlow<Boolean> = settings.readText.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Whether reading text waits for charging (Gallery Plus). */
+    val readTextOnlyCharging: StateFlow<Boolean> = settings.readTextOnlyCharging.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Turns reading text on (and starts it) or off (stopping it and forgetting what was read). */
+    fun setReadText(on: Boolean) {
+        viewModelScope.launch { settings.setReadText(on) }
+    }
+
+    /** Sets whether reading text waits for charging, and re-schedules it. */
+    fun setReadTextOnlyCharging(on: Boolean) {
+        viewModelScope.launch { settings.setReadTextOnlyCharging(on) }
+    }
+
+    private val textIndex = TextIndex(app)
+    private val _photoText = MutableStateFlow<Map<Long, String>>(emptyMap())
+
+    /** The text read in each photo so far, lower-cased for searching, by photo id (Gallery Plus). */
+    val photoText: StateFlow<Map<Long, String>> = _photoText
+
+    /** Re-reads the text index, to pick up what the background reading has added. */
+    fun refreshPhotoText() {
+        if (!Edition.HAS_TEXT_SEARCH) return
+        viewModelScope.launch {
+            _photoText.value = withContext(Dispatchers.IO) {
+                textIndex.load().mapValues { (_, entry) -> entry.text.lowercase() }
+            }
+        }
+    }
+
+    init {
+        if (Edition.HAS_TEXT_SEARCH) {
+            // Keep the background reading in step with the settings.
+            viewModelScope.launch {
+                combine(settings.readText, settings.readTextOnlyCharging) { on, charging -> on to charging }
+                    .collect { (on, charging) ->
+                        if (on) TextIndexWorker.schedule(app, charging) else TextIndexWorker.stop(app)
+                        refreshPhotoText()
+                    }
+            }
+        }
     }
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
