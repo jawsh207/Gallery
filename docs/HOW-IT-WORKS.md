@@ -26,6 +26,8 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Screen | What it's for | File |
 | --- | --- | --- |
 | Access | Asking for permission to see photos, with a way into Android's settings | `ui/access/AccessScreen.kt` |
+| Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
+| Settings | Photo access, Media management, version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | Every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Collections tab | Favorites, Videos and Trash shortcuts, and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
@@ -33,9 +35,9 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
-The main screen (the two tabs, the top bar and bottom bar) and moving between screens are in
-`ui/GalleryApp.kt` and `ui/Navigation.kt`. Shared pieces such as grid squares, selection bars,
-empty-screen messages and date wording are in `ui/components/`, and the colours and fonts in
+The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
+`ui/GalleryApp.kt` and `ui/Navigation.kt`. Shared pieces such as the search bar, grid squares, selection bars,
+grouped-list rows, empty-screen messages and date wording are in `ui/components/`, and the colours and fonts in
 `ui/theme/Theme.kt`, which matches Contacts and Dialtone.
 
 ## Features
@@ -44,6 +46,19 @@ empty-screen messages and date wording are in `ui/components/`, and the colours 
 was taken (or when the file last changed, if the photo doesn't say). Photos are grouped by day:
 "Today", "Yesterday", the weekday for the past week, then dates, with the year only for other
 years. Videos show their length and favorites a heart.
+
+**Search.** The bar at the top of the main screen opens search; the gear on its right opens
+Settings. Every word you type must match. A word can be a kind ("videos", "photos",
+"favorites", "screenshots"), a year ("2024"), a month ("June" or "Jun", in your phone's
+language), or part of a file name, album name, folder or file type ("png"). Before you type,
+shortcuts list the kinds, every year you have photos from, and your biggest albums. Results can
+be selected and opened like the Photos tab, and the viewer pages through just the results.
+Search doesn't look inside photos (no text or face recognition).
+
+**Settings.** Photo access shows whether Gallery sees everything or only photos you picked,
+and opens the dialog to pick more (or Android's settings, to take access back). Media
+management opens Android's switch for it and shows whether it's on. About shows the version
+and the licenses.
 
 **Zoom levels.** Pinching changes the grid between three levels: large (2 across), normal (4
 across, grouped by day) and months (7 across, grouped by month). The grid keeps the same photos
@@ -97,6 +112,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | What a photo or video is, and the sets the viewer pages through | `data/Media.kt` |
 | Grouping into days or months, header wording rules, zoom levels | `data/Timeline.kt` |
 | Building albums from folders and ordering them | `data/Albums.kt` |
+| Matching search words to photos | `data/Search.kt` |
 | Drag-to-select range maths | `data/Selection.kt` |
 | Reading camera settings from a photo | `data/Details.kt` |
 | Formatting lengths, sizes, megapixels and camera settings | `data/Formats.kt` |
@@ -109,6 +125,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

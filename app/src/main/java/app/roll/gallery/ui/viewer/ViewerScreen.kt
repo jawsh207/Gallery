@@ -54,6 +54,7 @@ import app.roll.gallery.data.itemsIn
 import app.roll.gallery.ui.GalleryViewModel
 import app.roll.gallery.ui.components.BarAction
 import app.roll.gallery.ui.components.currentLocale
+import app.roll.gallery.ui.components.rememberSearchWords
 import app.roll.gallery.ui.components.takenAtText
 import app.roll.gallery.ui.libraryActions
 import app.roll.gallery.ui.theme.GalleryTheme
@@ -78,7 +79,9 @@ fun ViewerScreen(
     onCurrentChange: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
-    val items = remember(library, set) { library.itemsIn(set) }
+    val words = rememberSearchWords()
+    val locale = currentLocale()
+    val items = remember(library, set, words, locale) { library.itemsIn(set, words, locale) }
     if (items.isEmpty()) {
         // The last item was trashed or deleted.
         LaunchedEffect(Unit) { onBack() }

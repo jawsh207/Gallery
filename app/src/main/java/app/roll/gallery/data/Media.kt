@@ -3,6 +3,8 @@ package app.roll.gallery.data
 import android.content.ContentUris
 import android.net.Uri
 import android.provider.MediaStore
+import java.time.ZoneId
+import java.util.Locale
 
 /**
  * The app's view of one photo or video, as Android's shared media store describes it.
@@ -62,13 +64,24 @@ sealed interface MediaSet {
     data object Videos : MediaSet
     data object Trash : MediaSet
     data class Album(val id: Long) : MediaSet
+    /** The results of a search for [query] (see [searchMedia]). */
+    data class Search(val query: String) : MediaSet
 }
 
-/** The items of [set], newest first. */
-fun Library.itemsIn(set: MediaSet): List<Media> = when (set) {
+/**
+ * The items of [set], newest first. [words], [locale] and [zone] are only used by searches, to
+ * read the query the way the search screen did.
+ */
+fun Library.itemsIn(
+    set: MediaSet,
+    words: SearchWords = SearchWords.ENGLISH,
+    locale: Locale = Locale.getDefault(),
+    zone: ZoneId = ZoneId.systemDefault(),
+): List<Media> = when (set) {
     MediaSet.All -> items
     MediaSet.Favorites -> favorites
     MediaSet.Videos -> videos
     MediaSet.Trash -> trash
     is MediaSet.Album -> album(set.id)
+    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone)
 }

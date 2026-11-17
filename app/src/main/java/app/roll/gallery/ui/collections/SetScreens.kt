@@ -53,6 +53,7 @@ fun MediaSet.title(library: Library): String = when (this) {
     MediaSet.Videos -> stringResource(R.string.videos)
     MediaSet.Trash -> stringResource(R.string.trash)
     is MediaSet.Album -> library.album(id).firstOrNull()?.albumName.orEmpty()
+    is MediaSet.Search -> query
 }
 
 /** One album, Favorites or Videos as its own grid, with the same selecting as the Photos tab. */

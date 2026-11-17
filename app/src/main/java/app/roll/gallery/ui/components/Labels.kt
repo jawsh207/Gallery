@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import app.roll.gallery.R
+import app.roll.gallery.data.SearchWords
 import app.roll.gallery.data.SectionLabel
+import androidx.compose.runtime.remember
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -41,4 +43,27 @@ fun SectionLabel.text(): String {
 fun takenAtText(millis: Long, locale: Locale): Pair<String, String> {
     val time = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
     return formatSkeleton(time, "MMMMdyyyy", locale) to formatSkeleton(time, "jmm", locale)
+}
+
+/**
+ * The kind words search understands ("videos", "favorites"…) in the phone's language, plus
+ * the English ones, from comma-separated string resources.
+ */
+@Composable
+fun rememberSearchWords(): SearchWords {
+    val videos = stringResource(R.string.search_words_videos)
+    val photos = stringResource(R.string.search_words_photos)
+    val favorites = stringResource(R.string.search_words_favorites)
+    val screenshots = stringResource(R.string.search_words_screenshots)
+    val locale = currentLocale()
+    return remember(videos, photos, favorites, screenshots, locale) {
+        fun words(list: String) = list.split(',').map { it.trim().lowercase(locale) }.filter { it.isNotEmpty() }.toSet()
+        val english = SearchWords.ENGLISH
+        SearchWords(
+            videos = english.videos + words(videos),
+            photos = english.photos + words(photos),
+            favorites = english.favorites + words(favorites),
+            screenshots = english.screenshots + words(screenshots),
+        )
+    }
 }

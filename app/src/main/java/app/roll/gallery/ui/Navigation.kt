@@ -6,6 +6,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import app.roll.gallery.data.MediaSet
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 /** The app's screens. Home holds the bottom tabs; the others cover them. */
 sealed interface Screen {
@@ -13,6 +15,8 @@ sealed interface Screen {
     /** A grid of one set: an album, Favorites or Videos. */
     data class Grid(val set: MediaSet) : Screen
     data object Trash : Screen
+    data object Search : Screen
+    data object Settings : Screen
     /** One photo or video full screen, paging through the rest of [set]. */
     data class Viewer(val set: MediaSet, val id: Long) : Screen
 }
@@ -24,6 +28,8 @@ fun MediaSet.encode(): String = when (this) {
     MediaSet.Videos -> "videos"
     MediaSet.Trash -> "trash"
     is MediaSet.Album -> "album:$id"
+    // Encoded, so a query can't contain the "|" that separates the saved parts.
+    is MediaSet.Search -> "search:" + URLEncoder.encode(query, "UTF-8")
 }
 
 /** The [MediaSet] [text] was saved as, or null if it can't be read. */
@@ -33,12 +39,15 @@ fun decodeMediaSet(text: String): MediaSet? = when {
     text == "videos" -> MediaSet.Videos
     text == "trash" -> MediaSet.Trash
     text.startsWith("album:") -> text.removePrefix("album:").toLongOrNull()?.let { MediaSet.Album(it) }
+    text.startsWith("search:") -> MediaSet.Search(URLDecoder.decode(text.removePrefix("search:"), "UTF-8"))
     else -> null
 }
 
 private fun Screen.encode(): String = when (this) {
     Screen.Home -> "home"
     Screen.Trash -> "trash"
+    Screen.Search -> "search"
+    Screen.Settings -> "settings"
     is Screen.Grid -> "grid|${set.encode()}"
     is Screen.Viewer -> "viewer|$id|${set.encode()}"
 }
@@ -48,6 +57,8 @@ private fun decode(text: String): Screen? {
     return when (parts[0]) {
         "home" -> Screen.Home
         "trash" -> Screen.Trash
+        "search" -> Screen.Search
+        "settings" -> Screen.Settings
         "grid" -> parts.getOrNull(1)?.let(::decodeMediaSet)?.let { Screen.Grid(it) }
         "viewer" -> {
             val id = parts.getOrNull(1)?.toLongOrNull()

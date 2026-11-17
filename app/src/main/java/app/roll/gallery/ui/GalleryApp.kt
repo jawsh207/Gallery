@@ -8,8 +8,17 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.ui.unit.dp
+import app.roll.gallery.ui.components.SearchPill
+import app.roll.gallery.ui.search.SearchScreen
+import app.roll.gallery.ui.settings.SettingsScreen
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Photo
@@ -21,8 +30,8 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -121,6 +129,11 @@ fun GalleryApp(viewModel: GalleryViewModel = viewModel()) {
             viewModel, loaded, screen.set, onBack = back,
             onOpen = { open(Screen.Viewer(screen.set, it.id)) },
         )
+        Screen.Search -> SearchScreen(
+            viewModel, loaded, onBack = back,
+            onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
+        )
+        Screen.Settings -> SettingsScreen(viewModel, onBack = back)
         Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
         is Screen.Viewer -> ViewerScreen(
             viewModel, loaded, screen.set, screen.id,
@@ -131,9 +144,9 @@ fun GalleryApp(viewModel: GalleryViewModel = viewModel()) {
 }
 
 /**
- * The bottom tabs. Long-pressing a photo on the Photos tab selects it; while selecting, the top
- * bar counts the selection and the bottom tabs give way to its actions. Back from Collections
- * returns to Photos.
+ * The bottom tabs under the search bar (with its Settings button), as in Contacts. Long-pressing
+ * a photo on the Photos tab selects it; while selecting, the search bar becomes a count of the
+ * selection and the bottom tabs give way to its actions. Back from Collections returns to Photos.
  */
 @Composable
 private fun Home(
@@ -152,17 +165,27 @@ private fun Home(
     val scope = rememberCoroutineScope()
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     BackHandler(enabled = !selecting && tab != Tab.Photos) { tab = Tab.Photos }
-    val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val actions = libraryActions(viewModel, selected) { selectedIds = emptySet() }
     val openMedia: (Media) -> Unit = { open(Screen.Viewer(MediaSet.All, it.id)) }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         topBar = {
             if (selecting) {
                 SelectionTopBar(selected.size) { selectedIds = emptySet() }
             } else {
-                TopAppBar(title = { Text(stringResource(tab.label)) }, scrollBehavior = scroll)
+                // Pinned above the tabs, as in Contacts: the grid scrolls behind it. The strip is
+                // opaque in the background colour (status bar included) so nothing shows around the pill.
+                Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
+                    SearchPill(
+                        onClick = { open(Screen.Search) },
+                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        trailing = {
+                            IconButton(onClick = { open(Screen.Settings) }) {
+                                Icon(Icons.Rounded.Settings, stringResource(R.string.settings))
+                            }
+                        },
+                    )
+                }
             }
         },
         bottomBar = {

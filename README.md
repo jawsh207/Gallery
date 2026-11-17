@@ -14,6 +14,9 @@ store, so other apps see the same favorites and trash.
 - **Photos:** every photo and video, newest first, under Today, Yesterday, weekday and date
   headers. Pinch to switch between large, normal and month views. A fast-scroll handle appears
   while scrolling and shows the month as you drag it.
+- **Search:** a search bar across the top, as in Contacts, with Settings on its right. Search
+  by file or album name, year, month, or kind ("videos", "favorites", "screenshots"), with
+  shortcuts for each before you type.
 - **Selecting:** long-press a photo, then keep your finger down and drag across others to
   select a run of them (the grid scrolls when you reach its edge). A circle by each date
   selects that whole day. Share, favorite or trash the selection.
@@ -23,6 +26,7 @@ store, so other apps see the same favorites and trash.
   shutter speed, ISO and focal length stored in the photo.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
   and screenshots first).
+- **Settings:** photo access, Media management, version and licenses.
 - **Trash:** Android's own trash, shared with other apps. Items are deleted for good after
   30 days; restore or delete them sooner, one at a time, by selection, or all at once.
 
