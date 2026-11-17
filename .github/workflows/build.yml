@@ -75,7 +75,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: plus-runtime
-          path: build/plus
+          # Only what the app build needs, not the runtime's 1.7 GB build tree.
+          path: |
+            build/plus/onnxruntime-plus.aar
+            build/plus/assets
+            build/plus/test
           if-no-files-found: error
 
   build:
