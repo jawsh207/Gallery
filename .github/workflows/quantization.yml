@@ -1,0 +1,49 @@
+# Compare 8-bit shrinking (run by hand from the Actions tab). Tries shrinking each Gallery Plus
+# model in different ways and reports size, speed and accuracy on the run page, on an Arm
+# machine like a phone's processor. It changes nothing the app ships; see
+# scripts/compare_quantization.py.
+name: Compare 8-bit shrinking
+
+on:
+  workflow_dispatch:
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tools
+        run: python3 -m pip install --quiet "onnxruntime==1.20.1" "onnx==1.17.0" "pillow>=10.1" numpy tokenizers
+
+      # The same downloads and pinned checks as the Plus build.
+      - name: Download models
+        run: |
+          mkdir -p work/download
+          grep -v '^#' scripts/plus/models.txt | while read -r name url sha; do
+            [ -z "$name" ] && continue
+            curl -fsSL --retry 3 -o "work/download/$name" "$url"
+            actual=$(sha256sum "work/download/$name" | cut -d' ' -f1)
+            if [ "$sha" != "unpinned" ] && [ "$sha" != "$actual" ]; then echo "::error::$name has sha256 $actual, expected $sha"; exit 1; fi
+          done
+
+      # OpenCV's sample photos, used only for calibrating and measuring here.
+      - name: Download sample photos
+        run: |
+          mkdir -p work/photos
+          for f in lena.jpg messi5.jpg baboon.jpg fruits.jpg building.jpg home.jpg starry_night.jpg butterfly.jpg \
+                   apple.jpg orange.jpg aero1.jpg aero3.jpg HappyFish.jpg LinuxLogo.jpg WindowsLogo.jpg \
+                   imageTextN.png imageTextR.png sudoku.png chicky_512.png licenseplate_motion.jpg smarties.png \
+                   text_motion.jpg board.jpg notes.png graf1.png box_in_scene.png basketball1.png left01.jpg \
+                   right01.jpg pic1.png pic3.png pic5.png; do
+            curl -fsSL --retry 3 -o "work/photos/$f" "https://raw.githubusercontent.com/opencv/opencv/4.10.0/samples/data/$f" || rm -f "work/photos/$f"
+          done
+          ls work/photos | wc -l
+
+      - name: Compare
+        run: python3 scripts/compare_quantization.py work/download work/photos work/trial

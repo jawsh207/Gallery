@@ -69,3 +69,7 @@ titles.
 To try a release build without publishing, run the **Build** workflow by hand in the Actions
 tab with "Shrunk test build" ticked: it builds the release variant, shrunk by R8, signs it
 with the dev key, shows each edition's size and opens both on an emulator.
+
+The **Compare 8-bit shrinking** workflow, also run by hand, tries shrinking each Gallery Plus
+model to 8-bit in different ways and reports size, speed and accuracy on an Arm machine. It
+changes nothing the app ships.
