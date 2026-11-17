@@ -244,7 +244,7 @@ jobs:
           target: default
           disable-animations: true
           script: |
-            for edition in standard plus; do adb install -r "$RUNNER_TEMP/emulator/$edition.apk" || touch "$RUNNER_TEMP/launch-failed"; adb logcat -c; adb shell am start -W -n app.roll.gallery/.MainActivity; sleep 15; adb logcat -d -b crash >> "$RUNNER_TEMP/crash.txt" || true; if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "$edition opened and is still running."; else echo "$edition did not stay open."; touch "$RUNNER_TEMP/launch-failed"; adb logcat -d -b main,system,crash | grep -iE 'app\.roll\.gallery|AndroidRuntime|DEBUG|libc|FATAL|onnx' | tail -60 >> "$RUNNER_TEMP/crash.txt"; fi; adb shell am force-stop app.roll.gallery; done
+            for edition in standard plus; do adb uninstall app.roll.gallery > /dev/null 2>&1 || true; adb install "$RUNNER_TEMP/emulator/$edition.apk" || touch "$RUNNER_TEMP/launch-failed"; adb logcat -c; adb shell am start -W -n app.roll.gallery/.MainActivity; sleep 15; adb logcat -d -b crash >> "$RUNNER_TEMP/crash.txt" || true; if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "$edition opened and is still running."; else echo "$edition did not stay open."; touch "$RUNNER_TEMP/launch-failed"; adb logcat -d -b main,system,crash | grep -iE 'app\.roll\.gallery|AndroidRuntime|DEBUG|libc|FATAL|onnx' | tail -60 >> "$RUNNER_TEMP/crash.txt"; fi; adb shell am force-stop app.roll.gallery; done
 
       - name: Report launch failure
         if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'
