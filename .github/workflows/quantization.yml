@@ -23,6 +23,8 @@ jobs:
           path: wheel
           key: onnxruntime-1.20.1-xnnpack-py312-arm64
 
+      # Without KleidiAI: XNNPACK fetches it itself, against a hash GitLab has since broken by
+      # re-generating the archive. It only speeds up some 8-bit routines our models don't use.
       - name: Build ONNX Runtime with XNNPACK
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
@@ -30,12 +32,9 @@ jobs:
           git clone --quiet --depth 1 --branch v1.20.1 https://github.com/microsoft/onnxruntime
           # Same Eigen archive fix as scripts/plus/build.sh.
           sed -i 's/be8be39fdbc6e60e94fa7870b280707069b5b81a/32b145f525a8308d7ab1c09388b2e288312d8eba/' onnxruntime/cmake/deps.txt
-          # GitLab re-generated KleidiAI's v0.2.0 archive (XNNPACK's Arm routines) the same way.
-          grep -rl b1e3173992fd91f20db904ab77d6e901778c2681 onnxruntime/cmake | xargs -r sed -i 's/b1e3173992fd91f20db904ab77d6e901778c2681/61886eac853e2235359cbcc73c5830b8abf71467/'
-          grep -rn 61886eac853e2235359cbcc73c5830b8abf71467 onnxruntime/cmake
           python3 onnxruntime/tools/ci_build/build.py --build_dir ort-build --config Release \
             --build_wheel --use_xnnpack --parallel --skip_tests --skip_submodule_sync \
-            --compile_no_warning_as_error --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF
+            --compile_no_warning_as_error --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF XNNPACK_ENABLE_KLEIDIAI=OFF
           mkdir -p wheel && cp ort-build/Release/dist/*.whl wheel/
 
       - uses: actions/upload-artifact@v4
