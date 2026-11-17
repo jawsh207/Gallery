@@ -158,7 +158,9 @@ jobs:
           if [ -n "$KEY" ]; then
             # Pasting can add spaces or line breaks, which base64 can't decode; they're dropped.
             if ! printf '%s' "$KEY" | tr -d ' \t\r\n' | base64 -d > "$RUNNER_TEMP/signing.jks" 2>/dev/null; then
-              echo "::error::The keystore secret isn't valid base64 (${#KEY} characters); paste it again from the file."
+              CLEAN=$(printf '%s' "$KEY" | tr -d ' \t\r\n')
+              ODD=$(printf '%s' "$CLEAN" | tr -d 'A-Za-z0-9+/=' | od -An -c | tr -s ' ' | head -c 80)
+              echo "::error::The keystore secret isn't valid base64 (${#CLEAN} characters without spaces; unexpected characters:${ODD:- none}); paste it again from the file."
               exit 1
             fi
             if ! keytool -list -keystore "$RUNNER_TEMP/signing.jks" -storepass "$PASS" -alias "$ALIAS" > /dev/null 2>&1; then
