@@ -22,6 +22,9 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material.icons.outlined.ContentCopy
+import app.roll.gallery.ui.components.ListRow
+import app.roll.gallery.ui.components.segmentShape
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.foundation.layout.size
@@ -53,7 +56,7 @@ import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: shortcuts to Favorites, Videos and Trash, then every folder with photos
+ * The Collections tab: shortcuts to Favorites, Videos and Trash, the duplicate finder, then every folder with photos
  * as an album, camera and screenshots first, with a button to make a new one ([onNewAlbum]
  * gets its name once it's been checked).
  */
@@ -63,6 +66,7 @@ fun CollectionsTab(
     onOpenSet: (MediaSet) -> Unit,
     onOpenTrash: () -> Unit,
     onNewAlbum: (String) -> Unit,
+    onOpenDuplicates: () -> Unit,
     contentPadding: PaddingValues,
 ) {
     val albums = remember(library.items) { buildAlbums(library.items) }
@@ -94,6 +98,15 @@ fun CollectionsTab(
                 Shortcut(Icons.Outlined.Videocam, stringResource(R.string.videos), Modifier.weight(1f)) { onOpenSet(MediaSet.Videos) }
                 Shortcut(Icons.Outlined.Delete, stringResource(R.string.trash), Modifier.weight(1f), onClick = onOpenTrash)
             }
+        }
+        item(key = "duplicates", span = { GridItemSpan(maxLineSpan) }) {
+            ListRow(
+                icon = Icons.Outlined.ContentCopy,
+                title = stringResource(R.string.duplicates),
+                summary = stringResource(R.string.duplicates_summary),
+                shape = segmentShape(0, 1),
+                onClick = onOpenDuplicates,
+            )
         }
         item(key = "albums", span = { GridItemSpan(maxLineSpan) }) {
             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -163,4 +163,20 @@
     <string name="settings_memories">On this day</string>
     <string name="settings_memories_summary">Show photos from this date in past years at the top of Photos</string>
     <string name="motion">Motion</string>
+
+    <!-- Duplicates -->
+    <string name="duplicates">Duplicates</string>
+    <string name="duplicates_summary">Find copies and near-identical shots to free up space</string>
+    <string name="duplicates_scanning">Looking through <xliff:g id="done" example="120">%1$d</xliff:g> of <xliff:g id="total" example="3000">%2$d</xliff:g> photos…</string>
+    <string name="duplicates_none_title">No duplicates</string>
+    <string name="duplicates_none_body">Copies of the same photo and near-identical shots taken moments apart will show up here.</string>
+    <string name="duplicates_intro">Everything but the best of each group is ticked. Tap a photo to change that. Trashed photos can be restored for 30 days.</string>
+    <string name="duplicates_exact">Copies</string>
+    <string name="duplicates_similar">Similar shots</string>
+    <string name="duplicates_keep">Keep</string>
+    <string name="duplicates_marked">Ticked for the trash</string>
+    <plurals name="trash_duplicates">
+        <item quantity="one">Move <xliff:g id="count" example="3">%1$d</xliff:g> to trash (<xliff:g id="size" example="2.4 MB">%2$s</xliff:g>)</item>
+        <item quantity="other">Move <xliff:g id="count" example="3">%1$d</xliff:g> to trash (<xliff:g id="size" example="24 MB">%2$s</xliff:g>)</item>
+    </plurals>
 </resources>

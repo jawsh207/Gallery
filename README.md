@@ -30,6 +30,8 @@ store, so other apps see the same favorites and trash.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
   and screenshots first). Make new albums, and move or copy photos into albums.
 - **Slideshow:** from the viewer's menu; a new photo every four seconds, tap to stop.
+- **Duplicates:** finds copies of the same photo and near-identical shots taken moments apart,
+  suggests which to keep, and trashes the rest in one go.
 - **Wallpaper:** set a photo as the home screen, lock screen or both, from the viewer's menu.
 - **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can

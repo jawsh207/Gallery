@@ -11,6 +11,11 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.R
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
+import app.roll.gallery.data.DuplicateGroup
+import app.roll.gallery.data.findDuplicates
+import app.roll.gallery.data.hashPhoto
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import app.roll.gallery.data.MotionVideo
 import app.roll.gallery.data.readMotionVideo
 import app.roll.gallery.data.AppSettings
@@ -106,6 +111,42 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * The duplicate finder's progress: how many photos have been looked at out of how many,
+     * and the groups once it's done. Null before the first scan.
+     */
+    val duplicates: StateFlow<DuplicateScan?> get() = _duplicates
+    private val _duplicates = MutableStateFlow<DuplicateScan?>(null)
+    private var scanJob: Job? = null
+    // Hashes by photo id, with the change time they were worked out for, so a second scan only
+    // looks at new or edited photos. Kept in memory only.
+    private val hashCache = HashMap<Long, Pair<Long, Long>>()
+
+    /**
+     * Looks through every photo in [library] for duplicates, in the background. Starting again
+     * while a scan is running restarts it; earlier hashes are reused.
+     */
+    fun scanDuplicates(library: Library) {
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch(Dispatchers.Default) {
+            val resolver = getApplication<Application>().contentResolver
+            val photos = library.items.filter { !it.isVideo }
+            val hashes = HashMap<Long, Long>(photos.size)
+            photos.forEachIndexed { index, photo ->
+                ensureActive()
+                val cached = synchronized(hashCache) { hashCache[photo.id] }
+                val hash = if (cached != null && cached.first == photo.modifiedAt) {
+                    cached.second
+                } else {
+                    hashPhoto(resolver, photo)?.also { synchronized(hashCache) { hashCache[photo.id] = photo.modifiedAt to it } }
+                }
+                if (hash != null) hashes[photo.id] = hash
+                if (index % 25 == 0) _duplicates.value = DuplicateScan(index, photos.size, null)
+            }
+            _duplicates.value = DuplicateScan(photos.size, photos.size, findDuplicates(photos, hashes))
+        }
+    }
+
     /** Where [media]'s motion video is, if it's a motion photo, read off the main thread. */
     suspend fun motionVideo(media: Media): MotionVideo? = withContext(Dispatchers.IO) {
         readMotionVideo(getApplication<Application>().contentResolver, media)
@@ -116,3 +157,6 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         readCameraDetails(getApplication<Application>().contentResolver, media)
     }
 }
+
+/** Where the duplicate finder is up to: [done] of [total] photos, and the [groups] once finished. */
+data class DuplicateScan(val done: Int, val total: Int, val groups: List<DuplicateGroup>?)

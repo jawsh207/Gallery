@@ -29,7 +29,7 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
 | Settings | Photo access, Media management, On this day, version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
-| Collections tab | Favorites, Videos and Trash shortcuts, and every album | `ui/collections/CollectionsTab.kt` |
+| Collections tab | Favorites, Videos and Trash shortcuts, Duplicates, and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
@@ -37,6 +37,7 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Choose for another app | Picking photos or videos to hand back to the app that asked | `ui/pick/PickScreen.kt` |
 | Add to album | Moving or copying photos into an album or a new one | `ui/collections/AddToAlbum.kt` |
 | New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
+| Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
 The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
@@ -135,6 +136,18 @@ for a name, then for its photos, then whether to move or copy them; the album is
 in Pictures. An album is a folder, so it only exists once something is in it. A message at the
 bottom says how many items were moved or copied, or how many couldn't be.
 
+**Duplicates.** On the Collections tab. Gallery looks at every photo (not videos) in the
+background, showing how far it's got. For each photo it shrinks Android's small thumbnail to
+9 × 8 pixels and notes, for each pixel, whether it's brighter than the next: a 64-bit
+"fingerprint" that stays the same when a photo is resized or recompressed. Photos with the same
+file size and (almost) the same fingerprint are **copies**, wherever they are. Photos taken
+within two minutes of each other with close fingerprints are **similar shots** (bursts and
+retakes). In each group, the suggested keeper is a favorite if there is one, otherwise the one
+with the most pixels, then the biggest file, then the oldest; everything else is ticked. Tap
+photos to change what's ticked, then move the ticked ones to the trash. Fingerprints are kept
+in memory while the app is open, so a second look only reads new or changed photos; nothing is
+saved.
+
 **Wallpaper.** The viewer's menu (top right) has "Set as wallpaper" for photos: home screen,
 lock screen, or both. Android fits the photo to the screen.
 
@@ -169,6 +182,9 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Grid thumbnails from Android's own thumbnail cache | `image/Thumbnails.kt`, `GalleryApplication.kt` |
 | Picking each year's "On this day" photos | `data/Memories.kt` |
 | Gallery's own settings | `data/Settings.kt` |
+| Grouping duplicates and choosing what to keep | `data/Duplicates.kt` |
+| Working out a photo's fingerprint from its thumbnail | `data/PhotoHash.kt` |
+| Running the duplicate search in the background | `ui/GalleryViewModel.kt` |
 | Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
@@ -180,6 +196,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, duplicate fingerprints and grouping, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

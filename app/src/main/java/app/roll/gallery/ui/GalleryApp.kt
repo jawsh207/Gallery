@@ -73,6 +73,7 @@ import app.roll.gallery.ui.access.PhotoAccess
 import app.roll.gallery.ui.access.photoAccess
 import app.roll.gallery.ui.collections.CollectionsTab
 import app.roll.gallery.ui.collections.NewAlbumScreen
+import app.roll.gallery.ui.collections.DuplicatesScreen
 import app.roll.gallery.ui.collections.SetScreen
 import app.roll.gallery.ui.collections.TrashScreen
 import app.roll.gallery.ui.components.BottomBar
@@ -168,6 +169,7 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
                 onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
             )
             Screen.Settings -> SettingsScreen(viewModel, onBack = back)
+            Screen.Duplicates -> DuplicatesScreen(viewModel, loaded, onBack = back)
             is Screen.NewAlbum -> NewAlbumScreen(viewModel, loaded, screen.name, onDone = back)
             Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
             is Screen.Viewer -> ViewerScreen(
@@ -279,6 +281,7 @@ private fun Home(
                     onOpenSet = { open(Screen.Grid(it)) },
                     onOpenTrash = { open(Screen.Trash) },
                     onNewAlbum = { open(Screen.NewAlbum(it)) },
+                    onOpenDuplicates = { open(Screen.Duplicates) },
                     contentPadding = padding,
                 )
             }
