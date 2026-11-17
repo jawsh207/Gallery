@@ -33,6 +33,8 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
+| Single-file viewer | A photo or video another app opened in Gallery | `ui/viewer/ExternalViewer.kt` |
+| Choose for another app | Picking photos or videos to hand back to the app that asked | `ui/pick/PickScreen.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
 The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
@@ -54,6 +56,17 @@ language), or part of a file name, album name, folder or file type ("png"). Befo
 shortcuts list the kinds, every year you have photos from, and your biggest albums. Results can
 be selected and opened like the Photos tab, and the viewer pages through just the results.
 Search doesn't look inside photos (no text or face recognition).
+
+**Opening from other apps.** A file manager's "Open with", a messaging app's attachment or
+the camera's thumbnail can open one photo or video in Gallery. It shows in a viewer of its own
+that zooms, plays and shares, and works even if Gallery hasn't been given photo access, because
+the other app lends access to that one file. It has no favorite or trash, since the file might
+not be in the phone's library.
+
+**Choosing for other apps.** When an app asks to "choose a photo" and you pick Gallery, you get
+the library in the usual grid, showing only the kinds the app asked for (photos, videos or
+both). If it takes one, tapping a photo hands it back; if it takes several, tap or drag to
+select and press Done. The app gets access to just the photos you chose.
 
 **Settings.** Photo access shows whether Gallery sees everything or only photos you picked,
 and opens the dialog to pick more (or Android's settings, to take access back). Media
@@ -113,6 +126,9 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Grouping into days or months, header wording rules, zoom levels | `data/Timeline.kt` |
 | Building albums from folders and ordering them | `data/Albums.kt` |
 | Matching search words to photos | `data/Search.kt` |
+| Reading what another app asked for, and describing a file it handed over | `intents/ExternalRequest.kt` |
+| Which kinds a pick request wants | `data/Picking.kt` |
+| Handing chosen photos back to the app that asked | `MainActivity.kt` |
 | Drag-to-select range maths | `data/Selection.kt` |
 | Reading camera settings from a photo | `data/Details.kt` |
 | Formatting lengths, sizes, megapixels and camera settings | `data/Formats.kt` |
@@ -125,6 +141,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

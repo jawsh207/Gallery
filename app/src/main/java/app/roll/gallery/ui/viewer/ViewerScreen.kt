@@ -172,7 +172,7 @@ fun ViewerScreen(
 
 /** The back arrow and when the item was taken, over a fade so they read on bright photos. */
 @Composable
-private fun TopControls(takenAt: Long, onBack: () -> Unit) {
+internal fun TopControls(takenAt: Long, onBack: () -> Unit) {
     val (date, time) = takenAtText(takenAt, currentLocale())
     Row(
         Modifier
@@ -194,7 +194,7 @@ private fun TopControls(takenAt: Long, onBack: () -> Unit) {
 
 /** The row of actions along the bottom. */
 @Composable
-private fun BottomControls(actions: List<BarAction>) {
+internal fun BottomControls(actions: List<BarAction>) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -223,7 +223,7 @@ private fun BottomControls(actions: List<BarAction>) {
  * when the viewer closes.
  */
 @Composable
-private fun SystemBarsVisible(visible: Boolean) {
+internal fun SystemBarsVisible(visible: Boolean) {
     val view = LocalView.current
     val window = (LocalContext.current as? Activity)?.window ?: return
     val controller = remember(window, view) { WindowCompat.getInsetsController(window, view) }

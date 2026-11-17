@@ -26,6 +26,9 @@ store, so other apps see the same favorites and trash.
   shutter speed, ISO and focal length stored in the photo.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
   and screenshots first).
+- **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
+  Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can
+  pick them from Gallery, one or several.
 - **Settings:** photo access, Media management, version and licenses.
 - **Trash:** Android's own trash, shared with other apps. Items are deleted for good after
   30 days; restore or delete them sooner, one at a time, by selection, or all at once.

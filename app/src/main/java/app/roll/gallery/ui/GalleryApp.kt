@@ -1,6 +1,13 @@
 package app.roll.gallery.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import app.roll.gallery.intents.ExternalRequest
+import app.roll.gallery.intents.externalMedia
+import app.roll.gallery.intents.parseRequest
+import app.roll.gallery.ui.pick.PickScreen
+import app.roll.gallery.ui.viewer.ExternalViewer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -75,13 +82,23 @@ enum class Tab(@param:StringRes val label: Int, val icon: ImageVector, val selec
 }
 
 /**
- * The whole app: asks for photo access, then shows the screen on top of the back stack.
+ * The whole app. A file opened from another app goes straight to its viewer; otherwise it asks
+ * for photo access, then shows either the picker (when another app asked to choose photos) or
+ * the screen on top of the back stack. [finish] ends a request from another app, handing back
+ * what was chosen (null when cancelled).
  * Access is checked again each time the app comes back, since it can be changed in Android's
  * settings while the app is away.
  */
 @Composable
-fun GalleryApp(viewModel: GalleryViewModel = viewModel()) {
+fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: GalleryViewModel = viewModel()) {
     val context = LocalContext.current
+    val request = remember(intent) { parseRequest(context, intent) }
+    // Another app's file needs no photo access: that app lends access to just this file.
+    if (request is ExternalRequest.View) {
+        val media = remember(request) { externalMedia(context, request.uri, request.mimeType) }
+        ExternalViewer(media, viewModel, onClose = { finish(null) })
+        return
+    }
     var access by remember { mutableStateOf(context.photoAccess()) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         access = context.photoAccess()
@@ -110,6 +127,12 @@ fun GalleryApp(viewModel: GalleryViewModel = viewModel()) {
     val loaded = library
     if (loaded == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+        return
+    }
+
+    if (request is ExternalRequest.Pick) {
+        PickScreen(loaded, request, onDone = { picked -> finish(picked?.map { it.uri }) })
+        BackHandler { finish(null) }
         return
     }
 

@@ -105,4 +105,10 @@
     <string name="settings_licenses_summary">Apache License 2.0, and the open-source parts Gallery uses</string>
     <string name="licenses_body">Gallery is open source under the Apache License 2.0.\n\nIt includes Google Sans Flex (SIL Open Font License 1.1), Coil (Apache License 2.0) and AndroidX libraries including Jetpack Compose, Material 3, Media3 and ExifInterface (Apache License 2.0).</string>
     <string name="close">Close</string>
+
+    <!-- Choosing for another app -->
+    <string name="pick_one">Choose a photo</string>
+    <string name="pick_video">Choose a video</string>
+    <string name="pick_many">Choose photos</string>
+    <string name="done">Done</string>
 </resources>

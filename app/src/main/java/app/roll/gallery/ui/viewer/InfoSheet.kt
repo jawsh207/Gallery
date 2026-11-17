@@ -62,7 +62,10 @@ fun InfoSheet(media: Media, viewModel: GalleryViewModel, onDismiss: () -> Unit) 
                 media.fileName,
                 sizeParts.joinToString(" · "),
             )
-            InfoRow(Icons.Outlined.Folder, media.albumName.ifBlank { stringResource(R.string.unknown_folder) }, media.path)
+            // Files handed over by other apps have no folder Gallery can see.
+            if (media.externalUri == null) {
+                InfoRow(Icons.Outlined.Folder, media.albumName.ifBlank { stringResource(R.string.unknown_folder) }, media.path)
+            }
             camera?.let { details ->
                 val settings = listOfNotNull(details.aperture, details.exposure, details.focalLength, details.iso)
                 InfoRow(

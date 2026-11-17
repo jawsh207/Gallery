@@ -34,10 +34,12 @@ data class Media(
     val isTrashed: Boolean,
     /** For trashed items: when Android deletes it for good, in seconds; 0 otherwise. */
     val expiresAt: Long,
+    /** Set for a file another app handed over (it isn't in the media store); null otherwise. */
+    val externalUri: Uri? = null,
 ) {
     /** Where to open the file, e.g. content://media/external/images/media/42. */
     val uri: Uri
-        get() = ContentUris.withAppendedId(
+        get() = externalUri ?: ContentUris.withAppendedId(
             if (isVideo) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             else MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
             id,
