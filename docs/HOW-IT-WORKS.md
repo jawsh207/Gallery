@@ -33,8 +33,9 @@ The models are PaddleOCR's small text finder (about 2.5 MB) and Latin-script tex
 8 MB). They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
 64-bit phones; about 1.3 MB) are built by `scripts/plus/build.sh`, which CI runs and caches. The
 script tries shrinking the reader's numbers to 8 bits and keeps that only if the shrunk model
-reads a set of test lines exactly as the original does; with the current model it doesn't, so
-the reader stays as published.
+reads a set of test lines exactly as the original does. With the current model, shrinking every
+layer changed some readings, and shrinking only the matrix layers passed but saved almost
+nothing, so the reader is effectively as published.
 
 ## Screens
 
