@@ -33,6 +33,9 @@ CONFIG=$(ls "$WORK/models/onnx/"*.config | head -1)
 echo "Operators used:"; cat "$CONFIG"
 
 git clone --quiet --depth 1 --branch "v$ORT_VERSION" https://github.com/microsoft/onnxruntime "$WORK/onnxruntime"
+# GitLab re-generated the archive of the Eigen commit ONNX Runtime 1.20 uses, so its SHA-1
+# changed though the source is the same commit; pin the new one.
+sed -i 's/be8be39fdbc6e60e94fa7870b280707069b5b81a/32b145f525a8308d7ab1c09388b2e288312d8eba/' "$WORK/onnxruntime/cmake/deps.txt"
 python3 "$WORK/onnxruntime/tools/ci_build/github/android/build_aar_package.py" \
   --build_dir "$WORK/ort-build" --config MinSizeRel \
   --android_sdk_path "$ANDROID_HOME" --android_ndk_path "$ANDROID_NDK_HOME" \
