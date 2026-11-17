@@ -99,7 +99,7 @@ fun Library.itemsIn(
     MediaSet.Trash -> trash
     MediaSet.Locked -> locked
     is MediaSet.Album -> album(set.id)
-    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, photoText, descriptionMatches(set.query))
+    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, descriptionMatches(set.query), photoText)
     is MediaSet.Person -> personPhotos(set.key).let { ids -> items.filter { it.id in ids } }
     is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()
 }

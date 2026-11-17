@@ -106,7 +106,7 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     }
     val extra = if (descriptionMatches.first == query.trim()) descriptionMatches.second else emptySet()
     val results = remember(library, query, words, locale, photoText, extra) {
-        searchMedia(library.items, query, words, locale, zone, { photoText[it] }, extra)
+        searchMedia(library.items, query, words, locale, zone, extra) { photoText[it] }
     }
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }

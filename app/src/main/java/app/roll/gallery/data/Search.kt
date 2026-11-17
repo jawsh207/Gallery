@@ -44,8 +44,8 @@ fun searchMedia(
     words: SearchWords,
     locale: Locale,
     zone: ZoneId,
-    photoText: (Long) -> String? = { null },
     alsoMatching: Set<Long> = emptySet(),
+    photoText: (Long) -> String? = { null },
 ): List<Media> {
     val terms = query.trim().lowercase(locale).split(Regex("\\s+")).filter { it.isNotEmpty() }
     if (terms.isEmpty()) return emptyList()
