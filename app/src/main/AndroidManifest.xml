@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Reading the photos and videos on the phone. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -9,6 +10,10 @@
     <!-- "Media management" special access: when the user turns it on in Android's settings,
          favoriting, trashing and deleting no longer ask for confirmation each time. -->
     <uses-permission android:name="android.permission.MANAGE_MEDIA" />
+    <!-- Gallery never goes online. Removed even if a library asks for it, so the build can't
+         gain internet access by accident. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <application
         android:name=".GalleryApplication"

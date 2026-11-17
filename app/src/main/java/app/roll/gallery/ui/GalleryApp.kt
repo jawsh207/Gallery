@@ -61,7 +61,7 @@ import app.roll.gallery.ui.viewer.ViewerScreen
 import kotlinx.coroutines.launch
 
 /** The two bottom tabs, in order. Photos is home. */
-enum class Tab(@StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
+enum class Tab(@param:StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
     Photos(R.string.tab_photos, Icons.Outlined.Photo, Icons.Filled.Photo),
     Collections(R.string.tab_collections, Icons.Outlined.PhotoLibrary, Icons.Filled.PhotoLibrary),
 }

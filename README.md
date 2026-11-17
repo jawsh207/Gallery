@@ -5,7 +5,7 @@ laid out like the photo apps people already know: a date-grouped Photos grid, a 
 tab for albums, favorites, videos and trash, and a full-screen viewer. It takes its colours
 from the wallpaper, as Contacts and Dialtone do.
 
-Everything stays on the phone. Gallery has no account, no cloud and no network access, and
+Everything stays on the phone. Gallery has no account, no cloud and no internet permission (the build strips it even if a library asks for it), and
 uses no Google services: it reads and changes the photos and videos in Android's shared media
 store, so other apps see the same favorites and trash.
 

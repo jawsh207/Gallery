@@ -87,9 +87,8 @@ fun InfoSheet(media: Media, viewModel: GalleryViewModel, onDismiss: () -> Unit) 
 private fun InfoRow(icon: ImageVector, title: String, detail: String?) {
     val supporting: (@Composable () -> Unit)? = detail?.let { text -> @Composable { Text(text) } }
     ListItem(
-        headlineContent = { Text(title) },
         supportingContent = supporting,
         leadingContent = { Icon(icon, contentDescription = null) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    )
+    ) { Text(title) }
 }
