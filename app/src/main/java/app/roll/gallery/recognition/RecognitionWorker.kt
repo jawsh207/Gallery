@@ -15,12 +15,19 @@ import androidx.work.workDataOf
 import app.roll.gallery.Edition
 import app.roll.gallery.data.EditRenderer
 import app.roll.gallery.data.MediaStoreSource
+import app.roll.gallery.data.Media
+import android.os.BatteryManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.util.concurrent.TimeUnit
 
 /**
  * Looks at every photo that hasn't been looked at yet (or has changed since), in the
  * background: reads its text into the [TextIndex] and finds its faces for the [FaceIndex],
- * whichever of the two is turned on. Each photo is decoded once for both. Results are saved in
+ * whichever of the two is turned on. Each photo is decoded once for both, the next photo loads
+ * while the current one is looked at, and text and faces are looked for at the same time. Each
+ * model uses 2 processor cores, or 4 while the phone is charging. Results are saved in
  * small batches, so stopping part way loses little, and progress is reported after each batch
  * so Settings can update its counts. Android runs it when its conditions are met (by default
  * only while charging) and stops it when they aren't. Gallery Plus only; in the plain edition
@@ -34,9 +41,13 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         }
         val readText = inputData.getBoolean(KEY_TEXT, false)
         val findFaces = inputData.getBoolean(KEY_FACES, false)
-        val reader = if (readText) Edition.textReader(context) else null
-        val finder = if (findFaces) Edition.faceFinder(context) else null
+        // Twice the cores while plugged in, where speed matters more than battery.
+        val charging = context.getSystemService(BatteryManager::class.java)?.isCharging == true
+        val threads = if (charging) CHARGING_THREADS else BATTERY_THREADS
+        val reader = if (readText) Edition.textReader(context, threads) else null
+        val finder = if (findFaces) Edition.faceFinder(context, threads) else null
         if (reader == null && finder == null) return Result.success()
+        val accelerated = listOfNotNull(reader?.accelerated, finder?.accelerated).all { it }
 
         val photos = MediaStoreSource(context.contentResolver).load().items.filter { !it.isVideo }
         val ids = photos.mapTo(HashSet()) { it.id }
@@ -48,27 +59,47 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         if (reader != null && knownText.keys.any { it !in ids }) textIndex.rewrite(knownText.values.filter { it.id in ids })
         if (finder != null && knownFaces.keys.any { it !in ids }) faceIndex.rewrite(knownFaces.values.filter { it.id in ids })
 
+        fun needsText(photo: Media) = reader != null && knownText[photo.id]?.modifiedAt != photo.modifiedAt
+        fun needsFaces(photo: Media) = finder != null && knownFaces[photo.id]?.modifiedAt != photo.modifiedAt
+        val todo = photos.filter { needsText(it) || needsFaces(it) }
+
         val renderer = EditRenderer(context)
         val texts = ArrayList<IndexEntry>()
         val faces = ArrayList<FaceEntry>()
         var batches = 0
+        setProgress(workDataOf(PROGRESS to 0, ACCELERATED to accelerated))
         try {
-            for (photo in photos) {
-                if (isStopped) break
-                val needsText = reader != null && knownText[photo.id]?.modifiedAt != photo.modifiedAt
-                val needsFaces = finder != null && knownFaces[photo.id]?.modifiedAt != photo.modifiedAt
-                if (!needsText && !needsFaces) continue
-                val bitmap = runCatching { renderer.decode(photo, MAX_SIDE) }.getOrNull()
-                if (needsText) texts += IndexEntry(photo.id, photo.modifiedAt, bitmap?.let { runCatching { reader!!.read(it) }.getOrNull() }.orEmpty())
-                if (needsFaces) faces += FaceEntry(photo.id, photo.modifiedAt, bitmap?.let { runCatching { finder!!.find(it) }.getOrNull() }.orEmpty())
-                bitmap?.recycle()
-                if (texts.size + faces.size >= BATCH) {
-                    textIndex.append(texts)
-                    faceIndex.append(faces)
-                    texts.clear()
-                    faces.clear()
-                    setProgress(workDataOf(PROGRESS to ++batches))
+            coroutineScope {
+                fun load(photo: Media) = async(Dispatchers.IO) { runCatching { renderer.decode(photo, MAX_SIDE) }.getOrNull() }
+                // The next photo loads while this one is looked at.
+                var next = todo.firstOrNull()?.let(::load)
+                for ((i, photo) in todo.withIndex()) {
+                    if (isStopped) break
+                    val bitmap = next!!.await()
+                    next = todo.getOrNull(i + 1)?.let(::load)
+                    // Text and faces are looked for at the same time, each on its own cores.
+                    val text = if (needsText(photo)) {
+                        async(Dispatchers.Default) { bitmap?.let { runCatching { reader!!.read(it) }.getOrNull() }.orEmpty() }
+                    } else {
+                        null
+                    }
+                    val found = if (needsFaces(photo)) {
+                        async(Dispatchers.Default) { bitmap?.let { runCatching { finder!!.find(it) }.getOrNull() }.orEmpty() }
+                    } else {
+                        null
+                    }
+                    text?.let { texts += IndexEntry(photo.id, photo.modifiedAt, it.await()) }
+                    found?.let { faces += FaceEntry(photo.id, photo.modifiedAt, it.await()) }
+                    bitmap?.recycle()
+                    if (texts.size + faces.size >= BATCH) {
+                        textIndex.append(texts)
+                        faceIndex.append(faces)
+                        texts.clear()
+                        faces.clear()
+                        setProgress(workDataOf(PROGRESS to ++batches, ACCELERATED to accelerated))
+                    }
                 }
+                next?.cancel()
             }
             textIndex.append(texts)
             faceIndex.append(faces)
@@ -88,6 +119,10 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         private const val KEY_TEXT = "text"
         private const val KEY_FACES = "faces"
         private const val PROGRESS = "batches"
+        /** The progress key saying whether the faster XNNPACK engine is in use. */
+        const val ACCELERATED = "accelerated"
+        private const val CHARGING_THREADS = 4
+        private const val BATTERY_THREADS = 2
         private const val BATCH = 20
         // Photos are looked at no bigger than this on their longer side: plenty for text and
         // faces, quick to decode.

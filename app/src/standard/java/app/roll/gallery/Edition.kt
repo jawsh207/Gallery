@@ -11,12 +11,12 @@ object Edition {
 
     /** No text reader in this edition. */
     @Suppress("UNUSED_PARAMETER")
-    fun textReader(context: Context): TextReader? = null
+    fun textReader(context: Context, threads: Int): TextReader? = null
 
     /** Whether faces are found and grouped into people. */
     const val HAS_PEOPLE = false
 
     /** No face finder in this edition. */
     @Suppress("UNUSED_PARAMETER")
-    fun faceFinder(context: Context): FaceFinder? = null
+    fun faceFinder(context: Context, threads: Int): FaceFinder? = null
 }

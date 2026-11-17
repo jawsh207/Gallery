@@ -11,12 +11,12 @@ object Edition {
     /** Whether photos can be searched by the text in them. */
     const val HAS_TEXT_SEARCH = true
 
-    /** A reader for the text in photos, using the bundled PaddleOCR models. Close it when done. */
-    fun textReader(context: Context): TextReader? = PaddleTextReader(context)
+    /** A reader for the text in photos, using the bundled PaddleOCR models on [threads] cores. Close it when done. */
+    fun textReader(context: Context, threads: Int): TextReader? = PaddleTextReader(context, threads)
 
     /** Whether faces are found and grouped into people. */
     const val HAS_PEOPLE = true
 
-    /** A face finder using the bundled YuNet and SFace models. Close it when done. */
-    fun faceFinder(context: Context): FaceFinder? = YuNetFaceFinder(context)
+    /** A face finder using the bundled YuNet and SFace models on [threads] cores. Close it when done. */
+    fun faceFinder(context: Context, threads: Int): FaceFinder? = YuNetFaceFinder(context, threads)
 }

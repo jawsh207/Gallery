@@ -28,3 +28,7 @@ Gallery Plus also includes:
 
 - SFace face recognition, 8-bit (face_recognition_sface_2021dec_int8), from the OpenCV Zoo, under
   the Apache License 2.0. Converted to ONNX Runtime's format.
+
+- XNNPACK (https://github.com/google/XNNPACK), Copyright Google LLC, under the BSD 3-Clause
+  License, with its pthreadpool and cpuinfo dependencies (BSD 2-Clause), built into ONNX Runtime
+  as its faster engine for phone processors. Code only; it makes no network connections.

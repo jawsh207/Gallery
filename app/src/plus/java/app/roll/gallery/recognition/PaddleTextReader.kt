@@ -15,18 +15,29 @@ import kotlin.math.roundToInt
  * cut-down ONNX Runtime bundled with this edition. Both models load from the app's own files
  * when it's made, and everything runs on the phone.
  *
- * For a photo: the finder marks where text is, [findTextBoxes] turns that into boxes, each box
+ * For a photo: a quick look at a small copy first rules out photos with no text; then the finder
+ * marks where text is, [findTextBoxes] turns that into boxes, each box
  * is cut out of the photo and read, and [decodeCharacters] turns the reader's scores into text.
  * Both models expect colours in blue-green-red order, as PaddleOCR feeds them.
  */
-class PaddleTextReader(context: Context) : TextReader {
+class PaddleTextReader(context: Context, threads: Int) : TextReader {
     private val env = OrtEnvironment.getEnvironment()
-    private val options = OrtSession.SessionOptions().apply { setIntraOpNumThreads(2) }
-    private val finder = env.createSession(context.assets.open("ocr/det.ort").use { it.readBytes() }, options)
-    private val reader = env.createSession(context.assets.open("ocr/rec.ort").use { it.readBytes() }, options)
+    private val finderModel = loadModel(env, context.assets.open("ocr/det.ort").use { it.readBytes() }, threads)
+    private val readerModel = loadModel(env, context.assets.open("ocr/rec.ort").use { it.readBytes() }, threads)
+    private val finder = finderModel.session
+    private val reader = readerModel.session
+    override val accelerated: Boolean get() = finderModel.accelerated && readerModel.accelerated
     private val characters = readerCharacters(context.assets.open("ocr/rec_dict.txt").use { it.readBytes().decodeToString() })
 
     override fun read(bitmap: Bitmap): String {
+        // Most photos have no text. A quick look at a small copy rules those out cheaply; only
+        // if it sees something like text is the photo looked at properly.
+        val (pw, ph) = finderInputSize(bitmap.width, bitmap.height, PROBE_SIDE)
+        val probe = Bitmap.createScaledBitmap(bitmap, pw, ph, true)
+        val probeMap = run(finder, toTensor(probe, FINDER_MEAN, FINDER_STD), pw, ph)
+        if (probe !== bitmap) probe.recycle()
+        if (findTextBoxes(probeMap, pw, ph, threshold = 0.2f, boxThreshold = 0.4f, minSide = 2).isEmpty()) return ""
+
         val (w, h) = finderInputSize(bitmap.width, bitmap.height)
         val scaled = Bitmap.createScaledBitmap(bitmap, w, h, true)
         val map = run(finder, toTensor(scaled, FINDER_MEAN, FINDER_STD), w, h)
@@ -96,9 +107,8 @@ class PaddleTextReader(context: Context) : TextReader {
     }
 
     override fun close() {
-        finder.close()
-        reader.close()
-        options.close()
+        finderModel.close()
+        readerModel.close()
     }
 
     private companion object {
@@ -108,6 +118,8 @@ class PaddleTextReader(context: Context) : TextReader {
         val READER_MEAN = floatArrayOf(0.5f, 0.5f, 0.5f)
         val READER_STD = floatArrayOf(0.5f, 0.5f, 0.5f)
         const val READER_HEIGHT = 48
+        // The quick first look's size: a quarter of the pixels of the full look.
+        const val PROBE_SIDE = 480
         const val MIN_TEXT_HEIGHT = 8
         const val MIN_CONFIDENCE = 0.5f
     }

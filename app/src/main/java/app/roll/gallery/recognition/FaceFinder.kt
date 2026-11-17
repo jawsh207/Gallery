@@ -7,6 +7,9 @@ import android.graphics.Bitmap
  * (see `Edition`).
  */
 interface FaceFinder : AutoCloseable {
+    /** Whether it runs on the faster XNNPACK engine (shown in Settings). */
+    val accelerated: Boolean
+
     /** The faces in [bitmap], with boxes as fractions of its size; empty if there are none. */
     fun find(bitmap: Bitmap): List<StoredFace>
 }

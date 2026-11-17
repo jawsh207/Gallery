@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds what Gallery Plus needs for reading text in photos, into build/plus/:
-#   onnxruntime-plus.aar  ONNX Runtime cut down to the operators our models use, arm64 only
+#   onnxruntime-plus.aar  ONNX Runtime cut down to the operators our models use, arm64 only, with
+#                         the XNNPACK engine for faster maths on phone processors
 #   assets/ocr/           the text models in ONNX Runtime's format, and the reading model's characters
 #   assets/faces/         the face finder and face matcher, in the same format
 # Needs Python 3, the Android SDK and NDK (ANDROID_HOME, ANDROID_NDK_HOME), Java and Ninja.
@@ -28,9 +29,13 @@ grep -v '^#' "$HERE/models.txt" | while read -r name url sha; do
 done
 
 python3 "$HERE/prepare_models.py" "$WORK/download" "$WORK/models"
-cp "$WORK/models/onnx/det.ort" "$WORK/models/onnx/rec.ort" "$OUT/assets/ocr/"
+# The converter names the files by optimisation style; give them plain names.
+model() { ls "$WORK/models/onnx/$1".*ort | head -1; }
+cp "$(model det)" "$OUT/assets/ocr/det.ort"
+cp "$(model rec)" "$OUT/assets/ocr/rec.ort"
 cp "$WORK/download/rec_dict.txt" "$OUT/assets/ocr/rec_dict.txt"
-cp "$WORK/models/onnx/yunet.ort" "$WORK/models/onnx/sface.ort" "$OUT/assets/faces/"
+cp "$(model yunet)" "$OUT/assets/faces/yunet.ort"
+cp "$(model sface)" "$OUT/assets/faces/sface.ort"
 CONFIG=$(ls "$WORK/models/onnx/"*.config | head -1)
 echo "Operators used:"; cat "$CONFIG"
 

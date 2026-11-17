@@ -22,11 +22,13 @@ import kotlin.math.min
  * takes colours in blue-green-red order as plain 0–255 values; SFace takes red-green-blue, also
  * 0–255 (its own first layer rescales them).
  */
-class YuNetFaceFinder(context: Context) : FaceFinder {
+class YuNetFaceFinder(context: Context, threads: Int) : FaceFinder {
     private val env = OrtEnvironment.getEnvironment()
-    private val options = OrtSession.SessionOptions().apply { setIntraOpNumThreads(2) }
-    private val finder = env.createSession(context.assets.open("faces/yunet.ort").use { it.readBytes() }, options)
-    private val matcher = env.createSession(context.assets.open("faces/sface.ort").use { it.readBytes() }, options)
+    private val finderModel = loadModel(env, context.assets.open("faces/yunet.ort").use { it.readBytes() }, threads)
+    private val matcherModel = loadModel(env, context.assets.open("faces/sface.ort").use { it.readBytes() }, threads)
+    private val finder = finderModel.session
+    private val matcher = matcherModel.session
+    override val accelerated: Boolean get() = finderModel.accelerated && matcherModel.accelerated
 
     override fun find(bitmap: Bitmap): List<StoredFace> {
         val scale = min(INPUT.toFloat() / bitmap.width, INPUT.toFloat() / bitmap.height)
@@ -94,9 +96,8 @@ class YuNetFaceFinder(context: Context) : FaceFinder {
     }
 
     override fun close() {
-        finder.close()
-        matcher.close()
-        options.close()
+        finderModel.close()
+        matcherModel.close()
     }
 
     private companion object {

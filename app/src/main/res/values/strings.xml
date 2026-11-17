@@ -265,4 +265,8 @@
     <string name="settings_find_people">Find people</string>
     <string name="settings_find_people_progress">Looked at <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone; <xliff:g id="people" example="12">%3$d</xliff:g> people so far</string>
     <string name="settings_find_people_off">Off. Turning it off forgets the faces found; names are kept.</string>
+    <string name="settings_engine">Engine</string>
+    <string name="settings_engine_fast">Faster engine (XNNPACK), tuned for phone processors</string>
+    <string name="settings_engine_standard">Standard engine; the faster one didn\'t start on this phone</string>
+    <string name="settings_engine_unknown">Shown once looking through photos starts</string>
 </resources>

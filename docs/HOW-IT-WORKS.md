@@ -32,7 +32,9 @@ for Plus only lives in `app/src/plus/`, and the plain edition's stand-ins in `ap
 The models are PaddleOCR's small text finder (about 2.5 MB) and Latin-script text reader (about
 8 MB), and the OpenCV Zoo's YuNet face finder (about 0.2 MB) and 8-bit SFace face matcher
 (about 10 MB). They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
-64-bit phones; about 1.3 MB) are built by `scripts/plus/build.sh`, which CI runs and caches. The
+64-bit phones, with the XNNPACK engine for faster maths on phone processors) are built by
+`scripts/plus/build.sh`, which CI runs and caches. Each model is loaded on XNNPACK if it starts,
+and on ONNX Runtime's plain engine otherwise; Settings shows which. The
 script tries shrinking the reader's numbers to 8 bits and keeps that only if the shrunk model
 reads a set of test lines exactly as the original does. With the current model, shrinking every
 layer changed some readings, and shrinking only the matrix layers passed but saved almost
@@ -44,7 +46,7 @@ nothing, so the reader is effectively as published.
 | --- | --- | --- |
 | Access | Asking for permission to see photos, with a way into Android's settings | `ui/access/AccessScreen.kt` |
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
-| Settings | Photo access, Media management, On this day, Text and people (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
+| Settings | Photo access, Media management, On this day, Text and people with the engine in use (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Videos tab | Every video, newest first, in the same grid as Photos | `ui/GalleryApp.kt` |
 | Collections tab | People (Plus), Favorites and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
@@ -108,6 +110,11 @@ documents. Each photo is read once, and again if it's edited; photos with no tex
 they aren't read twice, and deleted photos are dropped from the file. Android runs the reading
 when the battery isn't low and, unless that setting is turned off, only while charging, and
 pauses it otherwise; it picks up where it stopped, and checks for new photos every 12 hours.
+To go faster, each photo is first given a quick look at a small size (480 pixels), and only
+looked at properly if that finds something like text, since most photos have none (very small
+text can be missed this way). The next photo loads while the current one is being looked at,
+text and faces are looked for at the same time, and each model uses 2 processor cores, or 4
+while the phone is charging.
 Settings → Text and people shows how many photos have been read, updating as it goes, can turn reading off (which
 deletes the text file) and can let it run without charging. The reader knows the Latin
 alphabet: English and most European languages.
@@ -281,6 +288,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Sizing images for the models, finding text boxes, turning scores into characters | `recognition/OcrMath.kt` |
 | The file of text read in photos | `recognition/TextIndex.kt` |
 | Looking at photos in the background (text and faces), and scheduling it | `recognition/RecognitionWorker.kt` |
+| Loading models on the faster engine, or the plain one if it won't start (Plus) | `app/src/plus/.../recognition/Sessions.kt` |
 | Finding faces and fingerprinting them (Plus) | `app/src/plus/.../recognition/YuNetFaceFinder.kt`, `recognition/FaceFinder.kt` |
 | Reading the face finder's output, straightening faces, comparing and grouping them | `recognition/FaceMath.kt` |
 | The file of faces found, and people's names | `recognition/FaceIndex.kt` |
