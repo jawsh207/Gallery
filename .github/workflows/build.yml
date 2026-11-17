@@ -224,6 +224,17 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
 
+      # The real APKs are arm64 only, which the emulator can't install, so the check uses a
+      # second build that also carries x86_64 libraries; the real APKs are put back after.
+      - name: Build for the emulator
+        if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'
+        run: |
+          cp -r app/build/outputs/apk "$RUNNER_TEMP/apk-kept"
+          ./gradlew :app:assembleStandardRelease :app:assemblePlusRelease -PemulatorAbi --console=plain
+          mkdir -p "$RUNNER_TEMP/emulator"
+          for edition in standard plus; do cp app/build/outputs/apk/$edition/release/*.apk "$RUNNER_TEMP/emulator/$edition.apk"; done
+          rm -rf app/build/outputs/apk && cp -r "$RUNNER_TEMP/apk-kept" app/build/outputs/apk
+
       - name: Launch check
         if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'
         uses: reactivecircus/android-emulator-runner@v2
@@ -233,7 +244,7 @@ jobs:
           target: default
           disable-animations: true
           script: |
-            for edition in standard plus; do adb install -r app/build/outputs/apk/$edition/release/*.apk; adb logcat -c; adb shell am start -W -n app.roll.gallery/.MainActivity; sleep 15; adb logcat -d -b crash >> "$RUNNER_TEMP/crash.txt" || true; if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "$edition opened and is still running."; else touch "$RUNNER_TEMP/launch-failed"; fi; adb shell am force-stop app.roll.gallery; done
+            for edition in standard plus; do adb install -r "$RUNNER_TEMP/emulator/$edition.apk" || touch "$RUNNER_TEMP/launch-failed"; adb logcat -c; adb shell am start -W -n app.roll.gallery/.MainActivity; sleep 15; adb logcat -d -b crash >> "$RUNNER_TEMP/crash.txt" || true; if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "$edition opened and is still running."; else touch "$RUNNER_TEMP/launch-failed"; fi; adb shell am force-stop app.roll.gallery; done
 
       - name: Report launch failure
         if: env.IS_RELEASE == 'true' || env.SHRUNK_TEST == 'true'

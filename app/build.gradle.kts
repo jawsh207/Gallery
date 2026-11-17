@@ -17,7 +17,12 @@ android {
         targetSdk = 36
         versionCode = versionLines[0].toInt()
         versionName = versionLines[1]
-        ndk { abiFilters += "arm64-v8a" }
+        ndk {
+            abiFilters += "arm64-v8a"
+            // CI's launch check runs on an x86_64 emulator, so its builds also carry x86_64
+            // libraries (Gallery Plus's model runtime is arm64 only, but launching doesn't use it).
+            if (project.hasProperty("emulatorAbi")) abiFilters += "x86_64"
+        }
     }
 
     // Unit tests run on the computer, not a phone. Android calls the tested code happens to make
