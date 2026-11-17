@@ -156,11 +156,14 @@ jobs:
             fi
           fi
           if [ -n "$KEY" ]; then
-            # Pasting can add spaces or line breaks, which base64 can't decode; they're dropped.
-            if ! printf '%s' "$KEY" | tr -d ' \t\r\n' | base64 -d > "$RUNNER_TEMP/signing.jks" 2>/dev/null; then
-              CLEAN=$(printf '%s' "$KEY" | tr -d ' \t\r\n')
-              ODD=$(printf '%s' "$CLEAN" | tr -d 'A-Za-z0-9+/=' | od -An -c | tr -s ' ' | head -c 80)
-              echo "::error::The keystore secret isn't valid base64 (${#CLEAN} characters without spaces; unexpected characters:${ODD:- none}); paste it again from the file."
+            # Copying from a phone can add spaces, line breaks and invisible Unicode marks (such
+            # as direction marks) to a pasted secret. Only base64's own characters are kept from
+            # the key, and only visible ASCII from the password (the generated ones are letters
+            # and digits).
+            KEY=$(printf '%s' "$KEY" | LC_ALL=C tr -cd 'A-Za-z0-9+/=')
+            PASS=$(printf '%s' "$PASS" | LC_ALL=C tr -cd '\041-\176')
+            if ! printf '%s' "$KEY" | base64 -d > "$RUNNER_TEMP/signing.jks" 2>/dev/null; then
+              echo "::error::The keystore secret isn't valid base64 (${#KEY} characters); paste it again from the file."
               exit 1
             fi
             if ! keytool -list -keystore "$RUNNER_TEMP/signing.jks" -storepass "$PASS" -alias "$ALIAS" > /dev/null 2>&1; then
