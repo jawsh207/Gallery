@@ -14,6 +14,9 @@ import app.roll.gallery.data.MediaWriter
 import app.roll.gallery.Edition
 import app.roll.gallery.recognition.TextIndex
 import app.roll.gallery.recognition.TextIndexWorker
+import androidx.work.WorkManager
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.merge
 import app.roll.gallery.data.LockedFolder
 import kotlinx.coroutines.flow.combine
 import app.roll.gallery.data.EditRenderer
@@ -103,6 +106,18 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
                         if (on) TextIndexWorker.schedule(app, charging) else TextIndexWorker.stop(app)
                         refreshPhotoText()
                     }
+            }
+            // Re-read the index whenever the background reading saves a batch or finishes, so
+            // counts and search stay current without leaving the screen.
+            viewModelScope.launch {
+                val work = WorkManager.getInstance(app)
+                TextIndexWorker.WORK_NAMES
+                    .map { name -> work.getWorkInfosForUniqueWorkFlow(name) }
+                    .merge()
+                    .map { infos -> infos.joinToString { "${it.id}:${it.state}:${it.progress}" } }
+                    .distinctUntilChanged()
+                    .debounce(500)
+                    .collect { refreshPhotoText() }
             }
         }
     }

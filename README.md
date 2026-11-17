@@ -30,7 +30,8 @@ store, so other apps see the same favorites and trash.
   or as a copy beside it.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,
   shutter speed, ISO and focal length stored in the photo.
-- **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
+- **Videos:** a tab of its own with every video, newest first, selectable like Photos.
+- **Collections:** Favorites, Trash, and every folder with photos as an album (camera
   and screenshots first). Make new albums, and move or copy photos into albums.
 - **Slideshow:** from the viewer's menu; a new photo every four seconds, tap to stop.
 - **Duplicates:** finds copies of the same photo and near-identical shots taken moments apart,

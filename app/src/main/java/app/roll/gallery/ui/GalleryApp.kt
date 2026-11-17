@@ -31,6 +31,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Photo
+import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.outlined.Videocam
+import app.roll.gallery.ui.components.EmptyState
+import app.roll.gallery.ui.photos.MediaGrid
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
@@ -88,9 +93,10 @@ import app.roll.gallery.ui.photos.PhotosTab
 import app.roll.gallery.ui.viewer.ViewerScreen
 import kotlinx.coroutines.launch
 
-/** The two bottom tabs, in order. Photos is home. */
+/** The three bottom tabs, in order. Photos is home. */
 enum class Tab(@param:StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
     Photos(R.string.tab_photos, Icons.Outlined.Photo, Icons.Filled.Photo),
+    Videos(R.string.videos, Icons.Outlined.VideoLibrary, Icons.Filled.VideoLibrary),
     Collections(R.string.tab_collections, Icons.Outlined.PhotoLibrary, Icons.Filled.PhotoLibrary),
 }
 
@@ -201,9 +207,10 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
 }
 
 /**
- * The bottom tabs under the search bar (with its Settings button), as in Contacts. Long-pressing
- * a photo on the Photos tab selects it; while selecting, the search bar becomes a count of the
- * selection and the bottom tabs give way to its actions. Back from Collections returns to Photos.
+ * The bottom tabs (Photos, Videos, Collections) under the search bar with its Settings button,
+ * as in Contacts. Long-pressing a photo or video selects it; while selecting, the search bar
+ * becomes a count of the selection and the bottom tabs give way to its actions. Back from
+ * Videos or Collections returns to Photos.
  */
 @Composable
 private fun Home(
@@ -215,10 +222,14 @@ private fun Home(
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Photos) }
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
+    var videoZoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }
     val selected = library.items.filter { it.id in selectedIds }
-    val selecting = selected.isNotEmpty() && tab == Tab.Photos
+    val selecting = selected.isNotEmpty() && tab != Tab.Collections
+    // A selection belongs to the tab it was made on.
+    LaunchedEffect(tab) { selectedIds = emptySet() }
     val gridState = rememberLazyGridState()
+    val videoGridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     BackHandler(enabled = !selecting && tab != Tab.Photos) { tab = Tab.Photos }
@@ -260,10 +271,9 @@ private fun Home(
                         ShortNavigationBarItem(
                             selected = tab == entry,
                             onClick = {
-                                if (tab == entry && entry == Tab.Photos) {
-                                    // Tapping Photos again goes back to the newest photos.
-                                    scope.launch { gridState.animateScrollToItem(0) }
-                                }
+                                // Tapping Photos or Videos again goes back to the newest.
+                                if (tab == entry && entry == Tab.Photos) scope.launch { gridState.animateScrollToItem(0) }
+                                if (tab == entry && entry == Tab.Videos) scope.launch { videoGridState.animateScrollToItem(0) }
                                 tab = entry
                             },
                             icon = { Icon(if (tab == entry) entry.selectedIcon else entry.icon, contentDescription = null) },
@@ -292,6 +302,28 @@ private fun Home(
                         open(Screen.Viewer(MediaSet.Memory(memory.yearsAgo), memory.cover.id, slideshow = true))
                     },
                 )
+                Tab.Videos -> {
+                    val videos = remember(library.items) { library.videos }
+                    if (videos.isEmpty()) {
+                        EmptyState(
+                            Icons.Outlined.Videocam,
+                            stringResource(R.string.no_videos_title),
+                            stringResource(R.string.no_videos_body),
+                            Modifier.padding(padding),
+                        )
+                    } else {
+                        MediaGrid(
+                            items = videos,
+                            zoom = videoZoom,
+                            onZoomChange = { videoZoom = it },
+                            selection = selectedIds,
+                            onSelectionChange = { selectedIds = it },
+                            onOpen = { open(Screen.Viewer(MediaSet.Videos, it.id)) },
+                            state = videoGridState,
+                            contentPadding = padding,
+                        )
+                    }
+                }
                 Tab.Collections -> CollectionsTab(
                     library = library,
                     onOpenSet = { open(Screen.Grid(it)) },

@@ -45,8 +45,9 @@ nothing, so the reader is effectively as published.
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
 | Settings | Photo access, Media management, On this day, Text in photos (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
-| Collections tab | Favorites, Videos and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
-| Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
+| Videos tab | Every video, newest first, in the same grid as Photos | `ui/GalleryApp.kt` |
+| Collections tab | Favorites and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
+| Album, Favorites | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
 | Single-file viewer | A photo or video another app opened in Gallery | `ui/viewer/ExternalViewer.kt` |
@@ -58,7 +59,8 @@ nothing, so the reader is effectively as published.
 | Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
-The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
+The main screen (the search bar with its Settings button, the three tabs — Photos, Videos and
+Collections — and the bottom bar) and moving between screens are in
 `ui/GalleryApp.kt` and `ui/Navigation.kt`. Shared pieces such as the search bar, grid squares, selection bars,
 grouped-list rows, empty-screen messages and date wording are in `ui/components/`, and the colours and fonts in
 `ui/theme/Theme.kt`, which matches Contacts and Dialtone.
@@ -87,7 +89,7 @@ documents. Each photo is read once, and again if it's edited; photos with no tex
 they aren't read twice, and deleted photos are dropped from the file. Android runs the reading
 when the battery isn't low and, unless that setting is turned off, only while charging, and
 pauses it otherwise; it picks up where it stopped, and checks for new photos every 12 hours.
-Settings → Text in photos shows how many photos have been read, can turn reading off (which
+Settings → Text in photos shows how many photos have been read, updating as it goes, can turn reading off (which
 deletes the text file) and can let it run without charging. The reader knows the Latin
 alphabet: English and most European languages.
 

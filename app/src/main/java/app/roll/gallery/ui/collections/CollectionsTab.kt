@@ -58,7 +58,7 @@ import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: shortcuts to Favorites, Videos and Trash, the duplicate finder and the
+ * The Collections tab: shortcuts to Favorites and Trash, the duplicate finder and the
  * Locked folder, then every folder with photos
  * as an album, camera and screenshots first, with a button to make a new one ([onNewAlbum]
  * gets its name once it's been checked).
@@ -99,7 +99,6 @@ fun CollectionsTab(
         item(key = "shortcuts", span = { GridItemSpan(maxLineSpan) }) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Shortcut(Icons.Outlined.FavoriteBorder, stringResource(R.string.favorites), Modifier.weight(1f)) { onOpenSet(MediaSet.Favorites) }
-                Shortcut(Icons.Outlined.Videocam, stringResource(R.string.videos), Modifier.weight(1f)) { onOpenSet(MediaSet.Videos) }
                 Shortcut(Icons.Outlined.Delete, stringResource(R.string.trash), Modifier.weight(1f), onClick = onOpenTrash)
             }
         }

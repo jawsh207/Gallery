@@ -11,6 +11,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import app.roll.gallery.Edition
 import app.roll.gallery.data.EditRenderer
 import app.roll.gallery.data.MediaStoreSource
@@ -19,7 +20,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Reads the text in every photo that hasn't been read yet (or has changed since), in the
  * background, and adds it to the [TextIndex] in small batches, so stopping part way loses
- * little. Android runs it when its conditions are met (by default only while charging) and
+ * little. After each batch it reports progress, which Settings watches to update its count. Android runs it when its conditions are met (by default only while charging) and
  * stops it when they aren't. Gallery Plus only; in the plain edition there's no reader and it
  * does nothing. Videos and the Locked folder are never read.
  */
@@ -39,6 +40,7 @@ class TextIndexWorker(context: Context, params: WorkerParameters) : CoroutineWor
         val todo = photos.filter { known[it.id]?.modifiedAt != it.modifiedAt }
         val renderer = EditRenderer(context)
         val batch = ArrayList<IndexEntry>()
+        var saved = 0
         reader.use {
             for (photo in todo) {
                 if (isStopped) break
@@ -50,6 +52,8 @@ class TextIndexWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 if (batch.size >= BATCH) {
                     index.append(batch)
                     batch.clear()
+                    // Lets Settings update its count as reading goes.
+                    setProgress(workDataOf(PROGRESS_READ to ++saved))
                 }
             }
             index.append(batch)
@@ -59,8 +63,11 @@ class TextIndexWorker(context: Context, params: WorkerParameters) : CoroutineWor
 
     /** Starting, re-scheduling and stopping the reading. */
     companion object {
+        /** The names the reading is scheduled under; screens watch them for progress. */
+        val WORK_NAMES = listOf("text-index", "text-index-now")
         private const val PERIODIC = "text-index"
         private const val NOW = "text-index-now"
+        private const val PROGRESS_READ = "batches"
         private const val BATCH = 20
         // Photos are read at most this big on their longer side: plenty for text, quick to decode.
         private const val MAX_SIDE = 1280
