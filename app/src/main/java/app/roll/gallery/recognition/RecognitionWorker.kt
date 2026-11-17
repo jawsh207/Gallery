@@ -43,9 +43,9 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val readText = inputData.getBoolean(KEY_TEXT, false)
         val findFaces = inputData.getBoolean(KEY_FACES, false)
         val describe = inputData.getBoolean(KEY_DESCRIBE, false)
-        // Twice the cores while plugged in, where speed matters more than battery.
+        // Every performance core while plugged in, where speed matters more than battery.
         val charging = context.getSystemService(BatteryManager::class.java)?.isCharging == true
-        val threads = if (charging) CHARGING_THREADS else BATTERY_THREADS
+        val threads = if (charging) performanceCores() else BATTERY_THREADS
         val reader = if (readText) Edition.textReader(context, threads) else null
         val finder = if (findFaces) Edition.faceFinder(context, threads) else null
         val describer = if (describe) Edition.imageDescriber(context, threads) else null
@@ -138,7 +138,6 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         private const val KEY_FACES = "faces"
         private const val KEY_DESCRIBE = "describe"
         private const val PROGRESS = "batches"
-        private const val CHARGING_THREADS = 4
         private const val BATTERY_THREADS = 2
         private const val BATCH = 20
         // Photos are looked at no bigger than this on their longer side: plenty for text and

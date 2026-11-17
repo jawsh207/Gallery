@@ -124,8 +124,9 @@ pauses it otherwise; it picks up where it stopped, and checks for new photos eve
 To go faster, each photo is first given a quick look at a small size (480 pixels), and only
 looked at properly if that finds something like text, since most photos have none (very small
 text can be missed this way). The next photo loads while the current one is being looked at,
-text and faces are looked for at the same time, and each model uses 2 processor cores, or 4
-while the phone is charging.
+text and faces are looked for at the same time, and each model uses 2 processor cores, or
+every performance core while the phone is charging (the fast cores, worked out from each
+core's top speed; the small power-saving ones are left alone).
 Settings → Text and people shows how many photos have been read, updating as it goes, can turn reading off (which
 deletes the text file) and can let it run without charging. The reader knows the Latin
 alphabet: English and most European languages.
@@ -299,6 +300,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Sizing images for the models, finding text boxes, turning scores into characters | `recognition/OcrMath.kt` |
 | The file of text read in photos | `recognition/TextIndex.kt` |
 | Looking at photos in the background (text and faces), and scheduling it | `recognition/RecognitionWorker.kt` |
+| Counting the phone's performance cores | `recognition/CpuCores.kt` |
 | Loading a model with its number of processor cores (Plus) | `app/src/plus/.../recognition/Sessions.kt` |
 | Finding faces and fingerprinting them (Plus) | `app/src/plus/.../recognition/YuNetFaceFinder.kt`, `recognition/FaceFinder.kt` |
 | Reading the face finder's output, straightening faces, comparing and grouping them | `recognition/FaceMath.kt` |

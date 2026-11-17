@@ -63,6 +63,7 @@ store, so other apps see the same favorites and trash.
 | Photos and videos (`READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`) | To show them. |
 | Selected photos (`READ_MEDIA_VISUAL_USER_SELECTED`) | So Android can offer "Select photos" instead of all. Gallery then shows only those, with a card offering to allow all. |
 | Set wallpaper (`SET_WALLPAPER`) | For "Set as wallpaper". Granted without asking. |
+| Biometrics (`USE_BIOMETRIC`) | Lets the Locked folder show Android's unlock prompt (fingerprint, face, or your PIN, pattern or password). Granted without asking; Gallery never sees your fingerprint or face. |
 | Media management (`MANAGE_MEDIA`) | Optional, turned on by you in Android's Settings → Apps → Special app access → Media management. With it, favoriting, trashing, deleting and moving go through without Android asking you to confirm each time. |
 
 Gallery doesn't ask for location access, so it doesn't read where photos were taken.

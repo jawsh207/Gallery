@@ -25,9 +25,14 @@ fun Context.hasScreenLock(): Boolean = getSystemService(KeyguardManager::class.j
 /**
  * Shows Android's own unlock prompt (fingerprint, face, or the phone's PIN, pattern or
  * password) and calls [onUnlocked] if it's passed. Uses Android's built-in prompt directly, so
- * no extra library is needed.
+ * no extra library is needed; it needs the USE_BIOMETRIC permission. If the prompt can't be
+ * shown at all, the folder just stays locked rather than closing the app.
  */
 fun Context.askScreenLock(onUnlocked: () -> Unit) {
+    runCatching { showScreenLockPrompt(onUnlocked) }
+}
+
+private fun Context.showScreenLockPrompt(onUnlocked: () -> Unit) {
     val prompt = BiometricPrompt.Builder(this)
         .setTitle(getString(R.string.locked_unlock_title))
         .setSubtitle(getString(R.string.locked_unlock_subtitle))
