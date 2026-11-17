@@ -54,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -158,7 +159,16 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
 
     val stack = rememberBackStack()
     val open: (Screen) -> Unit = { stack.add(it) }
-    val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
+    // Each screen's remembered state (the open tab, scroll positions, zoom) is kept while another
+    // screen covers it, so going back returns to it as it was. Kept by place in the stack, and
+    // dropped when a screen is closed.
+    val saved = rememberSaveableStateHolder()
+    val back: () -> Unit = {
+        if (stack.size > 1) {
+            saved.removeState(stack.lastIndex)
+            stack.removeAt(stack.lastIndex)
+        }
+    }
     BackHandler(enabled = stack.size > 1, onBack = back)
 
     // The Locked folder locks again whenever the app leaves the screen.
@@ -168,42 +178,44 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
     Box(Modifier.fillMaxSize()) {
-        when (val screen = stack.last()) {
-            Screen.Home -> Home(
-                viewModel, loaded,
-                partialAccess = access == PhotoAccess.Partial,
-                onAllowAll = { launcher.launch(PHOTO_PERMISSIONS) },
-                open = open,
-            )
-            is Screen.Grid -> SetScreen(
-                viewModel, loaded, screen.set, onBack = back,
-                onOpen = { open(Screen.Viewer(screen.set, it.id)) },
-            )
-            Screen.Search -> SearchScreen(
-                viewModel, loaded, onBack = back,
-                onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
-            )
-            Screen.Settings -> SettingsScreen(viewModel, onBack = back)
-            Screen.Duplicates -> DuplicatesScreen(viewModel, loaded, onBack = back)
-            is Screen.Person -> PersonScreen(
-                viewModel, loaded, screen.key,
-                onKeyChange = { key -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = Screen.Person(key) },
-                onBack = back,
-                onOpen = { open(Screen.Viewer(MediaSet.Person(screen.key), it.id)) },
-            )
-            Screen.Locked -> LockedScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Locked, it.id)) })
-            is Screen.NewAlbum -> NewAlbumScreen(viewModel, loaded, screen.name, onDone = back)
-            Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
-            is Screen.Viewer -> ViewerScreen(
-                viewModel, loaded, screen.set, screen.id,
-                onCurrentChange = { id -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = screen.copy(id = id) },
-                onBack = back,
-                slideshowAtStart = screen.slideshow,
-                onEdit = { open(Screen.Editor(it.id)) },
-            )
-            is Screen.Editor -> {
-                val media = loaded.items.firstOrNull { it.id == screen.id }
-                if (media == null) LaunchedEffect(Unit) { back() } else EditorScreen(viewModel, media, onClose = back)
+        saved.SaveableStateProvider(stack.lastIndex) {
+            when (val screen = stack.last()) {
+                Screen.Home -> Home(
+                    viewModel, loaded,
+                    partialAccess = access == PhotoAccess.Partial,
+                    onAllowAll = { launcher.launch(PHOTO_PERMISSIONS) },
+                    open = open,
+                )
+                is Screen.Grid -> SetScreen(
+                    viewModel, loaded, screen.set, onBack = back,
+                    onOpen = { open(Screen.Viewer(screen.set, it.id)) },
+                )
+                Screen.Search -> SearchScreen(
+                    viewModel, loaded, onBack = back,
+                    onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
+                )
+                Screen.Settings -> SettingsScreen(viewModel, onBack = back)
+                Screen.Duplicates -> DuplicatesScreen(viewModel, loaded, onBack = back)
+                is Screen.Person -> PersonScreen(
+                    viewModel, loaded, screen.key,
+                    onKeyChange = { key -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = Screen.Person(key) },
+                    onBack = back,
+                    onOpen = { open(Screen.Viewer(MediaSet.Person(screen.key), it.id)) },
+                )
+                Screen.Locked -> LockedScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Locked, it.id)) })
+                is Screen.NewAlbum -> NewAlbumScreen(viewModel, loaded, screen.name, onDone = back)
+                Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
+                is Screen.Viewer -> ViewerScreen(
+                    viewModel, loaded, screen.set, screen.id,
+                    onCurrentChange = { id -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = screen.copy(id = id) },
+                    onBack = back,
+                    slideshowAtStart = screen.slideshow,
+                    onEdit = { open(Screen.Editor(it.id)) },
+                )
+                is Screen.Editor -> {
+                    val media = loaded.items.firstOrNull { it.id == screen.id }
+                    if (media == null) LaunchedEffect(Unit) { back() } else EditorScreen(viewModel, media, onClose = back)
+                }
             }
         }
         SnackbarHost(

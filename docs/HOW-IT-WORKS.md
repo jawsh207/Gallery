@@ -63,7 +63,9 @@ nothing, so the reader is effectively as published.
 
 The main screen (the search bar with its Settings button, the three tabs — Photos, Videos and
 Collections — and the bottom bar) and moving between screens are in
-`ui/GalleryApp.kt` and `ui/Navigation.kt`. Shared pieces such as the search bar, grid squares, selection bars,
+`ui/GalleryApp.kt` and `ui/Navigation.kt`. Screens open on top of each other, and each one
+keeps its state while covered, so Back returns to the screen before exactly as it was: the same
+tab, scrolled to the same place. Shared pieces such as the search bar, grid squares, selection bars,
 grouped-list rows, empty-screen messages and date wording are in `ui/components/`, and the colours and fonts in
 `ui/theme/Theme.kt`, which matches Contacts and Dialtone.
 
