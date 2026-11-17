@@ -21,7 +21,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.ContentDataSource
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.exoplayer.ExoPlayer
@@ -43,10 +43,13 @@ class SliceDataSource(private val upstream: DataSource, private val offset: Long
     }
 }
 
-/** A player for [motion]'s video inside the photo at [uri], silent, as motion photos play. */
+/**
+ * A player for [motion]'s video inside the photo at [uri], silent, as motion photos play. The
+ * default data source reads both the photo library's content addresses and Locked folder files.
+ */
 @OptIn(UnstableApi::class)
 fun motionPlayer(context: Context, uri: Uri, motion: MotionVideo): ExoPlayer {
-    val slices = DataSource.Factory { SliceDataSource(ContentDataSource(context), motion.offset, motion.length) }
+    val slices = DataSource.Factory { SliceDataSource(DefaultDataSource(context, false), motion.offset, motion.length) }
     return ExoPlayer.Builder(context).build().apply {
         setMediaSource(ProgressiveMediaSource.Factory(slices).createMediaSource(MediaItem.fromUri(uri)))
         volume = 0f
