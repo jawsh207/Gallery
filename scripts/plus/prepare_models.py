@@ -157,7 +157,11 @@ for half, cases in [("clip_image", 3), ("clip_text", len(PHRASES))]:
             weight_type=QuantType.QInt8, per_channel=True,
             **({"op_types_to_quantize": op_types} if op_types else {}),
         )
-        worst = min(float(np.dot(a, b)) for a, b in zip(original, fingerprints(candidate, cases)))
+        try:
+            worst = min(float(np.dot(a, b)) for a, b in zip(original, fingerprints(candidate, cases)))
+        except Exception as error:  # e.g. an 8-bit layer the runtime has no implementation for
+            print(f"{half} shrunk ({name}) can't run: {error}")
+            continue
         print(f"{half} shrunk ({name}): worst similarity {worst:.4f}, {candidate.stat().st_size} bytes")
         if worst >= 0.98:
             kept = candidate
