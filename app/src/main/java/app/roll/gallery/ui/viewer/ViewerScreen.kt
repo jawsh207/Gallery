@@ -1,6 +1,15 @@
 package app.roll.gallery.ui.viewer
 
 import android.app.Activity
+import android.app.WallpaperManager
+import androidx.compose.material.icons.outlined.LibraryAdd
+import androidx.compose.material.icons.outlined.Wallpaper
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
+import app.roll.gallery.ui.collections.AddToAlbumSheet
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.fadeIn
@@ -67,7 +76,8 @@ import kotlinx.coroutines.launch
  * Photos and videos one at a time, full screen on black. Swipe sideways through the rest of
  * [set], tap to show or hide the controls (and Android's status and navigation bars), pinch or
  * double-tap to zoom, drag down to close and drag up for details. The bottom bar has the same
- * actions as a selection: share, favorite and trash, or restore and delete inside the trash.
+ * actions as a selection: share, favorite and trash, or restore and delete inside the trash;
+ * the top bar's menu has Add to album and, for photos, Set as wallpaper.
  * [onCurrentChange] reports the item on screen so the back stack reopens it after a restart.
  */
 @Composable
@@ -117,7 +127,16 @@ fun ViewerScreen(
     val actions = if (set == MediaSet.Trash) {
         trashActions(viewModel, listOf(current)) {}
     } else {
-        libraryActions(viewModel, listOf(current)) {}
+        libraryActions(viewModel, library, listOf(current), onDone = {}, withAlbum = false)
+    }
+
+    var addingToAlbum by remember { mutableStateOf(false) }
+    var wallpaper by remember { mutableStateOf(false) }
+    val menu = buildList {
+        if (set != MediaSet.Trash) add(BarAction(Icons.Outlined.LibraryAdd, stringResource(R.string.add_to_album)) { addingToAlbum = true })
+        if (set != MediaSet.Trash && !current.isVideo) {
+            add(BarAction(Icons.Outlined.Wallpaper, stringResource(R.string.set_wallpaper)) { wallpaper = true })
+        }
     }
 
     GalleryTheme(darkTheme = true) {
@@ -155,7 +174,7 @@ fun ViewerScreen(
                 exit = fadeOut(),
                 modifier = Modifier.align(Alignment.TopCenter),
             ) {
-                TopControls(current.takenAt, onBack)
+                TopControls(current.takenAt, onBack, menu)
             }
             AnimatedVisibility(
                 visible = controls && dragY == 0f,
@@ -167,12 +186,27 @@ fun ViewerScreen(
             }
         }
         if (showInfo) InfoSheet(current, viewModel) { showInfo = false }
+        if (addingToAlbum) {
+            AddToAlbumSheet(viewModel, library, listOf(current), onDismiss = { addingToAlbum = false }, onDone = { addingToAlbum = false })
+        }
+        if (wallpaper) {
+            WallpaperDialog(
+                onPick = { which ->
+                    wallpaper = false
+                    viewModel.setWallpaper(current, which)
+                },
+                onDismiss = { wallpaper = false },
+            )
+        }
     }
 }
 
-/** The back arrow and when the item was taken, over a fade so they read on bright photos. */
+/**
+ * The back arrow, when the item was taken, and a menu of less-used actions ([menu], left out
+ * when empty), over a fade so they read on bright photos.
+ */
 @Composable
-internal fun TopControls(takenAt: Long, onBack: () -> Unit) {
+internal fun TopControls(takenAt: Long, onBack: () -> Unit, menu: List<BarAction> = emptyList()) {
     val (date, time) = takenAtText(takenAt, currentLocale())
     Row(
         Modifier
@@ -185,11 +219,53 @@ internal fun TopControls(takenAt: Long, onBack: () -> Unit) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
         }
-        Column(Modifier.padding(start = 4.dp)) {
+        Column(Modifier.padding(start = 4.dp).weight(1f)) {
             Text(date, color = Color.White, style = MaterialTheme.typography.titleMedium)
             Text(time, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
         }
+        if (menu.isNotEmpty()) {
+            var open by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { open = true }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options), tint = Color.White)
+                }
+                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                    for (item in menu) {
+                        DropdownMenuItem(
+                            text = { Text(item.label) },
+                            leadingIcon = { Icon(item.icon, contentDescription = null) },
+                            onClick = {
+                                open = false
+                                item.onClick()
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
+}
+
+/** Asks where a photo should become the wallpaper: home screen, lock screen or both. */
+@Composable
+internal fun WallpaperDialog(onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.set_wallpaper)) },
+        text = {
+            Column {
+                for ((label, which) in listOf(
+                    R.string.wallpaper_home to WallpaperManager.FLAG_SYSTEM,
+                    R.string.wallpaper_lock to WallpaperManager.FLAG_LOCK,
+                    R.string.wallpaper_both to (WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK),
+                )) {
+                    TextButton(onClick = { onPick(which) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(label)) }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** The row of actions along the bottom. */

@@ -72,7 +72,7 @@ fun SetScreen(
     val selecting = selected.isNotEmpty()
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val actions = libraryActions(viewModel, selected) { selectedIds = emptySet() }
+    val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
 
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),

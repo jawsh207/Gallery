@@ -17,6 +17,8 @@ sealed interface Screen {
     data object Trash : Screen
     data object Search : Screen
     data object Settings : Screen
+    /** Choosing the photos for a new album called [name]. */
+    data class NewAlbum(val name: String) : Screen
     /** One photo or video full screen, paging through the rest of [set]. */
     data class Viewer(val set: MediaSet, val id: Long) : Screen
 }
@@ -48,6 +50,7 @@ private fun Screen.encode(): String = when (this) {
     Screen.Trash -> "trash"
     Screen.Search -> "search"
     Screen.Settings -> "settings"
+    is Screen.NewAlbum -> "newalbum|" + URLEncoder.encode(name, "UTF-8")
     is Screen.Grid -> "grid|${set.encode()}"
     is Screen.Viewer -> "viewer|$id|${set.encode()}"
 }
@@ -59,6 +62,7 @@ private fun decode(text: String): Screen? {
         "trash" -> Screen.Trash
         "search" -> Screen.Search
         "settings" -> Screen.Settings
+        "newalbum" -> parts.getOrNull(1)?.let { Screen.NewAlbum(URLDecoder.decode(it, "UTF-8")) }
         "grid" -> parts.getOrNull(1)?.let(::decodeMediaSet)?.let { Screen.Grid(it) }
         "viewer" -> {
             val id = parts.getOrNull(1)?.toLongOrNull()

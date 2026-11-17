@@ -35,15 +35,17 @@ import app.roll.gallery.ui.components.EmptyState
  * Shown when another app asks to choose photos or videos ("Choose from Gallery"): the library,
  * narrowed to the kinds it asked for, in the usual grid. With one allowed, a tap hands it back;
  * with several, taps (or a long-press drag) select and Done hands them all back. [onDone] gets
- * the chosen items, or null when cancelled.
+ * the chosen items, or null when cancelled. [title] replaces the usual heading until something
+ * is selected (the new album's name, when choosing photos for it).
  */
 @Composable
-fun PickScreen(library: Library, request: ExternalRequest.Pick, onDone: (List<Media>?) -> Unit) {
+fun PickScreen(library: Library, request: ExternalRequest.Pick, onDone: (List<Media>?) -> Unit, title: String? = null) {
     val items = remember(library.items, request) { library.items.filter { request.kinds.accepts(it) } }
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }
     val selected = items.filter { it.id in selectedIds }
-    val title = when {
+    val heading = when {
+        title != null && selected.isEmpty() -> title
         request.multiple -> if (selected.isEmpty()) stringResource(R.string.pick_many) else pluralStringResource(R.plurals.selected_count, selected.size, selected.size)
         request.kinds.videos && !request.kinds.images -> stringResource(R.string.pick_video)
         else -> stringResource(R.string.pick_one)
@@ -52,7 +54,7 @@ fun PickScreen(library: Library, request: ExternalRequest.Pick, onDone: (List<Me
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(heading) },
                 navigationIcon = {
                     IconButton(onClick = { onDone(null) }) { Icon(Icons.Rounded.Close, stringResource(R.string.cancel)) }
                 },

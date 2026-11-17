@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -38,7 +39,7 @@ import kotlinx.coroutines.launch
 /**
  * The viewer for a single file another app opened in Gallery ("Open with", or the camera's
  * thumbnail). It works without photo access, since the other app lends access to just that
- * file. It zooms, plays and shares like the main viewer, but has no favorite or trash: the file
+ * file. It zooms, plays, shares and sets wallpapers like the main viewer, but has no favorite or trash: the file
  * may not be in the phone's photo library at all. Back or dragging down closes it.
  */
 @Composable
@@ -60,6 +61,7 @@ fun ExternalViewer(media: Media, viewModel: GalleryViewModel, onClose: () -> Uni
         scope.launch { animate(from, 0f) { value, _ -> dragY = value } }
     }
     val zoom = remember(media.uri) { ZoomState(0f) }
+    var wallpaper by remember { mutableStateOf(false) }
 
     GalleryTheme(darkTheme = true) {
         val fade = (1f - abs(dragY) / (closeAt * 4)).coerceIn(0f, 1f)
@@ -81,7 +83,12 @@ fun ExternalViewer(media: Media, viewModel: GalleryViewModel, onClose: () -> Uni
                 }
             }
             AnimatedVisibility(controls && dragY == 0f, Modifier.align(Alignment.TopCenter), enter = fadeIn(), exit = fadeOut()) {
-                TopControls(media.takenAt, onClose)
+                TopControls(
+                    media.takenAt, onClose,
+                    menu = if (media.isVideo) emptyList() else listOf(
+                        BarAction(Icons.Outlined.Wallpaper, stringResource(R.string.set_wallpaper)) { wallpaper = true },
+                    ),
+                )
             }
             AnimatedVisibility(controls && dragY == 0f, Modifier.align(Alignment.BottomCenter), enter = fadeIn(), exit = fadeOut()) {
                 BottomControls(
@@ -93,5 +100,14 @@ fun ExternalViewer(media: Media, viewModel: GalleryViewModel, onClose: () -> Uni
             }
         }
         if (showInfo) InfoSheet(media, viewModel) { showInfo = false }
+        if (wallpaper) {
+            WallpaperDialog(
+                onPick = { which ->
+                    wallpaper = false
+                    viewModel.setWallpaper(media, which)
+                },
+                onDismiss = { wallpaper = false },
+            )
+        }
     }
 }

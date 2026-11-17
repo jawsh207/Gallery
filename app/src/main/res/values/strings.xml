@@ -111,4 +111,45 @@
     <string name="pick_video">Choose a video</string>
     <string name="pick_many">Choose photos</string>
     <string name="done">Done</string>
+    <!-- Albums -->
+    <string name="add_to_album">Add to album</string>
+    <string name="new_album">New album</string>
+    <string name="album_name">Album name</string>
+    <string name="album_name_slash">An album name can\'t contain a slash</string>
+    <string name="album_name_taken">There\'s already an album with this name</string>
+    <string name="create">Create</string>
+    <string name="move">Move</string>
+    <string name="copy">Copy</string>
+    <string name="move_explained">Moves the files into the album\'s folder. They leave the album they\'re in now.</string>
+    <string name="copy_explained">Makes copies in the album\'s folder. The originals stay where they are.</string>
+    <string name="move_or_copy_body">Move them into the new album, or put copies there and keep the originals where they are?</string>
+    <plurals name="add_to_album_title">
+        <item quantity="one">Add <xliff:g id="count" example="3">%1$d</xliff:g> item to album</item>
+        <item quantity="other">Add <xliff:g id="count" example="3">%1$d</xliff:g> items to album</item>
+    </plurals>
+    <plurals name="copied">
+        <item quantity="one">Copied <xliff:g id="count" example="3">%1$d</xliff:g> item</item>
+        <item quantity="other">Copied <xliff:g id="count" example="3">%1$d</xliff:g> items</item>
+    </plurals>
+    <plurals name="copy_failed">
+        <item quantity="one"><xliff:g id="count" example="3">%1$d</xliff:g> item couldn\'t be copied</item>
+        <item quantity="other"><xliff:g id="count" example="3">%1$d</xliff:g> items couldn\'t be copied</item>
+    </plurals>
+    <plurals name="moved">
+        <item quantity="one">Moved <xliff:g id="count" example="3">%1$d</xliff:g> item</item>
+        <item quantity="other">Moved <xliff:g id="count" example="3">%1$d</xliff:g> items</item>
+    </plurals>
+    <plurals name="move_failed">
+        <item quantity="one"><xliff:g id="count" example="3">%1$d</xliff:g> item couldn\'t be moved</item>
+        <item quantity="other"><xliff:g id="count" example="3">%1$d</xliff:g> items couldn\'t be moved</item>
+    </plurals>
+
+    <!-- Viewer menu -->
+    <string name="more_options">More options</string>
+    <string name="set_wallpaper">Set as wallpaper</string>
+    <string name="wallpaper_home">Home screen</string>
+    <string name="wallpaper_lock">Lock screen</string>
+    <string name="wallpaper_both">Home and lock screens</string>
+    <string name="wallpaper_set">Wallpaper set</string>
+    <string name="wallpaper_failed">Couldn\'t set the wallpaper</string>
 </resources>

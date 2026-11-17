@@ -19,13 +19,14 @@ store, so other apps see the same favorites and trash.
   shortcuts for each before you type.
 - **Selecting:** long-press a photo, then keep your finger down and drag across others to
   select a run of them (the grid scrolls when you reach its edge). A circle by each date
-  selects that whole day. Share, favorite or trash the selection.
+  selects that whole day. Share, favorite, add to an album or trash the selection.
 - **Viewer:** swipe between photos, pinch or double-tap to zoom, drag down to close, drag up
   for details. Videos play in place with a seek bar.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,
   shutter speed, ISO and focal length stored in the photo.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
-  and screenshots first).
+  and screenshots first). Make new albums, and move or copy photos into albums.
+- **Wallpaper:** set a photo as the home screen, lock screen or both, from the viewer's menu.
 - **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can
   pick them from Gallery, one or several.
@@ -39,7 +40,8 @@ store, so other apps see the same favorites and trash.
 | --- | --- |
 | Photos and videos (`READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`) | To show them. |
 | Selected photos (`READ_MEDIA_VISUAL_USER_SELECTED`) | So Android can offer "Select photos" instead of all. Gallery then shows only those, with a card offering to allow all. |
-| Media management (`MANAGE_MEDIA`) | Optional, turned on by you in Android's Settings → Apps → Special app access → Media management. With it, favoriting, trashing and deleting go through without Android asking you to confirm each time. |
+| Set wallpaper (`SET_WALLPAPER`) | For "Set as wallpaper". Granted without asking. |
+| Media management (`MANAGE_MEDIA`) | Optional, turned on by you in Android's Settings → Apps → Special app access → Media management. With it, favoriting, trashing, deleting and moving go through without Android asking you to confirm each time. |
 
 Gallery doesn't ask for location access, so it doesn't read where photos were taken.
 

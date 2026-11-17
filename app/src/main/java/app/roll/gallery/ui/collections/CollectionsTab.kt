@@ -21,7 +21,14 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,16 +54,29 @@ import coil3.compose.AsyncImage
 
 /**
  * The Collections tab: shortcuts to Favorites, Videos and Trash, then every folder with photos
- * as an album, camera and screenshots first.
+ * as an album, camera and screenshots first, with a button to make a new one ([onNewAlbum]
+ * gets its name once it's been checked).
  */
 @Composable
 fun CollectionsTab(
     library: Library,
     onOpenSet: (MediaSet) -> Unit,
     onOpenTrash: () -> Unit,
+    onNewAlbum: (String) -> Unit,
     contentPadding: PaddingValues,
 ) {
     val albums = remember(library.items) { buildAlbums(library.items) }
+    var naming by remember { mutableStateOf(false) }
+    if (naming) {
+        NewAlbumDialog(
+            existing = albums.map { it.name },
+            onConfirm = { name ->
+                naming = false
+                onNewAlbum(name)
+            },
+            onDismiss = { naming = false },
+        )
+    }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(150.dp),
         contentPadding = PaddingValues(
@@ -76,11 +96,18 @@ fun CollectionsTab(
             }
         }
         item(key = "albums", span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                stringResource(R.string.albums),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 12.dp, start = 4.dp),
-            )
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.albums),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 4.dp).weight(1f),
+                )
+                FilledTonalButton(onClick = { naming = true }) {
+                    Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.new_album))
+                }
+            }
         }
         if (albums.isEmpty()) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {

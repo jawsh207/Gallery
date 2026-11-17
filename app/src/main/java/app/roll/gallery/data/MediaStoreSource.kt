@@ -9,7 +9,7 @@ import android.provider.MediaStore.MediaColumns
 
 /**
  * Reads photos and videos from Android's media store, and builds the requests that change
- * them (favorite, trash, restore, delete). Android doesn't let an app change other apps'
+ * them (favorite, trash, restore, delete, write access for moving). Android doesn't let an app change other apps'
  * files directly: each change is a request the system confirms with the user, unless the
  * app has "Media management" access, in which case the system approves it without asking.
  */
@@ -87,6 +87,10 @@ class MediaStoreSource(private val resolver: ContentResolver) {
     /** A request to move [items] to the trash, or back out of it. Android empties trash after 30 days. */
     fun trashRequest(items: List<Media>, trash: Boolean): IntentSender =
         MediaStore.createTrashRequest(resolver, items.map { it.uri }, trash).intentSender
+
+    /** A request for write access to [items], so they can be moved to another folder. */
+    fun writeRequest(items: List<Media>): IntentSender =
+        MediaStore.createWriteRequest(resolver, items.map { it.uri }).intentSender
 
     /** A request to delete [items] for good. */
     fun deleteRequest(items: List<Media>): IntentSender =

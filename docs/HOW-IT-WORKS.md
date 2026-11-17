@@ -35,6 +35,8 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
 | Single-file viewer | A photo or video another app opened in Gallery | `ui/viewer/ExternalViewer.kt` |
 | Choose for another app | Picking photos or videos to hand back to the app that asked | `ui/pick/PickScreen.kt` |
+| Add to album | Moving or copying photos into an album or a new one | `ui/collections/AddToAlbum.kt` |
+| New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
 The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
@@ -85,7 +87,7 @@ to select everything from the first to the one under your finger; drag back to u
 the top or bottom edge, the grid scrolls by itself. Starting on an already selected photo
 unselects instead. Once selecting, a tap adds or removes a single photo, and a circle next to
 each date selects or unselects that whole day. The bottom bar then offers Share, Favorite (or
-Unfavorite, when everything selected already is) and Trash.
+Unfavorite, when everything selected already is), Add to album and Trash.
 
 **The viewer.** Swipe sideways between photos of the set you opened it from: the whole library,
 an album, Favorites, Videos or the trash. Tap to show or hide the controls and Android's bars.
@@ -104,6 +106,20 @@ taken.
 
 **Albums.** Every folder holding photos or videos is an album, with its newest photo as the
 cover. The camera folder comes first, screenshots second, then the rest by their newest photo.
+
+**Making albums, moving and copying.** "Add to album" (for a selection, or from the viewer's
+menu) opens a list of albums with a Move or Copy switch. Moving shifts the files into that
+album's folder; they keep their dates and favorites and leave the album they were in. Copying
+makes new files there and leaves the originals. Android only lets photos live under the DCIM
+and Pictures folders (and videos under Movies too), so albums elsewhere, such as Download or
+a messaging app's folder, are greyed out. Before moving files Gallery didn't make, Android
+asks you to allow it (not if Media management is on). "New album" on the Collections tab asks
+for a name, then for its photos, then whether to move or copy them; the album is a new folder
+in Pictures. An album is a folder, so it only exists once something is in it. A message at the
+bottom says how many items were moved or copied, or how many couldn't be.
+
+**Wallpaper.** The viewer's menu (top right) has "Set as wallpaper" for photos: home screen,
+lock screen, or both. Android fits the photo to the screen.
 
 **Trash.** This is Android's own trash, shared with other apps. Android deletes items for good
 30 days after they're trashed. From the trash you can restore or delete items one at a time,
@@ -134,6 +150,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Formatting lengths, sizes, megapixels and camera settings | `data/Formats.kt` |
 | Keeping the library loaded and refreshing it when the media store changes | `ui/GalleryViewModel.kt`, `util/ContentChanges.kt` |
 | Grid thumbnails from Android's own thumbnail cache | `image/Thumbnails.kt`, `GalleryApplication.kt` |
+| Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
+| Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
 | Zooming, panning and swipe-to-close in the viewer | `ui/viewer/Gestures.kt` |
 | Video playback | `ui/viewer/Pages.kt` |
@@ -141,6 +159,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

@@ -35,6 +35,9 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
@@ -66,6 +69,7 @@ import app.roll.gallery.ui.access.PHOTO_PERMISSIONS
 import app.roll.gallery.ui.access.PhotoAccess
 import app.roll.gallery.ui.access.photoAccess
 import app.roll.gallery.ui.collections.CollectionsTab
+import app.roll.gallery.ui.collections.NewAlbumScreen
 import app.roll.gallery.ui.collections.SetScreen
 import app.roll.gallery.ui.collections.TrashScreen
 import app.roll.gallery.ui.components.BottomBar
@@ -141,27 +145,37 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     BackHandler(enabled = stack.size > 1, onBack = back)
 
-    when (val screen = stack.last()) {
-        Screen.Home -> Home(
-            viewModel, loaded,
-            partialAccess = access == PhotoAccess.Partial,
-            onAllowAll = { launcher.launch(PHOTO_PERMISSIONS) },
-            open = open,
-        )
-        is Screen.Grid -> SetScreen(
-            viewModel, loaded, screen.set, onBack = back,
-            onOpen = { open(Screen.Viewer(screen.set, it.id)) },
-        )
-        Screen.Search -> SearchScreen(
-            viewModel, loaded, onBack = back,
-            onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
-        )
-        Screen.Settings -> SettingsScreen(viewModel, onBack = back)
-        Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
-        is Screen.Viewer -> ViewerScreen(
-            viewModel, loaded, screen.set, screen.id,
-            onCurrentChange = { id -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = screen.copy(id = id) },
-            onBack = back,
+    // Messages from background work (copies, moves, wallpaper), over whichever screen is open.
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
+    Box(Modifier.fillMaxSize()) {
+        when (val screen = stack.last()) {
+            Screen.Home -> Home(
+                viewModel, loaded,
+                partialAccess = access == PhotoAccess.Partial,
+                onAllowAll = { launcher.launch(PHOTO_PERMISSIONS) },
+                open = open,
+            )
+            is Screen.Grid -> SetScreen(
+                viewModel, loaded, screen.set, onBack = back,
+                onOpen = { open(Screen.Viewer(screen.set, it.id)) },
+            )
+            Screen.Search -> SearchScreen(
+                viewModel, loaded, onBack = back,
+                onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
+            )
+            Screen.Settings -> SettingsScreen(viewModel, onBack = back)
+            is Screen.NewAlbum -> NewAlbumScreen(viewModel, loaded, screen.name, onDone = back)
+            Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
+            is Screen.Viewer -> ViewerScreen(
+                viewModel, loaded, screen.set, screen.id,
+                onCurrentChange = { id -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = screen.copy(id = id) },
+                onBack = back,
+            )
+        }
+        SnackbarHost(
+            snackbar,
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 80.dp),
         )
     }
 }
@@ -188,7 +202,7 @@ private fun Home(
     val scope = rememberCoroutineScope()
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     BackHandler(enabled = !selecting && tab != Tab.Photos) { tab = Tab.Photos }
-    val actions = libraryActions(viewModel, selected) { selectedIds = emptySet() }
+    val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
     val openMedia: (Media) -> Unit = { open(Screen.Viewer(MediaSet.All, it.id)) }
 
     Scaffold(
@@ -252,6 +266,7 @@ private fun Home(
                     library = library,
                     onOpenSet = { open(Screen.Grid(it)) },
                     onOpenTrash = { open(Screen.Trash) },
+                    onNewAlbum = { open(Screen.NewAlbum(it)) },
                     contentPadding = padding,
                 )
             }

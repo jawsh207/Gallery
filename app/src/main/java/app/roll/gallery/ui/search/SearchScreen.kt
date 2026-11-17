@@ -90,7 +90,7 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     val selected = results.filter { it.id in selectedIds }
     val selecting = selected.isNotEmpty()
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
-    val actions = libraryActions(viewModel, selected) { selectedIds = emptySet() }
+    val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     LaunchedEffect(Unit) { if (query.isEmpty()) focus.requestFocus() }
