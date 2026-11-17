@@ -21,3 +21,10 @@ Gallery Plus also includes:
   ONNX in https://huggingface.co/monkt/paddleocr-onnx (Apache License 2.0). Modified: both
   are converted to ONNX Runtime's format, and the recognition model's weights are reduced to
   8-bit numbers where that leaves its readings unchanged (scripts/plus/prepare_models.py).
+
+- YuNet face detection (face_detection_yunet_2023mar), from the OpenCV Zoo
+  (https://github.com/opencv/opencv_zoo), under the MIT License. Converted to ONNX Runtime's
+  format.
+
+- SFace face recognition, 8-bit (face_recognition_sface_2021dec_int8), from the OpenCV Zoo, under
+  the Apache License 2.0. Converted to ONNX Runtime's format.
