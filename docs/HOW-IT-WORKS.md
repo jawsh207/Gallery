@@ -29,9 +29,12 @@ in photos, which needs recognition models and a small engine to run them, so it'
 for Plus only lives in `app/src/plus/`, and the plain edition's stand-ins in `app/src/standard/`;
 `Edition.kt` in each says what that edition includes.
 
-The models are PaddleOCR's small text finder and Latin-script text reader. They and a cut-down
-copy of ONNX Runtime (only the parts these models use, for 64-bit phones) are built by
-`scripts/plus/build.sh`, which CI runs and caches.
+The models are PaddleOCR's small text finder (about 2.5 MB) and Latin-script text reader (about
+8 MB). They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
+64-bit phones; about 1.3 MB) are built by `scripts/plus/build.sh`, which CI runs and caches. The
+script tries shrinking the reader's numbers to 8 bits and keeps that only if the shrunk model
+reads a set of test lines exactly as the original does; with the current model it doesn't, so
+the reader stays as published.
 
 ## Screens
 

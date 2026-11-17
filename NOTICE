@@ -18,6 +18,6 @@ Gallery Plus also includes:
 
 - PaddleOCR's PP-OCRv3 text detection and PP-OCRv5 Latin text recognition models
   (https://github.com/PaddlePaddle/PaddleOCR), under the Apache License 2.0, as converted to
-  ONNX in https://huggingface.co/monkt/paddleocr-onnx (Apache License 2.0). Modified: the
-  recognition model's matrix weights are quantized to 8 bits, and both are converted to ONNX
-  Runtime's format.
+  ONNX in https://huggingface.co/monkt/paddleocr-onnx (Apache License 2.0). Modified: both
+  are converted to ONNX Runtime's format, and the recognition model's weights are reduced to
+  8-bit numbers where that leaves its readings unchanged (scripts/plus/prepare_models.py).
