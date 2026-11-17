@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.ui.unit.dp
 import app.roll.gallery.ui.components.SearchPill
+import app.roll.gallery.ui.components.AskForNotifications
 import app.roll.gallery.ui.search.SearchScreen
 import app.roll.gallery.ui.settings.SettingsScreen
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -170,6 +171,8 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
         }
     }
     BackHandler(enabled = stack.size > 1, onBack = back)
+
+    AskForNotifications(viewModel)
 
     // The Locked folder locks again whenever the app leaves the screen.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.lock() }

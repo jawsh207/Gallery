@@ -18,7 +18,6 @@ import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.Media
 import android.graphics.Bitmap
 import android.os.BatteryManager
-import android.util.Size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -34,13 +33,14 @@ import java.util.concurrent.TimeUnit
  * background: reads its text into the [TextIndex], finds its faces for the [FaceIndex], and
  * fingerprints it for searching by description in the [DescriptionIndex], whichever are turned
  * on. Newest photos go first. Each photo is decoded once and shared by the models that need
- * it, at a good size for text and faces, or as Android's ready-made thumbnail when only a
- * description is needed. Each model works through its own queue at its own pace, with a few
+ * it, at a good size for text and faces, or small when only a description is needed. Only
+ * the models with work left are loaded, and the cores are shared between them. Each model works through its own queue at its own pace, with a few
  * photos decoded ahead, so the quick ones aren't held up by the slow ones; each uses 2
- * processor cores, or every performance core while the phone is charging. Results are saved in
+ * processor cores, or a share of the performance cores while the phone is charging. Results are saved in
  * small batches, so stopping part way loses little, and progress is reported after each batch
- * so Settings can update its counts. When started while Gallery is open it runs as a
- * foreground job, with a notification, so Android doesn't stop it after 10 minutes. Android
+ * so Settings can update its counts. It becomes a foreground job, with a notification, as
+ * soon as Gallery is open (Android allows it no sooner), so Android doesn't stop it after 10
+ * minutes. Android
  * runs it when its conditions are met (by default only while charging) and stops it when they
  * aren't. Gallery Plus only; in the plain edition there are no models and it does nothing.
  * Videos and the Locked folder are never looked at.
@@ -54,48 +54,61 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val readText = inputData.getBoolean(KEY_TEXT, false)
         val findFaces = inputData.getBoolean(KEY_FACES, false)
         val describe = inputData.getBoolean(KEY_DESCRIBE, false)
-        // Every performance core while plugged in, where speed matters more than battery.
-        val charging = context.getSystemService(BatteryManager::class.java)?.isCharging == true
-        val threads = if (charging) performanceCores() else BATTERY_THREADS
-        val reader = if (readText) Edition.textReader(context, threads) else null
-        val finder = if (findFaces) Edition.faceFinder(context, threads) else null
-        val describer = if (describe) Edition.imageDescriber(context, threads) else null
-        if (reader == null && finder == null && describer == null) return Result.success()
+        if (!readText && !findFaces && !describe) return Result.success()
 
         val photos = MediaStoreSource(context.contentResolver).load().items.filter { !it.isVideo }
         val ids = photos.mapTo(HashSet()) { it.id }
         val textIndex = TextIndex(context)
         val faceIndex = FaceIndex(context)
-        val knownText = if (reader != null) textIndex.load() else emptyMap()
-        val knownFaces = if (finder != null) faceIndex.load() else emptyMap()
         val descriptionIndex = DescriptionIndex(context)
-        val knownDescriptions = if (describer != null) descriptionIndex.load() else emptyMap()
-        if (describer != null && knownDescriptions.keys.any { it !in ids }) {
+        val knownText = if (readText) textIndex.load() else emptyMap()
+        val knownFaces = if (findFaces) faceIndex.load() else emptyMap()
+        val knownDescriptions = if (describe) descriptionIndex.load() else emptyMap()
+        // Tidy up: forget photos that are gone and drop repeated lines.
+        if (readText && knownText.keys.any { it !in ids }) textIndex.rewrite(knownText.values.filter { it.id in ids })
+        if (findFaces && knownFaces.keys.any { it !in ids }) faceIndex.rewrite(knownFaces.values.filter { it.id in ids })
+        if (describe && knownDescriptions.keys.any { it !in ids }) {
             descriptionIndex.rewrite(knownDescriptions.filterKeys { it in ids })
         }
-        // Tidy up: forget photos that are gone and drop repeated lines.
-        if (reader != null && knownText.keys.any { it !in ids }) textIndex.rewrite(knownText.values.filter { it.id in ids })
-        if (finder != null && knownFaces.keys.any { it !in ids }) faceIndex.rewrite(knownFaces.values.filter { it.id in ids })
 
-        fun needsText(photo: Media) = reader != null && knownText[photo.id]?.modifiedAt != photo.modifiedAt
-        fun needsFaces(photo: Media) = finder != null && knownFaces[photo.id]?.modifiedAt != photo.modifiedAt
-        fun needsDescription(photo: Media) = describer != null && knownDescriptions[photo.id]?.first != photo.modifiedAt
-        val todo = photos.filter { needsText(it) || needsFaces(it) || needsDescription(it) }
-
-        if (todo.isEmpty()) {
-            listOfNotNull(reader, finder, describer).forEach { it.close() }
-            return Result.success()
-        }
+        fun needsText(photo: Media) = readText && knownText[photo.id]?.modifiedAt != photo.modifiedAt
+        fun needsFaces(photo: Media) = findFaces && knownFaces[photo.id]?.modifiedAt != photo.modifiedAt
+        fun needsDescription(photo: Media) = describe && knownDescriptions[photo.id]?.first != photo.modifiedAt
         // Newest first: those are the photos most likely to be searched for.
-        val queue = todo.sortedByDescending { it.takenAt }
+        val queue = photos.filter { needsText(it) || needsFaces(it) || needsDescription(it) }.sortedByDescending { it.takenAt }
+        if (queue.isEmpty()) return Result.success()
+
+        // Only the models with something left to do are loaded, and the cores are shared out
+        // between them, since they all run at once: every performance core while plugged in
+        // (where speed matters more than battery), 2 each otherwise.
+        val textWork = queue.any(::needsText)
+        val faceWork = queue.any(::needsFaces)
+        val describeWork = queue.any(::needsDescription)
+        val charging = context.getSystemService(BatteryManager::class.java)?.isCharging == true
+        val active = listOf(textWork, faceWork, describeWork).count { it }
+        val share = if (charging) (performanceCores() / active).coerceAtLeast(1) else BATTERY_THREADS
+        // Reading text is the slowest, so it gets any cores left over.
+        val textThreads = if (charging) (performanceCores() - share * (active - 1)).coerceAtLeast(1) else BATTERY_THREADS
+        val reader = if (textWork) Edition.textReader(context, textThreads) else null
+        val finder = if (faceWork) Edition.faceFinder(context, share) else null
+        val describer = if (describeWork) Edition.imageDescriber(context, share) else null
+        if (reader == null && finder == null && describer == null) return Result.success()
+
         val notifications = ScanNotification(context, queue.size)
         // A foreground job isn't stopped after Android's usual 10 minutes for background work.
-        // Android only allows starting one while Gallery is open, so a run that starts with
-        // Gallery closed carries on as ordinary background work instead.
-        try {
-            setForeground(notifications.foregroundInfo(0))
-        } catch (_: IllegalStateException) {
+        // Android only allows becoming one while Gallery is open, so it's tried again after each
+        // batch until it works: a run that started with Gallery closed moves to the foreground
+        // the next time Gallery is opened.
+        val inForeground = java.util.concurrent.atomic.AtomicBoolean(false)
+        suspend fun tryForeground(done: Int) {
+            if (inForeground.get()) return
+            try {
+                setForeground(notifications.foregroundInfo(done))
+                inForeground.set(true)
+            } catch (_: IllegalStateException) {
+            }
         }
+        tryForeground(0)
 
         val renderer = EditRenderer(context)
         val batches = AtomicInteger()
@@ -116,7 +129,8 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
                 lanes.forEach { lane ->
                     lane.onBatch = {
                         setProgress(workDataOf(PROGRESS to batches.incrementAndGet()))
-                        notifications.update(lanes.minOf { it.done.get() })
+                        val done = lanes.minOf { it.done.get() }
+                        if (inForeground.get()) notifications.update(done) else tryForeground(done)
                     }
                 }
                 try {
@@ -131,12 +145,9 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
                         val bitmap = withContext(Dispatchers.IO) {
                             runCatching {
                                 // Text and faces need the photo at a good size; a description
-                                // only needs 224 pixels, so Android's ready-made thumbnail does.
-                                if (needsText(photo) || needsFaces(photo)) {
-                                    renderer.decode(photo, MAX_SIDE)
-                                } else {
-                                    context.contentResolver.loadThumbnail(photo.uri, Size(THUMBNAIL_SIDE, THUMBNAIL_SIDE), null)
-                                }
+                                // only needs 224 pixels, and a photo loaded that small is
+                                // much quicker (the decoder skips most of the detail).
+                                renderer.decode(photo, if (needsText(photo) || needsFaces(photo)) MAX_SIDE else DESCRIBE_SIDE)
                             }.getOrNull()
                         }
                         val shared = SharedBitmap(bitmap, wanted.size)
@@ -220,8 +231,8 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         private const val BATCH = 20
         // Photos decoded ahead for each model: enough to keep it busy, few enough for memory.
         private const val AHEAD = 3
-        // Android's ready-made thumbnails at this size are already cached for the face pictures.
-        private const val THUMBNAIL_SIDE = 512
+        // Big enough for TinyCLIP's 224-pixel square from most photos' shorter side.
+        private const val DESCRIBE_SIDE = 448
         // Photos are looked at no bigger than this on their longer side: plenty for text and
         // faces, quick to decode.
         private const val MAX_SIDE = 1280

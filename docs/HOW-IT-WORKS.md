@@ -73,7 +73,10 @@ grouped-list rows, empty-screen messages and date wording are in `ui/components/
 ## Features
 
 **The Photos grid.** Everything in the media store except the trash, newest first, by when it
-was taken (or when the file last changed, if the photo doesn't say). Photos are grouped by day:
+was taken: the date the camera saved inside the photo, or if there's none, a date in its file
+name (like IMG_20240512_143000 or Screenshot_2024-05-12), or failing both, when the file last
+changed. Photos Gallery writes back out (copied to an album, or moved out of the Locked
+folder) keep the date they had. Photos are grouped by day:
 "Today", "Yesterday", the weekday for the past week, then dates, with the year only for other
 years. Videos show their length and favorites a heart.
 
@@ -126,14 +129,16 @@ looked at properly if that finds something like text, since most photos have non
 text can be missed this way). Newest photos are looked at first. Each photo is loaded once
 and shared by the text reader, face finder and description model, each of which works through
 the photos at its own pace with a few loaded ahead, so a quick one isn't held up by a slow
-one. When only a description is still needed, Android's ready-made thumbnail is used instead
-of loading the full photo. Each model uses 2 processor cores, or every performance core while
-the phone is charging (the fast cores, worked out from each core's top speed; the small
-power-saving ones are left alone). Android normally stops background work after 10 minutes,
-so when this starts while Gallery is open it runs as a foreground job instead, with a quiet
-"Getting photos ready for search" notification showing progress, and keeps going after Gallery
-is closed (Android allows this kind of job up to 6 hours a day). Started with Gallery closed,
-it runs as ordinary background work and picks up again later if Android stops it.
+one. When only a description is still needed, the photo is loaded small, which is much quicker.
+Only the models with photos left to do are loaded. While the phone is charging, the
+performance cores (the fast ones, worked out from each core's top speed; the small
+power-saving ones are left alone) are shared out between those models, with the text reader
+getting any left over; otherwise each uses 2 cores. Android normally stops background work
+after 10 minutes, so as soon as Gallery is open (Android allows it no sooner) the work turns
+into a foreground job, with a quiet "Getting photos ready for search" notification showing
+progress, and keeps going after Gallery is closed (Android allows this kind of job up to 6
+hours a day). Gallery Plus asks once to show notifications; without that, the work still runs
+but the notification is hidden.
 Settings → Text and people shows how many photos have been read, updating as it goes, can turn reading off (which
 deletes the text file) and can let it run without charging. The reader knows the Latin
 alphabet: English and most European languages.
@@ -308,6 +313,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | The file of text read in photos | `recognition/TextIndex.kt` |
 | Looking at photos in the background (text, faces and descriptions), and scheduling it | `recognition/RecognitionWorker.kt` |
 | The notification shown while photos are being looked at | `recognition/ScanNotification.kt` |
+| Asking once to show that notification (Plus) | `ui/components/AskForNotifications.kt` |
+| Dates from file names, and keeping dates on files Gallery writes | `data/FileDates.kt` |
 | Counting the phone's performance cores | `recognition/CpuCores.kt` |
 | Loading a model with its number of processor cores (Plus) | `app/src/plus/.../recognition/Sessions.kt` |
 | Finding faces and fingerprinting them (Plus) | `app/src/plus/.../recognition/YuNetFaceFinder.kt`, `recognition/FaceFinder.kt` |

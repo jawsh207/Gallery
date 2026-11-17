@@ -177,6 +177,23 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         textDescriber?.close()
     }
 
+    /**
+     * Whether to ask, once, to show notifications: Gallery Plus with some looking at photos
+     * turned on, and not asked before. Null until the settings are read.
+     */
+    val shouldAskNotifications: StateFlow<Boolean?> = if (!Edition.HAS_TEXT_SEARCH && !Edition.HAS_PEOPLE && !Edition.HAS_DESCRIPTIONS) {
+        MutableStateFlow(false)
+    } else {
+        combine(settings.askedNotifications, settings.readText, settings.findPeople, settings.describePhotos) { asked, text, faces, describe ->
+            !asked && (text || faces || describe)
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    }
+
+    /** Notes that the notification question was asked. */
+    fun askedNotifications() {
+        viewModelScope.launch { settings.setAskedNotifications() }
+    }
+
     /** Gives [person] a [name], or takes it away when blank. */
     fun renamePerson(person: Person, name: String) {
         viewModelScope.launch {

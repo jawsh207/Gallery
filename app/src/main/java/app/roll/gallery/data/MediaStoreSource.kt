@@ -29,6 +29,7 @@ class MediaStoreSource(private val resolver: ContentResolver) {
             putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE)
         }
         val all = ArrayList<Media>()
+        val zone = java.time.ZoneId.systemDefault()
         resolver.query(FILES, PROJECTION, args, null)?.use { c ->
             val id = c.getColumnIndexOrThrow(BaseColumns._ID)
             val type = c.getColumnIndexOrThrow(MEDIA_TYPE)
@@ -56,11 +57,16 @@ class MediaStoreSource(private val resolver: ContentResolver) {
                 val sideways = c.getInt(orientation).let { it == 90 || it == 270 }
                 val w = c.getInt(width)
                 val h = c.getInt(height)
+                val fileName = c.getString(name).orEmpty()
                 all += Media(
                     id = rowId,
                     isVideo = isVideo,
                     mimeType = c.getString(mime) ?: if (isVideo) "video/*" else "image/*",
-                    takenAt = c.getLong(taken).takeIf { it > 0 } ?: (modifiedSec * 1000),
+                    // The date inside the photo (which Android reads), else one in its name,
+                    // else when the file last changed.
+                    takenAt = c.getLong(taken).takeIf { it > 0 }
+                        ?: dateFromName(fileName, zone)
+                        ?: (modifiedSec * 1000),
                     modifiedAt = modifiedSec,
                     width = if (sideways) h else w,
                     height = if (sideways) w else h,
@@ -68,7 +74,7 @@ class MediaStoreSource(private val resolver: ContentResolver) {
                     albumId = c.getLong(bucketId),
                     albumName = c.getString(bucketName).orEmpty(),
                     path = c.getString(path).orEmpty(),
-                    fileName = c.getString(name).orEmpty(),
+                    fileName = fileName,
                     sizeBytes = c.getLong(size),
                     isFavorite = c.getInt(favorite) == 1,
                     isTrashed = c.getInt(trashed) == 1,

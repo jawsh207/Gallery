@@ -12,15 +12,11 @@ class LoadedModel(val session: OrtSession, private val options: OrtSession.Sessi
 }
 
 /**
- * Loads a model ([bytes], in ONNX Runtime's format) to run on [threads] processor cores. Idle
- * threads sleep rather than spin waiting for work: the text, face and description models run at
- * the same time and share the cores, so spinning would only take turns away from each other
- * (and waste battery).
+ * Loads a model ([bytes], in ONNX Runtime's format) to run on [threads] processor cores. The
+ * background work shares the cores out between the models running at once, so they don't fight
+ * over them.
  */
 fun loadModel(env: OrtEnvironment, bytes: ByteArray, threads: Int): LoadedModel {
-    val options = OrtSession.SessionOptions().apply {
-        setIntraOpNumThreads(threads)
-        addConfigEntry("session.intra_op.allow_spinning", "0")
-    }
+    val options = OrtSession.SessionOptions().apply { setIntraOpNumThreads(threads) }
     return LoadedModel(env.createSession(bytes, options), options)
 }

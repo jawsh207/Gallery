@@ -41,7 +41,7 @@ class MediaWriter(private val context: Context) {
                         requireNotNull(input).copyTo(requireNotNull(output))
                     }
                 }
-                resolver.update(target, ContentValues().apply { put(MediaColumns.IS_PENDING, 0) }, null, null)
+                resolver.publish(target, item.takenAt)
             } catch (e: Exception) {
                 resolver.delete(target, null, null)
                 throw e

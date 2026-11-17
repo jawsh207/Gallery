@@ -55,7 +55,16 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[DESCRIBE] = on }
     }
 
+    /** Whether Gallery Plus has already asked once to show notifications. */
+    val askedNotifications: Flow<Boolean> = context.settingsStore.data.map { it[ASKED_NOTIFICATIONS] ?: false }
+
+    /** Notes that the notification question was asked, so it isn't asked again. */
+    suspend fun setAskedNotifications() {
+        context.settingsStore.edit { it[ASKED_NOTIFICATIONS] = true }
+    }
+
     private companion object {
+        val ASKED_NOTIFICATIONS = booleanPreferencesKey("asked_notifications")
         val DESCRIBE = booleanPreferencesKey("describe_photos")
         val FIND_PEOPLE = booleanPreferencesKey("find_people")
         val SHOW_MEMORIES = booleanPreferencesKey("show_memories")
