@@ -248,7 +248,7 @@
     </plurals>
 
     <!-- Text in photos (Gallery Plus) -->
-    <string name="search_no_results_body_text">Nothing matches \u201c<xliff:g id="query" example="beach">%1$s</xliff:g>\u201d. Search looks at text in photos, file and album names, dates, months and years.</string>
+    <string name="search_no_results_body_text">Nothing matches \u201c<xliff:g id="query" example="beach">%1$s</xliff:g>\u201d. Search looks at what\'s in photos, text in them, people, file and album names, dates, months and years.</string>
     <string name="settings_text">Text and people</string>
     <string name="settings_read_text">Read text in photos</string>
     <string name="settings_read_text_progress">Read <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone, for search</string>
@@ -265,4 +265,9 @@
     <string name="settings_find_people">Find people</string>
     <string name="settings_find_people_progress">Looked at <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone; <xliff:g id="people" example="12">%3$d</xliff:g> people so far</string>
     <string name="settings_find_people_off">Off. Turning it off forgets the faces found; names are kept.</string>
+
+    <!-- Search by description (Gallery Plus) -->
+    <string name="settings_describe">Search by description</string>
+    <string name="settings_describe_progress">Looked at <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone, so searches like \u201ca black dog\u201d find them</string>
+    <string name="settings_describe_off">Off. Turning it off forgets what was learned about each photo.</string>
 </resources>

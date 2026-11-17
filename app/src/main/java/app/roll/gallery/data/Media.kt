@@ -81,8 +81,8 @@ sealed interface MediaSet {
 
 /**
  * The items of [set], newest first. [words], [locale], [zone] and [photoText] are only used by
- * searches, to read the query the way the search screen did; [personPhotos] gives a person's
- * photos by their key.
+ * searches, to read the query the way the search screen did, as is [descriptionMatches] (a
+ * query's best description matches); [personPhotos] gives a person's photos by their key.
  */
 fun Library.itemsIn(
     set: MediaSet,
@@ -91,6 +91,7 @@ fun Library.itemsIn(
     zone: ZoneId = ZoneId.systemDefault(),
     photoText: (Long) -> String? = { null },
     personPhotos: (String) -> Set<Long> = { emptySet() },
+    descriptionMatches: (String) -> Set<Long> = { emptySet() },
 ): List<Media> = when (set) {
     MediaSet.All -> items
     MediaSet.Favorites -> favorites
@@ -98,7 +99,7 @@ fun Library.itemsIn(
     MediaSet.Trash -> trash
     MediaSet.Locked -> locked
     is MediaSet.Album -> album(set.id)
-    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, photoText)
+    is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, photoText, descriptionMatches(set.query))
     is MediaSet.Person -> personPhotos(set.key).let { ids -> items.filter { it.id in ids } }
     is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()
 }

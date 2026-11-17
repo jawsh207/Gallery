@@ -25,13 +25,14 @@ Nothing goes over the network: the app has no internet access and uses no Google
 
 Gallery comes as **Gallery** and **Gallery Plus**. They're the same app (same app id, so either
 installs over the other and keeps its settings and Locked folder); Plus adds reading the text
-in photos and finding people, which needs recognition models and a small engine to run them, so it's bigger. Code
+in photos, finding people and searching by description, which needs recognition models and a small engine to run them, so it's bigger. Code
 for Plus only lives in `app/src/plus/`, and the plain edition's stand-ins in `app/src/standard/`;
 `Edition.kt` in each says what that edition includes.
 
 The models are PaddleOCR's small text finder (about 2.5 MB) and Latin-script text reader (about
-8 MB), and the OpenCV Zoo's YuNet face finder (about 0.2 MB) and 8-bit SFace face matcher
-(about 10 MB). They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
+8 MB), the OpenCV Zoo's YuNet face finder (about 0.2 MB) and 8-bit SFace face matcher
+(about 10 MB), and TinyCLIP ViT-39M/16 + Text-19M for searching by description, shrunk to
+8-bit by the build where that keeps its fingerprints nearly unchanged. They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
 64-bit phones; about 1.4 MB) are built by `scripts/plus/build.sh`, which CI runs and caches. The
 script tries shrinking the reader's numbers to 8 bits and keeps that only if the shrunk model
 reads a set of test lines exactly as the original does. With the current model, shrinking every
@@ -84,6 +85,18 @@ shortcuts list the kinds, every year you have photos from, and your biggest albu
 be selected and opened like the Photos tab, and the viewer pages through just the results.
 In Gallery, search doesn't look inside photos. In **Gallery Plus** a word also matches text read
 in the photo (see Text in photos).
+
+**Search by description (Gallery Plus).** In the same background pass, each photo is shown to
+TinyCLIP's image half (a small model from Microsoft, shrunk to 8-bit numbers), which turns it
+into a "fingerprint" of 512 numbers; similar-looking photos, and words describing them, get
+similar fingerprints. These are kept in a file in Gallery's private storage, about half a
+kilobyte per photo, never pictures. When you search, a moment after you stop typing your words
+go through TinyCLIP's text half (which splits them into word pieces exactly as CLIP does) and
+come out as a fingerprint too; the photos whose fingerprints are closest are added to the
+results, as long as they're close enough and near the best match. Searches made only of kinds,
+years and months ("videos 2024") skip this. Results are still shown by date. It understands
+English best. Settings → Text and people → Search by description shows how far it's got and
+can turn it off, which forgets the fingerprints.
 
 **People (Gallery Plus).** In the same background pass as the text, Gallery Plus looks for faces
 in every photo (not videos, never the Locked folder), on the phone. YuNet finds each face and
@@ -292,6 +305,9 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | The file of faces found, and people's names | `recognition/FaceIndex.kt` |
 | Turning faces into people, naming them, making names searchable | `recognition/People.kt` |
 | Round face pictures | `image/Thumbnails.kt` |
+| Description fingerprints: storing, comparing, picking best matches | `recognition/Descriptions.kt` |
+| Splitting search words into CLIP's word pieces | `recognition/ClipTokenizer.kt` |
+| TinyCLIP's image and text halves (Plus) | `app/src/plus/.../recognition/TinyClip.kt` |
 | Building the models and the cut-down runtime | `scripts/plus/build.sh`, `prepare_models.py`, `models.txt`, `ort_settings.json` |
 | Video playback | `ui/viewer/Pages.kt` |
 | Finding the video inside a motion photo | `data/MotionPhotos.kt` |
@@ -300,6 +316,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

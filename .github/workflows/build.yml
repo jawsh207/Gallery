@@ -69,8 +69,8 @@ jobs:
 
       - name: Show sizes
         run: |
-          ls -l build/plus/onnxruntime-plus.aar build/plus/assets/ocr build/plus/assets/faces
-          echo "::notice title=Plus runtime::$(du -h build/plus/onnxruntime-plus.aar | cut -f1) runtime, $(du -ch build/plus/assets/ocr/* | tail -1 | cut -f1) text models, $(du -ch build/plus/assets/faces/* | tail -1 | cut -f1) face models"
+          ls -l build/plus/onnxruntime-plus.aar build/plus/assets/ocr build/plus/assets/faces build/plus/assets/clip
+          echo "::notice title=Plus runtime::$(du -h build/plus/onnxruntime-plus.aar | cut -f1) runtime, $(du -ch build/plus/assets/ocr/* | tail -1 | cut -f1) text models, $(du -ch build/plus/assets/faces/* | tail -1 | cut -f1) face models, $(du -ch build/plus/assets/clip/* | tail -1 | cut -f1) description models"
 
       - uses: actions/upload-artifact@v4
         with:

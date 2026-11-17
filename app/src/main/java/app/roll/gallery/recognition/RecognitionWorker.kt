@@ -24,9 +24,10 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Looks at every photo that hasn't been looked at yet (or has changed since), in the
- * background: reads its text into the [TextIndex] and finds its faces for the [FaceIndex],
- * whichever of the two is turned on. Each photo is decoded once for both, the next photo loads
- * while the current one is looked at, and text and faces are looked for at the same time. Each
+ * background: reads its text into the [TextIndex], finds its faces for the [FaceIndex], and
+ * fingerprints it for searching by description in the [DescriptionIndex], whichever are turned
+ * on. Each photo is decoded once for all of them, the next photo loads
+ * while the current one is looked at, and the three are done at the same time. Each
  * model uses 2 processor cores, or 4 while the phone is charging. Results are saved in
  * small batches, so stopping part way loses little, and progress is reported after each batch
  * so Settings can update its counts. Android runs it when its conditions are met (by default
@@ -41,12 +42,14 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         }
         val readText = inputData.getBoolean(KEY_TEXT, false)
         val findFaces = inputData.getBoolean(KEY_FACES, false)
+        val describe = inputData.getBoolean(KEY_DESCRIBE, false)
         // Twice the cores while plugged in, where speed matters more than battery.
         val charging = context.getSystemService(BatteryManager::class.java)?.isCharging == true
         val threads = if (charging) CHARGING_THREADS else BATTERY_THREADS
         val reader = if (readText) Edition.textReader(context, threads) else null
         val finder = if (findFaces) Edition.faceFinder(context, threads) else null
-        if (reader == null && finder == null) return Result.success()
+        val describer = if (describe) Edition.imageDescriber(context, threads) else null
+        if (reader == null && finder == null && describer == null) return Result.success()
 
         val photos = MediaStoreSource(context.contentResolver).load().items.filter { !it.isVideo }
         val ids = photos.mapTo(HashSet()) { it.id }
@@ -54,17 +57,24 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val faceIndex = FaceIndex(context)
         val knownText = if (reader != null) textIndex.load() else emptyMap()
         val knownFaces = if (finder != null) faceIndex.load() else emptyMap()
+        val descriptionIndex = DescriptionIndex(context)
+        val knownDescriptions = if (describer != null) descriptionIndex.load() else emptyMap()
+        if (describer != null && knownDescriptions.keys.any { it !in ids }) {
+            descriptionIndex.rewrite(knownDescriptions.filterKeys { it in ids })
+        }
         // Tidy up: forget photos that are gone and drop repeated lines.
         if (reader != null && knownText.keys.any { it !in ids }) textIndex.rewrite(knownText.values.filter { it.id in ids })
         if (finder != null && knownFaces.keys.any { it !in ids }) faceIndex.rewrite(knownFaces.values.filter { it.id in ids })
 
         fun needsText(photo: Media) = reader != null && knownText[photo.id]?.modifiedAt != photo.modifiedAt
         fun needsFaces(photo: Media) = finder != null && knownFaces[photo.id]?.modifiedAt != photo.modifiedAt
-        val todo = photos.filter { needsText(it) || needsFaces(it) }
+        fun needsDescription(photo: Media) = describer != null && knownDescriptions[photo.id]?.first != photo.modifiedAt
+        val todo = photos.filter { needsText(it) || needsFaces(it) || needsDescription(it) }
 
         val renderer = EditRenderer(context)
         val texts = ArrayList<IndexEntry>()
         val faces = ArrayList<FaceEntry>()
+        val descriptions = ArrayList<Triple<Long, Long, ByteArray?>>()
         var batches = 0
         try {
             coroutineScope {
@@ -86,14 +96,22 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
                     } else {
                         null
                     }
+                    val fingerprint = if (needsDescription(photo)) {
+                        async(Dispatchers.Default) { bitmap?.let { runCatching { packFingerprint(describer!!.describe(it)) }.getOrNull() } }
+                    } else {
+                        null
+                    }
                     text?.let { texts += IndexEntry(photo.id, photo.modifiedAt, it.await()) }
                     found?.let { faces += FaceEntry(photo.id, photo.modifiedAt, it.await()) }
+                    fingerprint?.let { descriptions += Triple(photo.id, photo.modifiedAt, it.await()) }
                     bitmap?.recycle()
-                    if (texts.size + faces.size >= BATCH) {
+                    if (texts.size + faces.size + descriptions.size >= BATCH) {
                         textIndex.append(texts)
                         faceIndex.append(faces)
+                        descriptionIndex.append(descriptions)
                         texts.clear()
                         faces.clear()
+                        descriptions.clear()
                         setProgress(workDataOf(PROGRESS to ++batches))
                     }
                 }
@@ -101,9 +119,11 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
             }
             textIndex.append(texts)
             faceIndex.append(faces)
+            descriptionIndex.append(descriptions)
         } finally {
             reader?.close()
             finder?.close()
+            describer?.close()
         }
         return Result.success()
     }
@@ -116,6 +136,7 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         private val OLD_NAMES = listOf("text-index", "text-index-now")
         private const val KEY_TEXT = "text"
         private const val KEY_FACES = "faces"
+        private const val KEY_DESCRIBE = "describe"
         private const val PROGRESS = "batches"
         private const val CHARGING_THREADS = 4
         private const val BATTERY_THREADS = 2
@@ -128,19 +149,28 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val WORK_NAMES = listOf(PERIODIC, NOW)
 
         /**
-         * Makes sure the work happens for what's turned on ([readText], [findFaces]): once soon,
+         * Makes sure the work happens for what's turned on ([readText], [findFaces], [describe]): once soon,
          * and again every 12 hours for new photos, only while charging if [onlyWhileCharging].
          * With neither on, or in the plain edition, it stops instead. [restart] starts a run
          * under way over, for when the settings changed.
          */
-        fun schedule(context: Context, readText: Boolean, findFaces: Boolean, onlyWhileCharging: Boolean, restart: Boolean) {
+        fun schedule(
+            context: Context,
+            readText: Boolean,
+            findFaces: Boolean,
+            describe: Boolean,
+            onlyWhileCharging: Boolean,
+            restart: Boolean,
+        ) {
             val work = WorkManager.getInstance(context)
             OLD_NAMES.forEach(work::cancelUniqueWork)
             val text = readText && Edition.HAS_TEXT_SEARCH
             val people = findFaces && Edition.HAS_PEOPLE
+            val descriptions = describe && Edition.HAS_DESCRIPTIONS
             if (!text) TextIndex(context).clear()
             if (!people) FaceIndex(context).clear()
-            if (!text && !people) {
+            if (!descriptions) DescriptionIndex(context).clear()
+            if (!text && !people && !descriptions) {
                 WORK_NAMES.forEach(work::cancelUniqueWork)
                 return
             }
@@ -148,7 +178,7 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
                 .setRequiresCharging(onlyWhileCharging)
                 .setRequiresBatteryNotLow(true)
                 .build()
-            val data = workDataOf(KEY_TEXT to text, KEY_FACES to people)
+            val data = workDataOf(KEY_TEXT to text, KEY_FACES to people, KEY_DESCRIBE to descriptions)
             work.enqueueUniquePeriodicWork(
                 PERIODIC,
                 ExistingPeriodicWorkPolicy.UPDATE,

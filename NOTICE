@@ -28,3 +28,9 @@ Gallery Plus also includes:
 
 - SFace face recognition, 8-bit (face_recognition_sface_2021dec_int8), from the OpenCV Zoo, under
   the Apache License 2.0. Converted to ONNX Runtime's format.
+
+- TinyCLIP ViT-39M/16 + Text-19M, YFCC-15M (https://github.com/wkcn/TinyCLIP), Copyright (c)
+  Microsoft Corporation, under the MIT License, as converted to ONNX in
+  https://huggingface.co/onnx-community/TinyCLIP-ViT-39M-16-Text-19M-YFCC15M-ONNX, with its
+  tokenizer's vocabulary and merge rules. Modified: both halves reduced to 8-bit numbers where
+  that leaves their fingerprints nearly unchanged, and converted to ONNX Runtime's format.

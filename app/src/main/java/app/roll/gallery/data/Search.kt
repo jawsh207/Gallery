@@ -27,7 +27,8 @@ data class SearchWords(
 }
 
 /**
- * The items in [items] matching every word of [query], in their original order. A word matches
+ * The items in [items] matching every word of [query], plus any in [alsoMatching] (the best
+ * matches from searching by description), in their original order. A word matches
  * when it is:
  * - a kind word from [words] ("videos", "favorites", "screenshots"),
  * - a year ("2024") or a month name in [locale] ("June", "jun"), matched against when the item
@@ -44,12 +45,26 @@ fun searchMedia(
     locale: Locale,
     zone: ZoneId,
     photoText: (Long) -> String? = { null },
+    alsoMatching: Set<Long> = emptySet(),
 ): List<Media> {
     val terms = query.trim().lowercase(locale).split(Regex("\\s+")).filter { it.isNotEmpty() }
     if (terms.isEmpty()) return emptyList()
     val months = monthNames(locale)
     val matchers = terms.map { term -> termMatcher(term, words, months, zone, locale, photoText) }
-    return items.filter { item -> matchers.all { it(item) } }
+    return items.filter { item -> item.id in alsoMatching || matchers.all { it(item) } }
+}
+
+/**
+ * Whether [query] describes what's in a photo ("a black dog"), so it's worth searching by
+ * description, rather than being only kind words, years and month names ("videos 2024"),
+ * which description search would only muddle.
+ */
+fun isDescriptionQuery(query: String, words: SearchWords, locale: Locale): Boolean {
+    val months = monthNames(locale)
+    val kinds = words.videos + words.photos + words.favorites + words.screenshots
+    return query.trim().lowercase(locale).split(Regex("\\s+")).filter { it.isNotEmpty() }.any { term ->
+        term !in kinds && term !in months && !(term.length == 4 && term.toIntOrNull() in 1900..2999)
+    }
 }
 
 /** How one search word is tested against an item. */

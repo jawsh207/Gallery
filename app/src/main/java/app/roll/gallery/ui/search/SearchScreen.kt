@@ -67,6 +67,7 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.data.buildAlbums
 import app.roll.gallery.data.day
 import app.roll.gallery.data.searchMedia
+import app.roll.gallery.data.isDescriptionQuery
 import app.roll.gallery.ui.GalleryViewModel
 import app.roll.gallery.ui.components.EmptyState
 import app.roll.gallery.ui.components.SelectionBottomBar
@@ -82,7 +83,7 @@ import java.time.ZoneId
  * screenshots, each year, the biggest albums) until something is typed. In Gallery Plus it also
  * matches the text read in photos. Results show as you
  * type, in the same grid as the Photos tab, and can be selected the same way. In Gallery Plus
- * a person's name finds their photos. [onOpen] gets the
+ * a person's name finds their photos, and descriptions ("a black dog") find photos that look like them. [onOpen] gets the
  * query too, so the viewer pages through the same results.
  */
 @Composable
@@ -95,8 +96,17 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     // time search opens.
     val photoText by viewModel.searchText.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.refreshRecognition() }
-    val results = remember(library, query, words, locale, photoText) {
-        searchMedia(library.items, query, words, locale, zone) { photoText[it] }
+    // Searching by description (Gallery Plus) runs in the background a moment after typing stops;
+    // its best matches join the others.
+    val described by viewModel.described.collectAsStateWithLifecycle()
+    val descriptionMatches by viewModel.descriptionMatches.collectAsStateWithLifecycle()
+    LaunchedEffect(query, described) {
+        kotlinx.coroutines.delay(400)
+        viewModel.searchDescriptions(query, isDescriptionQuery(query, words, locale))
+    }
+    val extra = if (descriptionMatches.first == query.trim()) descriptionMatches.second else emptySet()
+    val results = remember(library, query, words, locale, photoText, extra) {
+        searchMedia(library.items, query, words, locale, zone, { photoText[it] }, extra)
     }
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }

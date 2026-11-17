@@ -66,4 +66,18 @@ class SearchTest {
         val both = searchMedia(items, "open camera", SearchWords.ENGLISH, Locale.ENGLISH, UTC) { text[it] }.map { it.id }
         assertEquals(listOf(1L), both)
     }
+
+    @Test
+    fun descriptionMatchesJoinTheResults() {
+        val found = searchMedia(items, "black dog", SearchWords.ENGLISH, Locale.ENGLISH, UTC, alsoMatching = setOf(2L, 4L)).map { it.id }
+        assertEquals(listOf(2L, 4L), found)
+    }
+
+    @Test
+    fun onlyRealDescriptionsAreSearchedByDescription() {
+        assertEquals(true, isDescriptionQuery("a black dog", SearchWords.ENGLISH, Locale.ENGLISH))
+        assertEquals(false, isDescriptionQuery("videos 2024", SearchWords.ENGLISH, Locale.ENGLISH))
+        assertEquals(false, isDescriptionQuery("june favorites", SearchWords.ENGLISH, Locale.ENGLISH))
+        assertEquals(true, isDescriptionQuery("beach 2024", SearchWords.ENGLISH, Locale.ENGLISH))
+    }
 }

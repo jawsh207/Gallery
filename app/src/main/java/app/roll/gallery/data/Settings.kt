@@ -47,7 +47,16 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[FIND_PEOPLE] = on }
     }
 
+    /** Whether Gallery Plus fingerprints photos for searching by description. On unless turned off. */
+    val describePhotos: Flow<Boolean> = context.settingsStore.data.map { it[DESCRIBE] ?: true }
+
+    /** Turns searching by description on or off. */
+    suspend fun setDescribePhotos(on: Boolean) {
+        context.settingsStore.edit { it[DESCRIBE] = on }
+    }
+
     private companion object {
+        val DESCRIBE = booleanPreferencesKey("describe_photos")
         val FIND_PEOPLE = booleanPreferencesKey("find_people")
         val SHOW_MEMORIES = booleanPreferencesKey("show_memories")
         val READ_TEXT = booleanPreferencesKey("read_text")

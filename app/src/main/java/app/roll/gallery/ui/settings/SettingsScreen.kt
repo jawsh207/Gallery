@@ -30,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import app.roll.gallery.Edition
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.ImageSearch
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Switch
@@ -63,7 +64,7 @@ import app.roll.gallery.ui.components.segmentShape
 /**
  * Settings, in grouped cards as in Contacts: what the app may see, Android's "Media
  * management" access (which skips the confirmation on every change), whether memories show,
- * reading text and finding people in photos (Gallery Plus only: each on or off, only while
+ * reading text, finding people and searching by description (Gallery Plus only: each on or off, only while
  * charging, and how far each has got), and About.
  * Access can change in Android's settings, so it's read again whenever this screen returns.
  */
@@ -96,6 +97,9 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
     val photos = remember(library) { library?.items.orEmpty().filter { !it.isVideo } }
     val textProgress = remember(photoText, photos) { photos.count { it.id in photoText } to photos.size }
     val faceProgress = remember(faces, photos) { photos.count { it.id in faces } to photos.size }
+    val describePhotos by viewModel.describePhotos.collectAsStateWithLifecycle()
+    val described by viewModel.described.collectAsStateWithLifecycle()
+    val describeProgress = remember(described, photos) { photos.count { it.id in described } to photos.size }
 
     Scaffold(
         topBar = {
@@ -175,7 +179,7 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
                         } else {
                             stringResource(R.string.settings_read_text_progress, textProgress.first, textProgress.second)
                         },
-                        shape = segmentShape(0, 3),
+                        shape = segmentShape(0, 4),
                         onClick = { viewModel.setReadText(!readText) },
                         trailing = { Switch(checked = readText, onCheckedChange = viewModel::setReadText) },
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -190,9 +194,24 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
                         } else {
                             stringResource(R.string.settings_find_people_progress, faceProgress.first, faceProgress.second, people.size)
                         },
-                        shape = segmentShape(1, 3),
+                        shape = segmentShape(1, 4),
                         onClick = { viewModel.setFindPeople(!findPeople) },
                         trailing = { Switch(checked = findPeople, onCheckedChange = viewModel::setFindPeople) },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+                item(key = "describe") {
+                    ListRow(
+                        icon = Icons.Outlined.ImageSearch,
+                        title = stringResource(R.string.settings_describe),
+                        summary = if (!describePhotos) {
+                            stringResource(R.string.settings_describe_off)
+                        } else {
+                            stringResource(R.string.settings_describe_progress, describeProgress.first, describeProgress.second)
+                        },
+                        shape = segmentShape(2, 4),
+                        onClick = { viewModel.setDescribePhotos(!describePhotos) },
+                        trailing = { Switch(checked = describePhotos, onCheckedChange = viewModel::setDescribePhotos) },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
@@ -201,10 +220,10 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
                         icon = Icons.Outlined.BatteryChargingFull,
                         title = stringResource(R.string.settings_read_text_charging),
                         summary = stringResource(R.string.settings_read_text_charging_summary),
-                        shape = segmentShape(2, 3),
+                        shape = segmentShape(3, 4),
                         onClick = { viewModel.setReadTextOnlyCharging(!onlyCharging) },
                         trailing = {
-                            Switch(checked = onlyCharging, enabled = readText || findPeople, onCheckedChange = viewModel::setReadTextOnlyCharging)
+                            Switch(checked = onlyCharging, enabled = readText || findPeople || describePhotos, onCheckedChange = viewModel::setReadTextOnlyCharging)
                         },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )

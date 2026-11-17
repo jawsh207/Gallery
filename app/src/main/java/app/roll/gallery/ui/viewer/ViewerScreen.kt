@@ -126,11 +126,13 @@ fun ViewerScreen(
     val locale = currentLocale()
     val photoText by viewModel.searchText.collectAsStateWithLifecycle()
     val people by viewModel.people.collectAsStateWithLifecycle()
-    val items = remember(library, set, words, locale, photoText, people) {
+    val descriptionMatches by viewModel.descriptionMatches.collectAsStateWithLifecycle()
+    val items = remember(library, set, words, locale, photoText, people, descriptionMatches) {
         library.itemsIn(
             set, words, locale,
             photoText = { photoText[it] },
             personPhotos = { key -> people.firstOrNull { it.key == key }?.photoIds.orEmpty() },
+            descriptionMatches = { q -> if (descriptionMatches.first == q.trim()) descriptionMatches.second else emptySet() },
         )
     }
     if (items.isEmpty()) {

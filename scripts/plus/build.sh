@@ -3,6 +3,8 @@
 #   onnxruntime-plus.aar  ONNX Runtime cut down to the operators our models use, arm64 only
 #   assets/ocr/           the text models in ONNX Runtime's format, and the reading model's characters
 #   assets/faces/         the face finder and face matcher, in the same format
+#   assets/clip/          TinyCLIP's image and text halves, and its tokenizer's pieces and merges
+#   test/                 reference tokenizations the unit tests check the app's tokenizer against
 # Needs Python 3, the Android SDK and NDK (ANDROID_HOME, ANDROID_NDK_HOME), Java and Ninja.
 # CI runs it and caches the result; run it locally once before building the Plus edition.
 set -euo pipefail
@@ -11,9 +13,9 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 HERE="$ROOT/scripts/plus"
 OUT="$ROOT/build/plus"
 WORK="$OUT/work"
-rm -rf "$OUT"; mkdir -p "$WORK/download" "$OUT/assets/ocr" "$OUT/assets/faces"
+rm -rf "$OUT"; mkdir -p "$WORK/download" "$OUT/assets/ocr" "$OUT/assets/faces" "$OUT/assets/clip" "$OUT/test"
 
-python3 -m pip install --quiet "onnxruntime==$ORT_VERSION" "onnx==1.17.0" "pillow>=10.1" numpy
+python3 -m pip install --quiet "onnxruntime==$ORT_VERSION" "onnx==1.17.0" "pillow>=10.1" numpy tokenizers
 
 # Download each model and check it against its pinned SHA-256.
 grep -v '^#' "$HERE/models.txt" | while read -r name url sha; do
@@ -31,6 +33,10 @@ python3 "$HERE/prepare_models.py" "$WORK/download" "$WORK/models"
 cp "$WORK/models/onnx/det.ort" "$WORK/models/onnx/rec.ort" "$OUT/assets/ocr/"
 cp "$WORK/download/rec_dict.txt" "$OUT/assets/ocr/rec_dict.txt"
 cp "$WORK/models/onnx/yunet.ort" "$WORK/models/onnx/sface.ort" "$OUT/assets/faces/"
+cp "$WORK/models/onnx/clip_image.ort" "$WORK/models/onnx/clip_text.ort" "$OUT/assets/clip/"
+cp "$WORK/models/clip_vocab.txt" "$WORK/models/clip_merges.txt" "$OUT/assets/clip/"
+# Reference tokenizations for the unit tests (not shipped in the app).
+cp "$WORK/models/clip_tokens_expected.txt" "$OUT/test/"
 CONFIG=$(ls "$WORK/models/onnx/"*.config | head -1)
 echo "Operators used:"; cat "$CONFIG"
 
@@ -45,4 +51,4 @@ python3 "$WORK/onnxruntime/tools/ci_build/github/android/build_aar_package.py" \
   "$HERE/ort_settings.json"
 AAR=$(find "$WORK/ort-build" -name 'onnxruntime-android-*.aar' | head -1)
 cp "$AAR" "$OUT/onnxruntime-plus.aar"
-ls -l "$OUT/onnxruntime-plus.aar" "$OUT/assets/ocr" "$OUT/assets/faces"
+ls -l "$OUT/onnxruntime-plus.aar" "$OUT/assets/ocr" "$OUT/assets/faces" "$OUT/assets/clip"

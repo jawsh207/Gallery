@@ -14,6 +14,9 @@ import app.roll.gallery.data.MediaWriter
 import app.roll.gallery.Edition
 import app.roll.gallery.recognition.TextIndex
 import app.roll.gallery.recognition.RecognitionWorker
+import app.roll.gallery.recognition.DescriptionIndex
+import app.roll.gallery.recognition.TextDescriber
+import app.roll.gallery.recognition.bestMatches
 import app.roll.gallery.recognition.FaceEntry
 import app.roll.gallery.recognition.FaceIndex
 import app.roll.gallery.recognition.PeopleNames
@@ -120,6 +123,60 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
+    /** Whether photos are fingerprinted for searching by description (Gallery Plus). */
+    val describePhotos: StateFlow<Boolean> = settings.describePhotos.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Turns searching by description on (and starts it) or off (forgetting the fingerprints). */
+    fun setDescribePhotos(on: Boolean) {
+        viewModelScope.launch { settings.setDescribePhotos(on) }
+    }
+
+    private val descriptionIndex = DescriptionIndex(app)
+    private val _described = MutableStateFlow<Map<Long, ByteArray?>>(emptyMap())
+
+    /** The photos fingerprinted for description search so far, by id (null for ones that couldn't be read). */
+    val described: StateFlow<Map<Long, ByteArray?>> = _described
+
+    private val _descriptionMatches = MutableStateFlow<Pair<String, Set<Long>>>("" to emptySet())
+
+    /** The latest description search: its words, and the photos that match them best. */
+    val descriptionMatches: StateFlow<Pair<String, Set<Long>>> = _descriptionMatches
+
+    // Loaded the first time a description search is made, then kept while the app is open.
+    private var textDescriber: TextDescriber? = null
+    private var lastDescription: String? = null
+    private var descriptionJob: Job? = null
+
+    /**
+     * Finds the photos best matching [query] as a description, in the background, into
+     * [descriptionMatches]. Searches that are only dates or kinds ([isDescription]) are left out.
+     */
+    fun searchDescriptions(query: String, isDescription: Boolean) {
+        if (!Edition.HAS_DESCRIPTIONS) return
+        val words = query.trim()
+        if (words == lastDescription) return
+        lastDescription = words
+        descriptionJob?.cancel()
+        if (!isDescription || words.length < 3) {
+            _descriptionMatches.value = words to emptySet()
+            return
+        }
+        descriptionJob = viewModelScope.launch(Dispatchers.Default) {
+            val fingerprints = _described.value.mapNotNull { (id, packed) -> packed?.let { id to it } }.toMap()
+            if (fingerprints.isEmpty()) {
+                _descriptionMatches.value = words to emptySet()
+                return@launch
+            }
+            val describer = textDescriber ?: runCatching { Edition.textDescriber(getApplication()) }.getOrNull()?.also { textDescriber = it }
+            val query = describer?.let { runCatching { it.describe(words) }.getOrNull() }
+            _descriptionMatches.value = words to (query?.let { bestMatches(fingerprints, it).toSet() } ?: emptySet())
+        }
+    }
+
+    override fun onCleared() {
+        textDescriber?.close()
+    }
+
     /** Gives [person] a [name], or takes it away when blank. */
     fun renamePerson(person: Person, name: String) {
         viewModelScope.launch {
@@ -131,26 +188,28 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Re-reads what the background work has found (text, faces and names). */
     fun refreshRecognition() {
-        if (!Edition.HAS_TEXT_SEARCH && !Edition.HAS_PEOPLE) return
+        if (!Edition.HAS_TEXT_SEARCH && !Edition.HAS_PEOPLE && !Edition.HAS_DESCRIPTIONS) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 _photoText.value = textIndex.load().mapValues { (_, entry) -> entry.text.lowercase() }
                 _faces.value = faceIndex.load()
                 _names.value = peopleNames.load()
+                _described.value = descriptionIndex.load().mapValues { it.value.second }
             }
+            lastDescription = null
         }
     }
 
     init {
-        if (Edition.HAS_TEXT_SEARCH || Edition.HAS_PEOPLE) {
+        if (Edition.HAS_TEXT_SEARCH || Edition.HAS_PEOPLE || Edition.HAS_DESCRIPTIONS) {
             // Keep the background work in step with the settings. The first time (the app
             // opening) a run already under way is left alone; after a change it starts over.
             viewModelScope.launch {
                 var first = true
-                combine(settings.readText, settings.findPeople, settings.readTextOnlyCharging) { text, faces, charging ->
-                    Triple(text, faces, charging)
-                }.distinctUntilChanged().collect { (text, faces, charging) ->
-                    withContext(Dispatchers.IO) { RecognitionWorker.schedule(app, text, faces, charging, restart = !first) }
+                combine(settings.readText, settings.findPeople, settings.describePhotos, settings.readTextOnlyCharging) { text, faces, describe, charging ->
+                    listOf(text, faces, describe, charging)
+                }.distinctUntilChanged().collect { (text, faces, describe, charging) ->
+                    withContext(Dispatchers.IO) { RecognitionWorker.schedule(app, text, faces, describe, charging, restart = !first) }
                     first = false
                     refreshRecognition()
                 }
