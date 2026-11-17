@@ -131,6 +131,22 @@ def fingerprints(model, cases):
     return out
 
 
+# The ONNX conversion is one model with both halves; it's split here so the app can load the
+# image half for the background work and only the small text half while searching.
+import onnx
+import onnx.utils
+
+combined = onnx.load(str(src / "clip.onnx"))
+outputs = [o.name for o in combined.graph.output]
+inputs = [i.name for i in combined.graph.input]
+print("clip.onnx inputs", inputs, "outputs", outputs)
+image_out = next(o for o in outputs if "image_embeds" in o)
+text_out = next(o for o in outputs if "text_embeds" in o)
+extractor = onnx.utils.Extractor(combined)
+onnx.save(extractor.extract_model([i for i in inputs if "pixel" in i], [image_out]), str(src / "clip_image.onnx"))
+onnx.save(extractor.extract_model([i for i in inputs if "pixel" not in i], [text_out]), str(src / "clip_text.onnx"))
+del combined, extractor
+
 for half, cases in [("clip_image", 3), ("clip_text", len(PHRASES))]:
     original = fingerprints(src / f"{half}.onnx", cases)
     kept = src / f"{half}.onnx"
