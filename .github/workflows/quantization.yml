@@ -23,18 +23,20 @@ jobs:
           path: wheel
           key: onnxruntime-1.20.1-xnnpack-py312-arm64
 
-      # Without KleidiAI: XNNPACK fetches it itself, against a hash GitLab has since broken by
-      # re-generating the archive. It only speeds up some 8-bit routines our models don't use.
+      # XNNPACK fetches KleidiAI (Arm's routines) itself, against a hash GitLab has since broken by
+      # re-generating the archive, so the same release is fetched here and handed to it.
       - name: Build ONNX Runtime with XNNPACK
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           python3 -m pip install --quiet numpy packaging wheel setuptools
+          curl -fsSL -o kleidiai.zip https://gitlab.arm.com/kleidi/kleidiai/-/archive/v0.2.0/kleidiai-v0.2.0.zip
+          unzip -q kleidiai.zip && mv kleidiai-v0.2.0 "$PWD/kleidiai"
           git clone --quiet --depth 1 --branch v1.20.1 https://github.com/microsoft/onnxruntime
           # Same Eigen archive fix as scripts/plus/build.sh.
           sed -i 's/be8be39fdbc6e60e94fa7870b280707069b5b81a/32b145f525a8308d7ab1c09388b2e288312d8eba/' onnxruntime/cmake/deps.txt
           python3 onnxruntime/tools/ci_build/build.py --build_dir ort-build --config Release \
             --build_wheel --use_xnnpack --parallel --skip_tests --skip_submodule_sync \
-            --compile_no_warning_as_error --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF XNNPACK_ENABLE_KLEIDIAI=OFF
+            --compile_no_warning_as_error --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF FETCHCONTENT_SOURCE_DIR_KLEIDIAI=$PWD/kleidiai
           mkdir -p wheel && cp ort-build/Release/dist/*.whl wheel/
 
       - uses: actions/upload-artifact@v4
