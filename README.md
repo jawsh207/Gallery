@@ -23,7 +23,8 @@ store, so other apps see the same favorites and trash.
   select a run of them (the grid scrolls when you reach its edge). A circle by each date
   selects that whole day. Share, favorite, add to an album or trash the selection.
 - **Viewer:** swipe between photos, pinch or double-tap to zoom, drag down to close, drag up
-  for details. Videos play in place with a seek bar.
+  for details. Videos play in place with a seek bar. Motion photos play their moment of video
+  when they come up, and again from the Motion chip.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,
   shutter speed, ISO and focal length stored in the photo.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera

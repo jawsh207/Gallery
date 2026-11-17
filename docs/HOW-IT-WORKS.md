@@ -109,6 +109,13 @@ full photo loads.
 come and go with the other controls. It pauses when you leave the app and stops when you swipe
 to another item.
 
+**Motion photos.** Some cameras save a second or two of video inside the photo file. When such
+a photo comes up in the viewer, its video plays once, silently, over the still, then the still
+returns; a Motion chip under the top bar plays it again. Gallery finds the video by reading the
+photo's XMP metadata near the start of the file, which says how long the video at the end of
+the file is, in either of the two ways cameras write it. The video is played straight out of
+the photo file; nothing is copied out. It doesn't play during a slideshow.
+
 **Details.** The date and time it was taken, the file name, resolution and size, the folder it's
 in, and, for photos, the camera and its settings (aperture, shutter speed, focal length, ISO).
 In the trash, the date Android will delete it for good. Gallery doesn't read where a photo was
@@ -167,10 +174,12 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
 | Zooming, panning and swipe-to-close in the viewer | `ui/viewer/Gestures.kt` |
 | Video playback | `ui/viewer/Pages.kt` |
+| Finding the video inside a motion photo | `data/MotionPhotos.kt` |
+| Playing it out of the photo file | `ui/viewer/MotionPlayer.kt` |
 | Hiding and showing Android's bars in the viewer | `ui/viewer/ViewerScreen.kt` |
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

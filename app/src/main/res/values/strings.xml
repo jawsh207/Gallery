@@ -162,4 +162,5 @@
     <string name="settings_display">Display</string>
     <string name="settings_memories">On this day</string>
     <string name="settings_memories_summary">Show photos from this date in past years at the top of Photos</string>
+    <string name="motion">Motion</string>
 </resources>

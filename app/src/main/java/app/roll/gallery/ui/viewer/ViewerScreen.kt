@@ -2,6 +2,11 @@ package app.roll.gallery.ui.viewer
 
 import android.app.Activity
 import android.app.WallpaperManager
+import androidx.compose.material.icons.outlined.MotionPhotosOn
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.runtime.produceState
+import app.roll.gallery.data.MotionVideo
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.outlined.Slideshow
 import kotlinx.coroutines.delay
@@ -81,7 +86,8 @@ import kotlinx.coroutines.launch
  * double-tap to zoom, drag down to close and drag up for details. The bottom bar has the same
  * actions as a selection: share, favorite and trash, or restore and delete inside the trash;
  * the top bar's menu has Slideshow, Add to album and, for photos, Set as wallpaper. A slideshow
- * starts straight away when [slideshowAtStart] (opening a memory).
+ * starts straight away when [slideshowAtStart] (opening a memory). A motion photo's video plays
+ * once when it comes up, and again from the Motion chip under the top bar.
  * [onCurrentChange] reports the item on screen so the back stack reopens it after a restart.
  */
 @Composable
@@ -158,6 +164,9 @@ fun ViewerScreen(
         libraryActions(viewModel, library, listOf(current), onDone = {}, withAlbum = false)
     }
 
+    // Motion photos: the video plays once when the photo comes up, and again from the chip.
+    val motion by produceState<MotionVideo?>(null, current.id) { value = viewModel.motionVideo(current) }
+    var playMotion by remember(current.id) { mutableStateOf(true) }
     var addingToAlbum by remember { mutableStateOf(false) }
     var wallpaper by remember { mutableStateOf(false) }
     val menu = buildList {
@@ -189,10 +198,14 @@ fun ViewerScreen(
                     val zoom = remember(media.id) {
                         ZoomState(if (media.height > 0) media.width.toFloat() / media.height else 0f)
                     }
+                    val isCurrent = page == pager.settledPage && media.id == current.id
                     PhotoPage(
                         media = media,
                         zoom = zoom,
                         gestures = Modifier.viewerGestures(zoom, onTap, onDrag, onDragEnd),
+                        motion = if (isCurrent) motion else null,
+                        playMotion = isCurrent && playMotion && !slideshow,
+                        onMotionEnd = { playMotion = false },
                     )
                 }
             }
@@ -203,7 +216,21 @@ fun ViewerScreen(
                 exit = fadeOut(),
                 modifier = Modifier.align(Alignment.TopCenter),
             ) {
-                TopControls(current.takenAt, onBack, menu)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    TopControls(current.takenAt, onBack, menu)
+                    if (motion != null && !current.isVideo) {
+                        AssistChip(
+                            onClick = { playMotion = true },
+                            label = { Text(stringResource(R.string.motion)) },
+                            leadingIcon = { Icon(Icons.Outlined.MotionPhotosOn, contentDescription = null) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color.Black.copy(alpha = 0.4f),
+                                labelColor = Color.White,
+                                leadingIconContentColor = Color.White,
+                            ),
+                        )
+                    }
+                }
             }
             AnimatedVisibility(
                 visible = controls && dragY == 0f,

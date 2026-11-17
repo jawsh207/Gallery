@@ -95,8 +95,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     // Camera details (aperture, shutter speed, ISO) in a photo's info sheet.
     implementation(libs.androidx.exifinterface)
-    // Video playback in the viewer.
+    // Video and motion photo playback in the viewer.
     implementation(libs.androidx.media3.exoplayer)
+    // Reading a motion photo's video straight out of the photo file.
+    implementation(libs.androidx.media3.datasource)
     // Loading and caching thumbnails and full-size photos.
     implementation(libs.coil.compose)
 

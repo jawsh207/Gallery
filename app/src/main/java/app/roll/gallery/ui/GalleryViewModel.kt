@@ -11,6 +11,8 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.R
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
+import app.roll.gallery.data.MotionVideo
+import app.roll.gallery.data.readMotionVideo
 import app.roll.gallery.data.AppSettings
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -102,6 +104,11 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
                 else res.getQuantityString(failed, failures, failures),
             )
         }
+    }
+
+    /** Where [media]'s motion video is, if it's a motion photo, read off the main thread. */
+    suspend fun motionVideo(media: Media): MotionVideo? = withContext(Dispatchers.IO) {
+        readMotionVideo(getApplication<Application>().contentResolver, media)
     }
 
     /** Camera details for [media]'s info sheet, read off the main thread. */

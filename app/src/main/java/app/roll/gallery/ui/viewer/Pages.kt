@@ -51,6 +51,7 @@ import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
 import app.roll.gallery.R
 import app.roll.gallery.data.Media
+import app.roll.gallery.data.MotionVideo
 import app.roll.gallery.data.formatDuration
 import app.roll.gallery.image.Thumbnail
 import coil3.compose.AsyncImage
@@ -60,10 +61,18 @@ import kotlinx.coroutines.delay
 /**
  * One photo, fitted to the screen. The grid's thumbnail shows at once while the full photo
  * loads over it, at up to twice the screen's size so zooming in stays sharp without holding
- * a 50-megapixel bitmap in memory.
+ * a 50-megapixel bitmap in memory. For a motion photo ([motion]), its video plays once over
+ * the still while [playMotion], then [onMotionEnd] runs.
  */
 @Composable
-fun PhotoPage(media: Media, zoom: ZoomState, gestures: Modifier) {
+fun PhotoPage(
+    media: Media,
+    zoom: ZoomState,
+    gestures: Modifier,
+    motion: MotionVideo? = null,
+    playMotion: Boolean = false,
+    onMotionEnd: () -> Unit = {},
+) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -100,6 +109,16 @@ fun PhotoPage(media: Media, zoom: ZoomState, gestures: Modifier) {
             onSuccess = { loaded = true },
             modifier = Modifier.fillMaxSize(),
         )
+        if (motion != null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                val fitted = if (media.width > 0 && media.height > 0) {
+                    Modifier.aspectRatio(media.width.toFloat() / media.height)
+                } else {
+                    Modifier.fillMaxSize()
+                }
+                MotionOverlay(media.uri, motion, playMotion, onMotionEnd, fitted)
+            }
+        }
     }
 }
 
