@@ -180,28 +180,54 @@ def calibration_feeds(model, name):
 HEAVY = ["Conv", "MatMul", "Gemm"]
 
 
+def at_least_opset_13(name, original):
+    """Static 8-bit with per-channel rounding needs opset 13 or later; older models are upgraded."""
+    model = onnx.load(str(original))
+    opset = next((o.version for o in model.opset_import if o.domain in ("", "ai.onnx")), 0)
+    if opset >= 13:
+        return original
+    from onnx import version_converter
+    upgraded = work / f"{name}-opset13.onnx"
+    onnx.save(version_converter.convert_version(model, 13), str(upgraded))
+    print(f"{name}: upgraded from opset {opset} to 13")
+    return upgraded
+
+
 def variants(name, original):
     made = {"original": original}
-    try:
-        out = work / f"{name}-dynamic.onnx"
-        quantize_dynamic(str(original), str(out), weight_type=QuantType.QInt8, per_channel=True)
-        made["dynamic"] = out
-    except Exception as error:
-        print(f"{name} dynamic: couldn't make it: {error}")
+    for label, op_types in [("dynamic, every layer", None), ("dynamic, matrix layers", ["MatMul", "Gemm"] + (["Gather"] if name == "clip_text" else []))]:
+        out = work / f"{name}-{label.replace(', ', '-').replace(' ', '_')}.onnx"
+        try:
+            quantize_dynamic(
+                str(original), str(out), weight_type=QuantType.QInt8, per_channel=True,
+                **({"op_types_to_quantize": op_types} if op_types else {}),
+            )
+            made[label] = out
+        except Exception as error:
+            print(f"{name} {label}: couldn't make it: {error}")
+    base = at_least_opset_13(name, original)
     prepared = work / f"{name}-prepared.onnx"
     try:
-        quant_pre_process(str(original), str(prepared), skip_symbolic_shape=name.startswith("clip"))
+        quant_pre_process(str(base), str(prepared), skip_symbolic_shape=True)
     except Exception as error:
-        print(f"{name}: preprocessing failed ({error}); quantizing the original as is")
-        prepared = original
-    for label, op_types in [("static, every layer", None), ("static, heavy layers", HEAVY + (["Gather"] if name == "clip_text" else []))]:
+        print(f"{name}: preprocessing failed ({error}); quantizing as is")
+        prepared = base
+    heavy = HEAVY + (["Gather"] if name == "clip_text" else [])
+    options = [
+        ("static, every layer", None, CalibrationMethod.MinMax, QuantType.QUInt8),
+        ("static, heavy layers", heavy, CalibrationMethod.MinMax, QuantType.QUInt8),
+        ("static, heavy layers, percentile", heavy, CalibrationMethod.Percentile, QuantType.QUInt8),
+        ("static, heavy layers, signed", heavy, CalibrationMethod.MinMax, QuantType.QInt8),
+    ]
+    for label, op_types, method, activations in options:
         out = work / f"{name}-{label.replace(', ', '-').replace(' ', '_')}.onnx"
         try:
             quantize_static(
                 str(prepared), str(out), Feeds(calibration_feeds(original, name)),
                 quant_format=QuantFormat.QDQ, per_channel=True,
-                weight_type=QuantType.QInt8, activation_type=QuantType.QUInt8,
-                calibrate_method=CalibrationMethod.MinMax,
+                weight_type=QuantType.QInt8, activation_type=activations,
+                calibrate_method=method,
+                extra_options={"ActivationSymmetric": activations == QuantType.QInt8},
                 **({"op_types_to_quantize": op_types} if op_types else {}),
             )
             made[label] = out
@@ -383,7 +409,8 @@ for key, title, original, feeds_for in MODELS:
                 accuracy = clip_text_accuracy(original, model, work / "clip_image.onnx")
             row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", f"{one:.1f} ms", f"{many:.1f} ms", accuracy)
         except Exception as error:
-            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", "-", "-", f"can't run: {str(error).splitlines()[0][:120]}")
+            print(f"{title} {label} can't run: {error}")
+            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", "-", "-", f"can't run: {str(error).splitlines()[0][:160]}")
         print(" | ".join(row), flush=True)
         rows.append(row)
 
