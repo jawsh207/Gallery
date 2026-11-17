@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Checks that the app's Kotlin code is described in plain words: every file has at least one
+Checks that the app's Kotlin code (every edition's) is described in plain words: every file has at least one
 /** ... */ description, and every top-level class, object, interface and function that isn't
 private has one directly above it (annotations like @Composable may sit in between).
 
@@ -11,14 +11,15 @@ import pathlib
 import re
 import sys
 
-ROOT = pathlib.Path("app/src/main/java")
+# Every source set (main and each edition), but not the tests.
+ROOTS = [p for p in sorted(pathlib.Path("app/src").glob("*/java")) if p.parent.name != "test"]
 DECLARATION = re.compile(
     r"^(?:(?:internal|public|abstract|open|sealed|data|enum|suspend|inline|value|fun|annotation)\s+)*"
     r"(?:class|object|interface|fun)\b"
 )
 
 missing = []
-for path in sorted(ROOT.rglob("*.kt")):
+for path in sorted(f for root in ROOTS for f in root.rglob("*.kt")):
     lines = path.read_text(encoding="utf-8").splitlines()
     if not any("/**" in line for line in lines):
         missing.append(f"{path}: no description in this file")

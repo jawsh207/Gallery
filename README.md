@@ -58,14 +58,24 @@ store, so other apps see the same favorites and trash.
 
 Gallery doesn't ask for location access, so it doesn't read where photos were taken.
 
+## Editions
+
+| | What's in it |
+| --- | --- |
+| **Gallery** | Everything above. |
+| **Gallery Plus** | Everything above, plus reading text in photos, on the phone, for search. Bigger, because it carries recognition models and a small engine to run them. |
+
+Both have the same app id and signing keys, so either installs over the other and keeps its
+settings and Locked folder.
+
 ## Building
 
-GitHub Actions builds two kinds of APK, each signed with its own key:
+GitHub Actions builds both editions, in two kinds of APK, each signed with its own key:
 
-| | When | App | Artifact |
+| | When | App | Artifacts |
 | --- | --- | --- | --- |
-| **Test build** | every push to `main`, PRs, manual runs | "Gallery Dev" (`app.roll.gallery.dev`) | `gallery-dev-apk` on the run page |
-| **Release** | Actions → **Build release** → Run workflow; or pushing to the `release` branch | "Gallery" (`app.roll.gallery`) | attached to a GitHub Release |
+| **Test build** | every push to `main`, PRs, manual runs | "Gallery Dev" / "Gallery Plus Dev" (`app.roll.gallery.dev`) | `gallery-dev-apk`, `gallery-plus-dev-apk` on the run page |
+| **Release** | Actions → **Build release** → Run workflow; or pushing to the `release` branch | "Gallery" / "Gallery Plus" (`app.roll.gallery`) | both attached to a GitHub Release |
 
 A release is tagged with the version name on line 2 of `version.txt` (line 1 is the version
 code, which must go up with every release), and its notes come from that version's section of
@@ -74,10 +84,15 @@ code, which must go up with every release), and its notes come from that version
 To build locally (JDK 21 and the Android SDK required):
 
 ```sh
-./gradlew :app:assembleDev       # test build
-./gradlew :app:assembleRelease   # release
-./gradlew :app:testDebugUnitTest   # unit tests
+./gradlew :app:assembleStandardDev        # Gallery test build
+./gradlew :app:assembleStandardRelease    # Gallery release
+./gradlew :app:testStandardDebugUnitTest  # unit tests
 ```
+
+Gallery Plus also needs its models and runtime, built once into `build/plus/` by
+`scripts/plus/build.sh` (Python 3, the Android NDK and Ninja; it compiles ONNX Runtime, which
+takes a while). Then `./gradlew :app:assemblePlusDev`. CI does this itself and caches the
+result until something in `scripts/plus/` changes.
 
 Every CI build runs the unit tests (`app/src/test`) and `scripts/check-docs.py` first, and
 stops if either fails.

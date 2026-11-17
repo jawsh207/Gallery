@@ -38,6 +38,17 @@ android {
         }
     }
 
+    // Two editions of the same app, with the same app id and keys so either installs over the
+    // other and keeps its settings and Locked folder: Gallery, and Gallery Plus, which adds
+    // reading text in photos with models and a cut-down ONNX Runtime built by
+    // scripts/plus/build.sh into build/plus/.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("standard") { dimension = "edition" }
+        create("plus") { dimension = "edition" }
+    }
+    sourceSets.getByName("plus").assets.srcDir(rootProject.file("build/plus/assets"))
+
     buildTypes {
         release {
             // R8: shrink, optimize and obfuscate; drop unused resources.
@@ -102,10 +113,15 @@ dependencies {
     // Loading and caching thumbnails and full-size photos.
     implementation(libs.coil.compose)
 
+    // Background reading of text in photos (Plus); schedules work for when the phone is charging.
+    implementation(libs.androidx.work.runtime)
+    // The cut-down ONNX Runtime, built from source by scripts/plus/build.sh.
+    "plusImplementation"(files(rootProject.file("build/plus/onnxruntime-plus.aar")))
+
     testImplementation(libs.junit)
 }
 
-// APKs are named gallery-dev.apk / gallery-release.apk.
+// APKs are named gallery-standard-dev.apk, gallery-plus-release.apk and so on.
 base.archivesName.set("gallery")
 
 // A failing unit test prints what was expected and what came out, so CI can show it.

@@ -1,0 +1,5 @@
+# The Plus edition's models: name, download address, SHA-256 (or "unpinned" to print it).
+# PaddleOCR models (Apache 2.0), as converted to ONNX in monkt/paddleocr-onnx (Apache 2.0).
+det.onnx https://huggingface.co/monkt/paddleocr-onnx/resolve/main/detection/v3/det.onnx unpinned
+rec.onnx https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/latin/rec.onnx unpinned
+rec_dict.txt https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/latin/dict.txt unpinned

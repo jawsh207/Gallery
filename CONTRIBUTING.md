@@ -42,7 +42,7 @@ Describing the code is part of every change, not a follow-up:
 Logic that doesn't need a phone (grouping, sorting, formatting, selection maths) has unit tests
 in `app/src/test`. When you add or change such logic, add or update its tests. Keep that logic
 in plain functions outside the screens so it can be tested. CI runs the tests on every build
-and stops on a failure; run them locally with `./gradlew :app:testDebugUnitTest`.
+and stops on a failure; run them locally with `./gradlew :app:testStandardDebugUnitTest`.
 
 `python3 scripts/check-docs.py` lists anything missing a description. CI runs it on every
 build and stops the build if something is missing.

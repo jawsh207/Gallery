@@ -1,9 +1,10 @@
 name: Build APK
 
-# Two kinds of build, each with its own signing key:
+# Two editions, Gallery and Gallery Plus (same app id; Plus adds reading text in photos), and
+# two kinds of build, each with its own signing key:
 #   - Test builds: every push to main (and PRs / manual runs). The `dev` variant
-#     ("Gallery Dev", app id app.roll.gallery.dev), always signed with the dev
-#     key so each one installs over the last.
+#     ("Gallery Dev" / "Gallery Plus Dev", app id app.roll.gallery.dev), always signed with
+#     the dev key so each one installs over the last.
 #   - Releases: the "Build release" workflow (release.yml), a push to the `release`
 #     branch, or a version tag such as v1.0. The `release` variant, signed with the
 #     separate release key, attached to a GitHub Release tagged v<version name from
@@ -31,7 +32,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Gallery Plus's models and cut-down ONNX Runtime, built from source by scripts/plus/build.sh.
+  # Slow (the runtime is compiled), so the result is cached until anything in scripts/plus changes.
+  plus-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: build/plus
+          key: plus-runtime-${{ hashFiles('scripts/plus/**') }}
+
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build models and runtime
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y ninja-build > /dev/null
+          echo "ANDROID_NDK_HOME=${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}" >> "$GITHUB_ENV"
+          SDKMANAGER=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | head -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: scripts/plus/build.sh
+
+      - name: Show sizes
+        run: |
+          ls -l build/plus/onnxruntime-plus.aar build/plus/assets/ocr
+          echo "::notice title=Plus runtime::$(du -h build/plus/onnxruntime-plus.aar | cut -f1) runtime, $(du -ch build/plus/assets/ocr/* | tail -1 | cut -f1) models"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plus-runtime
+          path: build/plus
+          if-no-files-found: error
+
   build:
+    needs: plus-runtime
     # Pinned: ubuntu-24.04 ships the Android SDK preinstalled, which the newer
     # ubuntu-latest image (Ubuntu 26) may not.
     runs-on: ubuntu-24.04
@@ -44,6 +89,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: plus-runtime
+          path: build/plus
 
       # Every class and function must have a plain-language description (CONTRIBUTING.md).
       - name: Check code descriptions
@@ -103,9 +153,9 @@ jobs:
       - name: Test and build APK
         run: |
           set -o pipefail
-          TASK=":app:assemble${VARIANT^}"
-          TESTS=":app:testDebugUnitTest"  # unit tests only exist for the debug build type; same code
-          if ./gradlew "$TESTS" "$TASK" --console=plain 2>&1 | tee build.log; then
+          TASKS=":app:assembleStandard${VARIANT^} :app:assemblePlus${VARIANT^}"
+          TESTS=":app:testStandardDebugUnitTest"  # unit tests only exist for the debug build type; same code
+          if ./gradlew $TESTS $TASKS --console=plain 2>&1 | tee build.log; then
             exit 0
           fi
           grep -E ' > .* FAILED$' build.log | head -20 | while IFS= read -r line; do
@@ -123,17 +173,27 @@ jobs:
       - name: Show signing certificate
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          APK=$(ls app/build/outputs/apk/$VARIANT/*.apk | head -1)
+          APK=$(ls app/build/outputs/apk/standard/$VARIANT/*.apk | head -1)
           FP=$("$APKSIGNER" verify --print-certs "$APK" | grep -m1 'SHA-256 digest' | sed 's/.*: //')
           echo "::notice title=${VARIANT} signing certificate SHA-256::$FP"
+          for edition in standard plus; do
+            F=$(ls app/build/outputs/apk/$edition/$VARIANT/*.apk | head -1)
+            echo "::notice title=${edition} APK size::$(du -h "$F" | cut -f1) ($(stat -c %s "$F") bytes)"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
           name: gallery-${{ env.VARIANT }}-apk
-          path: app/build/outputs/apk/${{ env.VARIANT }}/*.apk
+          path: app/build/outputs/apk/standard/${{ env.VARIANT }}/*.apk
           if-no-files-found: error
 
-      # Launch check: installs the release APK on an Android emulator and opens it. If it
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gallery-plus-${{ env.VARIANT }}-apk
+          path: app/build/outputs/apk/plus/${{ env.VARIANT }}/*.apk
+          if-no-files-found: error
+
+      # Launch check: installs each edition's release APK on an Android emulator and opens it. If it
       # crashes or isn't running 15 seconds later, the release is not published. Release
       # builds are shrunk by R8, which test builds skip, so this catches what testing the
       # dev build can't. The crash trace, with R8's short names mapped back, is shown on
@@ -153,19 +213,14 @@ jobs:
           target: default
           disable-animations: true
           script: |
-            adb install -r app/build/outputs/apk/release/*.apk
-            adb logcat -c
-            adb shell am start -W -n app.roll.gallery/.MainActivity
-            sleep 15
-            adb logcat -d -b crash > "$RUNNER_TEMP/crash.txt" || true
-            if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "The app opened and is still running."; else touch "$RUNNER_TEMP/launch-failed"; fi
+            for edition in standard plus; do adb install -r app/build/outputs/apk/$edition/release/*.apk; adb logcat -c; adb shell am start -W -n app.roll.gallery/.MainActivity; sleep 15; adb logcat -d -b crash >> "$RUNNER_TEMP/crash.txt" || true; if adb shell pidof app.roll.gallery > /dev/null && ! grep -q 'Process: app.roll.gallery' "$RUNNER_TEMP/crash.txt"; then echo "$edition opened and is still running."; else touch "$RUNNER_TEMP/launch-failed"; fi; adb shell am force-stop app.roll.gallery; done
 
       - name: Report launch failure
         if: env.IS_RELEASE == 'true'
         run: |
           [ -e "$RUNNER_TEMP/launch-failed" ] || exit 0
           RETRACE=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/retrace | head -1)
-          "$RETRACE" app/build/outputs/mapping/release/mapping.txt "$RUNNER_TEMP/crash.txt" > "$RUNNER_TEMP/trace.txt" 2>&1 \
+          "$RETRACE" "$(ls app/build/outputs/mapping/*Release/mapping.txt | head -1)" "$RUNNER_TEMP/crash.txt" > "$RUNNER_TEMP/trace.txt" 2>&1 \
             || cp "$RUNNER_TEMP/crash.txt" "$RUNNER_TEMP/trace.txt"
           trace=$(grep -E 'Exception|Error|Caused by|^\s*at |\sat ' "$RUNNER_TEMP/trace.txt" | head -40 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
           echo "::error title=Release crashes on launch; not publishing::${trace:-The app was not running 15 seconds after opening.}"
@@ -191,5 +246,5 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           target_commitish: ${{ inputs.ref || github.sha }}
           name: Gallery ${{ env.RELEASE_TAG }}
-          files: app/build/outputs/apk/release/*.apk
+          files: app/build/outputs/apk/*/release/*.apk
           body_path: ${{ runner.temp }}/notes.md

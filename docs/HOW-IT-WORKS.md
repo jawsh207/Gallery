@@ -21,6 +21,18 @@ screen refreshes by itself.
 
 Nothing goes over the network: the app has no internet access and uses no Google services.
 
+## Two editions
+
+Gallery comes as **Gallery** and **Gallery Plus**. They're the same app (same app id, so either
+installs over the other and keeps its settings and Locked folder); Plus adds reading the text
+in photos, which needs recognition models and a small engine to run them, so it's bigger. Code
+for Plus only lives in `app/src/plus/`, and the plain edition's stand-ins in `app/src/standard/`;
+`Edition.kt` in each says what that edition includes.
+
+The models are PaddleOCR's small text finder and Latin-script text reader. They and a cut-down
+copy of ONNX Runtime (only the parts these models use, for 64-bit phones) are built by
+`scripts/plus/build.sh`, which CI runs and caches.
+
 ## Screens
 
 | Screen | What it's for | File |
@@ -226,6 +238,10 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
 | Zooming, panning and swipe-to-close in the viewer | `ui/viewer/Gestures.kt` |
+| What each edition includes | `Edition.kt` in `app/src/standard/` and `app/src/plus/` |
+| Reading text in a photo (Plus) | `app/src/plus/.../recognition/PaddleTextReader.kt`, `recognition/TextReader.kt` |
+| Sizing images for the models, finding text boxes, turning scores into characters | `recognition/OcrMath.kt` |
+| Building the models and the cut-down runtime | `scripts/plus/build.sh`, `prepare_models.py`, `models.txt`, `ort_settings.json` |
 | Video playback | `ui/viewer/Pages.kt` |
 | Finding the video inside a motion photo | `data/MotionPhotos.kt` |
 | Playing it out of the photo file | `ui/viewer/MotionPlayer.kt` |

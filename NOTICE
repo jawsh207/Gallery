@@ -10,3 +10,14 @@ This product includes:
   Google Sans Flex is a trademark of Google LLC; this project is not affiliated with Google.
 
 - Coil (https://github.com/coil-kt/coil), under the Apache License 2.0, to load and cache images.
+
+Gallery Plus also includes:
+
+- ONNX Runtime (https://github.com/microsoft/onnxruntime), Copyright (c) Microsoft Corporation,
+  under the MIT License, built from source with only the operators its models use.
+
+- PaddleOCR's PP-OCRv3 text detection and PP-OCRv5 Latin text recognition models
+  (https://github.com/PaddlePaddle/PaddleOCR), under the Apache License 2.0, as converted to
+  ONNX in https://huggingface.co/monkt/paddleocr-onnx (Apache License 2.0). Modified: the
+  recognition model's matrix weights are quantized to 8 bits, and both are converted to ONNX
+  Runtime's format.
