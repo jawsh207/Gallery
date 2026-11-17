@@ -123,6 +123,13 @@ Set as repository secrets (Settings → Secrets and variables → Actions):
 | `RELEASE_KEYSTORE_BASE64` | base64 of the release keystore (alias `gallery`) |
 | `RELEASE_KEYSTORE_PASSWORD` | its password (store and key) |
 
+The certificates' SHA-256 fingerprints, to check an APK was signed with the right key:
+
+| Key | SHA-256 |
+| --- | --- |
+| Dev (`app.roll.gallery.dev`) | `c21d38e8f8b32c887e38bc19f085e1d1b513f913c79902e2e7320c4898f34ccd` |
+| Release (`app.roll.gallery`) | `b8a19f676dd4b5274599462f4fbadf27b417cda60083a0012941253f6683d19a` |
+
 Without the dev key, test builds are signed with a throwaway key and the run says so; a
 release refuses to build without its key.
 
