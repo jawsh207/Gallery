@@ -7,5 +7,5 @@ rec_dict.txt https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/
 yunet.onnx https://huggingface.co/opencv/face_detection_yunet/resolve/main/face_detection_yunet_2023mar.onnx 8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4
 sface.onnx https://huggingface.co/opencv/face_recognition_sface/resolve/main/face_recognition_sface_2021dec_int8.onnx 2b0e941e6f16cc048c20aee0c8e31f569118f65d702914540f7bfdc14048d78a
 # Search by description: TinyCLIP ViT-39M/16 + Text-19M (Microsoft, MIT), as converted to ONNX by onnx-community.
-clip.onnx https://huggingface.co/onnx-community/TinyCLIP-ViT-39M-16-Text-19M-YFCC15M-ONNX/resolve/main/onnx/model.onnx unpinned
-clip_tokenizer.json https://huggingface.co/onnx-community/TinyCLIP-ViT-39M-16-Text-19M-YFCC15M-ONNX/resolve/main/tokenizer.json unpinned
+clip.onnx https://huggingface.co/onnx-community/TinyCLIP-ViT-39M-16-Text-19M-YFCC15M-ONNX/resolve/main/onnx/model.onnx 1fceb2a58ec3bfb7c75e7313571b5abc2c54a23d71a3039af92033480c7f098a
+clip_tokenizer.json https://huggingface.co/onnx-community/TinyCLIP-ViT-39M-16-Text-19M-YFCC15M-ONNX/resolve/main/tokenizer.json 6d9109cc838977f3ca94a379eec36aecc7c807e1785cd729660ca2fc0171fb35

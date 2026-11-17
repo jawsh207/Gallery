@@ -150,8 +150,14 @@ del combined, extractor
 for half, cases in [("clip_image", 3), ("clip_text", len(PHRASES))]:
     original = fingerprints(src / f"{half}.onnx", cases)
     kept = src / f"{half}.onnx"
-    for name, op_types in [("all layers", None), ("matrix layers only", ["MatMul", "Gemm"])]:
-        candidate = trial / f"{half}-{len(op_types or [])}.onnx"
+    # The text half's word table (a Gather) is most of its size, so shrinking it with the matrix
+    # layers is tried before leaving it at full size.
+    for name, op_types in [
+        ("all layers", None),
+        ("matrix layers and word table", ["MatMul", "Gemm", "Gather"]),
+        ("matrix layers only", ["MatMul", "Gemm"]),
+    ]:
+        candidate = trial / f"{half}-{len(op_types or [])}.onnx"  # a distinct name per option
         quantize_dynamic(
             str(src / f"{half}.onnx"), str(candidate),
             weight_type=QuantType.QInt8, per_channel=True,
