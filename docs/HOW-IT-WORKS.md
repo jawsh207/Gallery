@@ -39,7 +39,7 @@ copy of ONNX Runtime (only the parts these models use, for 64-bit phones) are bu
 | --- | --- | --- |
 | Access | Asking for permission to see photos, with a way into Android's settings | `ui/access/AccessScreen.kt` |
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
-| Settings | Photo access, Media management, On this day, version and licenses | `ui/settings/SettingsScreen.kt` |
+| Settings | Photo access, Media management, On this day, Text in photos (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Collections tab | Favorites, Videos and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
@@ -72,7 +72,20 @@ Settings. Every word you type must match. A word can be a kind ("videos", "photo
 language), or part of a file name, album name, folder or file type ("png"). Before you type,
 shortcuts list the kinds, every year you have photos from, and your biggest albums. Results can
 be selected and opened like the Photos tab, and the viewer pages through just the results.
-Search doesn't look inside photos (no text or face recognition).
+In Gallery, search doesn't look inside photos. In **Gallery Plus** a word also matches text read
+in the photo (see Text in photos).
+
+**Text in photos (Gallery Plus).** In the background, Gallery Plus reads the text in every
+photo (not videos, and never the Locked folder) with its built-in models, on the phone: the
+finder marks where there's text, each spot is cut out and read, and the words go into a small
+text file in Gallery's private storage, so search can match signs, receipts, screenshots and
+documents. Each photo is read once, and again if it's edited; photos with no text are noted so
+they aren't read twice, and deleted photos are dropped from the file. Android runs the reading
+when the battery isn't low and, unless that setting is turned off, only while charging, and
+pauses it otherwise; it picks up where it stopped, and checks for new photos every 12 hours.
+Settings → Text in photos shows how many photos have been read, can turn reading off (which
+deletes the text file) and can let it run without charging. The reader knows the Latin
+alphabet: English and most European languages.
 
 **Opening from other apps.** A file manager's "Open with", a messaging app's attachment or
 the camera's thumbnail can open one photo or video in Gallery. It shows in a viewer of its own
@@ -85,8 +98,8 @@ the library in the usual grid, showing only the kinds the app asked for (photos,
 both). If it takes one, tapping a photo hands it back; if it takes several, tap or drag to
 select and press Done. The app gets access to just the photos you chose.
 
-**Settings.** On this day turns the memories row on or off; it's the only setting Gallery
-stores itself, in its own private settings file. Photo access shows whether Gallery sees everything or only photos you picked,
+**Settings.** On this day turns the memories row on or off, and in Gallery Plus the Text in
+photos switches; these are stored in Gallery's own private settings file. Photo access shows whether Gallery sees everything or only photos you picked,
 and opens the dialog to pick more (or Android's settings, to take access back). Media
 management opens Android's switch for it and shows whether it's on. About shows the version
 and the licenses.
@@ -241,6 +254,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | What each edition includes | `Edition.kt` in `app/src/standard/` and `app/src/plus/` |
 | Reading text in a photo (Plus) | `app/src/plus/.../recognition/PaddleTextReader.kt`, `recognition/TextReader.kt` |
 | Sizing images for the models, finding text boxes, turning scores into characters | `recognition/OcrMath.kt` |
+| The file of text read in photos | `recognition/TextIndex.kt` |
+| Reading photos in the background, and scheduling it | `recognition/TextIndexWorker.kt` |
 | Building the models and the cut-down runtime | `scripts/plus/build.sh`, `prepare_models.py`, `models.txt`, `ort_settings.json` |
 | Video playback | `ui/viewer/Pages.kt` |
 | Finding the video inside a motion photo | `data/MotionPhotos.kt` |
@@ -249,6 +264,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

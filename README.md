@@ -43,7 +43,11 @@ store, so other apps see the same favorites and trash.
 - **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can
   pick them from Gallery, one or several.
-- **Settings:** photo access, Media management, On this day, version and licenses.
+- **Settings:** photo access, Media management, On this day, version and licenses, and in
+  Gallery Plus, Text in photos.
+- **Text in photos (Gallery Plus):** reads the text in your photos in the background, on the
+  phone (by default only while charging), so search finds signs, receipts, screenshots and
+  documents. Latin alphabet languages.
 - **Trash:** Android's own trash, shared with other apps. Items are deleted for good after
   30 days; restore or delete them sooner, one at a time, by selection, or all at once.
 
