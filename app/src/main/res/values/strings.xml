@@ -1,0 +1,79 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Gallery</string>
+
+    <!-- Bottom tabs -->
+    <string name="tab_photos">Photos</string>
+    <string name="tab_collections">Collections</string>
+
+    <!-- Photo access -->
+    <string name="access_title">Allow access to your photos</string>
+    <string name="access_body">Gallery needs access to show the photos and videos on your phone. Nothing leaves your phone.</string>
+    <string name="access_allow">Allow access</string>
+    <string name="open_settings">Open settings</string>
+    <string name="partial_access_title">Showing only some photos</string>
+    <string name="partial_access_body">You\'ve given Gallery access to the photos you picked. Allow all to see everything on your phone.</string>
+    <string name="allow_all">Allow all</string>
+
+    <!-- Grid -->
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="photo">Photo</string>
+    <string name="video">Video</string>
+    <string name="select_day">Select all from this day</string>
+    <string name="deselect_day">Deselect all from this day</string>
+    <string name="fast_scroll">Drag to scroll quickly</string>
+    <string name="no_photos_title">No photos yet</string>
+    <string name="no_photos_body">Photos and videos you take or save will show up here.</string>
+    <plurals name="selected_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> selected</item>
+        <item quantity="other"><xliff:g id="count" example="3">%1$d</xliff:g> selected</item>
+    </plurals>
+    <string name="clear_selection">Clear selection</string>
+
+    <!-- Actions -->
+    <string name="share">Share</string>
+    <string name="favorite">Favorite</string>
+    <string name="unfavorite">Unfavorite</string>
+    <string name="move_to_trash">Trash</string>
+    <string name="restore">Restore</string>
+    <string name="delete_forever">Delete</string>
+    <string name="info">Info</string>
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+
+    <!-- Collections -->
+    <string name="favorites">Favorites</string>
+    <string name="videos">Videos</string>
+    <string name="trash">Trash</string>
+    <string name="albums">Albums</string>
+    <plurals name="item_count">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> item</item>
+        <item quantity="other"><xliff:g id="count" example="24">%1$d</xliff:g> items</item>
+    </plurals>
+    <string name="no_albums_title">No albums yet</string>
+    <string name="no_albums_body">Every folder with photos or videos shows up here as an album.</string>
+    <string name="no_favorites_title">No favorites yet</string>
+    <string name="no_favorites_body">Tap the heart on a photo or video to keep it here.</string>
+    <string name="no_videos_title">No videos yet</string>
+    <string name="no_videos_body">Videos you record or save will show up here.</string>
+    <string name="album_empty_title">This album is empty</string>
+    <string name="album_empty_body">Its photos may have been moved or deleted.</string>
+
+    <!-- Trash -->
+    <string name="trash_intro">Items in the trash are deleted for good after 30 days.</string>
+    <string name="trash_empty_title">Trash is empty</string>
+    <string name="trash_empty_body">Photos and videos you delete stay here for 30 days, so you can put them back.</string>
+    <string name="empty_trash">Empty trash</string>
+    <string name="empty_trash_title">Empty the trash?</string>
+    <plurals name="empty_trash_body">
+        <item quantity="one"><xliff:g id="count" example="1">%1$d</xliff:g> item will be deleted for good. This can\'t be undone.</item>
+        <item quantity="other">All <xliff:g id="count" example="12">%1$d</xliff:g> items will be deleted for good. This can\'t be undone.</item>
+    </plurals>
+
+    <!-- Info sheet -->
+    <string name="camera">Camera</string>
+    <string name="unknown_folder">Unknown folder</string>
+    <string name="deleted_on">Deleted for good on <xliff:g id="date" example="December 16, 2026">%1$s</xliff:g></string>
+</resources>

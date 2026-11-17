@@ -1,0 +1,74 @@
+package app.roll.gallery.data
+
+import android.content.ContentUris
+import android.net.Uri
+import android.provider.MediaStore
+
+/**
+ * The app's view of one photo or video, as Android's shared media store describes it.
+ * The app keeps no database of its own: every [Media] is read fresh from the store.
+ */
+data class Media(
+    /** The store's row id; unique across photos and videos. */
+    val id: Long,
+    val isVideo: Boolean,
+    val mimeType: String,
+    /** When it was taken, in milliseconds since 1970; the file's change time if unknown. */
+    val takenAt: Long,
+    /** When the file last changed, in seconds; part of the thumbnail cache key. */
+    val modifiedAt: Long,
+    val width: Int,
+    val height: Int,
+    /** Video length in milliseconds; 0 for photos. */
+    val durationMs: Long,
+    /** The folder it sits in, which the app shows as an album. */
+    val albumId: Long,
+    val albumName: String,
+    /** The folder path inside shared storage, e.g. "DCIM/Camera/". */
+    val path: String,
+    val fileName: String,
+    val sizeBytes: Long,
+    val isFavorite: Boolean,
+    val isTrashed: Boolean,
+    /** For trashed items: when Android deletes it for good, in seconds; 0 otherwise. */
+    val expiresAt: Long,
+) {
+    /** Where to open the file, e.g. content://media/external/images/media/42. */
+    val uri: Uri
+        get() = ContentUris.withAppendedId(
+            if (isVideo) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            else MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
+            id,
+        )
+}
+
+/** Everything the store holds, split into what's in the library and what's in the trash. */
+data class Library(val items: List<Media>, val trash: List<Media>) {
+    /** One album's items, newest first. */
+    fun album(albumId: Long): List<Media> = items.filter { it.albumId == albumId }
+
+    /** Favorited items, newest first. */
+    val favorites: List<Media> get() = items.filter { it.isFavorite }
+
+    /** Videos only, newest first. */
+    val videos: List<Media> get() = items.filter { it.isVideo }
+}
+
+/** The places a set of photos can come from, so the viewer can page through the same set. */
+sealed interface MediaSet {
+    /** Every photo and video, as on the Photos tab. */
+    data object All : MediaSet
+    data object Favorites : MediaSet
+    data object Videos : MediaSet
+    data object Trash : MediaSet
+    data class Album(val id: Long) : MediaSet
+}
+
+/** The items of [set], newest first. */
+fun Library.itemsIn(set: MediaSet): List<Media> = when (set) {
+    MediaSet.All -> items
+    MediaSet.Favorites -> favorites
+    MediaSet.Videos -> videos
+    MediaSet.Trash -> trash
+    is MediaSet.Album -> album(set.id)
+}
