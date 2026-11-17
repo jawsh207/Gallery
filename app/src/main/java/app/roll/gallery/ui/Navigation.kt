@@ -18,6 +18,7 @@ sealed interface Screen {
     data object Search : Screen
     data object Settings : Screen
     data object Duplicates : Screen
+    data object Locked : Screen
     /** The editor, for the photo with this id. */
     data class Editor(val id: Long) : Screen
     /** Choosing the photos for a new album called [name]. */
@@ -32,6 +33,7 @@ fun MediaSet.encode(): String = when (this) {
     MediaSet.Favorites -> "favorites"
     MediaSet.Videos -> "videos"
     MediaSet.Trash -> "trash"
+    MediaSet.Locked -> "locked"
     is MediaSet.Album -> "album:$id"
     // Encoded, so a query can't contain the "|" that separates the saved parts.
     is MediaSet.Search -> "search:" + URLEncoder.encode(query, "UTF-8")
@@ -44,6 +46,7 @@ fun decodeMediaSet(text: String): MediaSet? = when {
     text == "favorites" -> MediaSet.Favorites
     text == "videos" -> MediaSet.Videos
     text == "trash" -> MediaSet.Trash
+    text == "locked" -> MediaSet.Locked
     text.startsWith("album:") -> text.removePrefix("album:").toLongOrNull()?.let { MediaSet.Album(it) }
     text.startsWith("memory:") -> text.removePrefix("memory:").toIntOrNull()?.let { MediaSet.Memory(it) }
     text.startsWith("search:") -> MediaSet.Search(URLDecoder.decode(text.removePrefix("search:"), "UTF-8"))
@@ -56,6 +59,7 @@ private fun Screen.encode(): String = when (this) {
     Screen.Search -> "search"
     Screen.Settings -> "settings"
     Screen.Duplicates -> "duplicates"
+    Screen.Locked -> "lockedfolder"
     is Screen.Editor -> "editor|$id"
     is Screen.NewAlbum -> "newalbum|" + URLEncoder.encode(name, "UTF-8")
     is Screen.Grid -> "grid|${set.encode()}"
@@ -70,6 +74,7 @@ private fun decode(text: String): Screen? {
         "search" -> Screen.Search
         "settings" -> Screen.Settings
         "duplicates" -> Screen.Duplicates
+        "lockedfolder" -> Screen.Locked
         "editor" -> parts.getOrNull(1)?.toLongOrNull()?.let { Screen.Editor(it) }
         "newalbum" -> parts.getOrNull(1)?.let { Screen.NewAlbum(URLDecoder.decode(it, "UTF-8")) }
         "grid" -> parts.getOrNull(1)?.let(::decodeMediaSet)?.let { Screen.Grid(it) }

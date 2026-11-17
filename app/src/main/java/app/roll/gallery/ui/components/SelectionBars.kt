@@ -10,6 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,13 +35,36 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
 
-/** The top bar while selecting: how many are selected, and a button to stop selecting. */
+/**
+ * The top bar while selecting: how many are selected, a button to stop selecting, and a menu
+ * of less-used actions ([menu], left out when empty).
+ */
 @Composable
-fun SelectionTopBar(count: Int, onClear: () -> Unit) {
+fun SelectionTopBar(count: Int, menu: List<BarAction> = emptyList(), onClear: () -> Unit) {
     TopAppBar(
         title = { Text(pluralStringResource(R.plurals.selected_count, count, count)) },
         navigationIcon = {
             IconButton(onClick = onClear) { Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.clear_selection)) }
+        },
+        actions = {
+            if (menu.isNotEmpty()) {
+                var open by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { open = true }) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more_options)) }
+                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                        for (item in menu) {
+                            DropdownMenuItem(
+                                text = { Text(item.label) },
+                                leadingIcon = { Icon(item.icon, contentDescription = null) },
+                                onClick = {
+                                    open = false
+                                    item.onClick()
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     )

@@ -49,7 +49,7 @@ import app.roll.gallery.data.DuplicateGroup
 import app.roll.gallery.data.DuplicateKind
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.formatBytes
-import app.roll.gallery.image.Thumbnail
+import app.roll.gallery.image.thumbnail
 import app.roll.gallery.ui.GalleryViewModel
 import app.roll.gallery.ui.components.EmptyState
 import app.roll.gallery.ui.components.currentLocale
@@ -158,7 +158,7 @@ private fun GroupRow(group: DuplicateGroup, marked: Set<Long>, onToggle: (Long) 
                         .clickable { onToggle(media.id) },
                 ) {
                     AsyncImage(
-                        model = Thumbnail(media.uri, media.modifiedAt),
+                        model = media.thumbnail(),
                         contentDescription = stringResource(R.string.photo),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHighest),

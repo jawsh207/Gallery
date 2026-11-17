@@ -17,7 +17,8 @@ messages, release notes or pull requests.
 - Nothing from Google's services: no Play Services, Firebase, ML Kit, Maps or Lens, and no
   handing photos off to Google apps or servers. Open-source AndroidX libraries are fine.
 - Gallery works offline and keeps no copy of the user's photos: it reads and changes Android's
-  shared media store, so other apps see the same favorites and trash.
+  shared media store, so other apps see the same favorites and trash. The one exception is the
+  Locked folder, which holds its files in the app's private storage, excluded from backups.
 
 ## Documentation
 

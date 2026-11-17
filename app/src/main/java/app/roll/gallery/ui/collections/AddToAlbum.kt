@@ -49,7 +49,7 @@ import app.roll.gallery.data.albumNameProblem
 import app.roll.gallery.data.buildAlbums
 import app.roll.gallery.data.canHold
 import app.roll.gallery.data.newAlbumPath
-import app.roll.gallery.image.Thumbnail
+import app.roll.gallery.image.thumbnail
 import app.roll.gallery.intents.ExternalRequest
 import app.roll.gallery.data.PickKinds
 import app.roll.gallery.ui.GalleryViewModel
@@ -163,7 +163,7 @@ private fun AlbumChoice(cover: Media?, name: String, enabled: Boolean, onClick: 
         val shape = RoundedCornerShape(12.dp)
         if (cover != null) {
             AsyncImage(
-                model = Thumbnail(cover.uri, cover.modifiedAt),
+                model = cover.thumbnail(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(48.dp).clip(shape),

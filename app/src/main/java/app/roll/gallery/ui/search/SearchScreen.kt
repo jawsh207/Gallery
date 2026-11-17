@@ -56,6 +56,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
+import app.roll.gallery.ui.locked.rememberMoveToLocked
+import app.roll.gallery.ui.components.BarAction
+import androidx.compose.material.icons.outlined.Lock
 import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
@@ -91,6 +94,8 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     val selecting = selected.isNotEmpty()
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
+    val moveToLocked = rememberMoveToLocked(viewModel) { selectedIds = emptySet() }
+    val lockMenu = BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(selected) }
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     LaunchedEffect(Unit) { if (query.isEmpty()) focus.requestFocus() }
@@ -98,7 +103,7 @@ fun SearchScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Un
     Scaffold(
         topBar = {
             if (selecting) {
-                SelectionTopBar(selected.size) { selectedIds = emptySet() }
+                SelectionTopBar(selected.size, menu = listOf(lockMenu)) { selectedIds = emptySet() }
             } else {
                 SearchField(
                     query = query,

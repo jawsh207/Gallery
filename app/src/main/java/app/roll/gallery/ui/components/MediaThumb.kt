@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.formatDuration
-import app.roll.gallery.image.Thumbnail
+import app.roll.gallery.image.thumbnail
 import coil3.compose.AsyncImage
 
 /**
@@ -67,7 +67,7 @@ fun MediaThumb(
             },
     ) {
         AsyncImage(
-            model = Thumbnail(media.uri, media.modifiedAt),
+            model = media.thumbnail(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier

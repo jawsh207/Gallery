@@ -11,6 +11,8 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.R
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
+import app.roll.gallery.data.LockedFolder
+import kotlinx.coroutines.flow.combine
 import app.roll.gallery.data.EditRenderer
 import app.roll.gallery.data.Edits
 import android.graphics.Bitmap
@@ -62,14 +64,93 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     val messages: SharedFlow<String> = _messages
     private val accessChanged = MutableStateFlow(0)
 
-    /** Every photo and video plus the trash; null until the first load finishes. */
+    private val lockedFolder = LockedFolder(app)
+    private val lockedItems = MutableStateFlow<List<Media>>(emptyList())
+
+    /** Every photo and video, the trash, and the Locked folder; null until the first load finishes. */
     val library: StateFlow<Library?> = accessChanged
         .flatMapLatest { contentChanges(app, MediaStore.AUTHORITY_URI) }
         // A camera burst or a big delete sends many change notices; reload once they settle.
         .debounce(300)
         .map { source.load() }
         .flowOn(Dispatchers.IO)
+        .combine(lockedItems) { library, locked -> library.copy(locked = locked) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val _unlocked = MutableStateFlow(false)
+
+    /** Whether the Locked folder has been opened with the screen lock since the app last left the screen. */
+    val unlocked: StateFlow<Boolean> = _unlocked
+
+    init {
+        refreshLocked()
+    }
+
+    /** Re-reads the Locked folder's contents. */
+    private fun refreshLocked() {
+        viewModelScope.launch { lockedItems.value = withContext(Dispatchers.IO) { lockedFolder.list() } }
+    }
+
+    /** Marks the Locked folder open, after the screen lock was passed. */
+    fun unlock() {
+        _unlocked.value = true
+    }
+
+    /** Closes the Locked folder again; called whenever the app leaves the screen. */
+    fun lock() {
+        _unlocked.value = false
+    }
+
+    /**
+     * Step one of moving [items] into the Locked folder: copies them in, and hands the ones that
+     * copied to [onCopied], which asks Android to delete the originals. Step two is
+     * [finishLocking].
+     */
+    fun startLocking(items: List<Media>, onCopied: (originals: List<Media>, copies: List<Media>) -> Unit) {
+        viewModelScope.launch {
+            val pairs = withContext(Dispatchers.IO) { items.mapNotNull { item -> lockedFolder.add(item)?.let { item to it } } }
+            if (pairs.size < items.size) {
+                val failed = items.size - pairs.size
+                _messages.emit(getApplication<Application>().resources.getQuantityString(R.plurals.lock_failed, failed, failed))
+            }
+            if (pairs.isNotEmpty()) onCopied(pairs.map { it.first }, pairs.map { it.second })
+        }
+    }
+
+    /**
+     * Step two: if the user let Android delete the originals ([deleted]), the copies stay
+     * locked; if not, they're removed again, so nothing ends up in two places.
+     */
+    fun finishLocking(copies: List<Media>, deleted: Boolean) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { if (!deleted) copies.forEach(lockedFolder::delete) }
+            refreshLocked()
+            if (deleted) {
+                _messages.emit(getApplication<Application>().resources.getQuantityString(R.plurals.locked_count, copies.size, copies.size))
+            }
+        }
+    }
+
+    /** Moves [items] out of the Locked folder, back among the phone's photos. */
+    fun unlockItems(items: List<Media>) {
+        viewModelScope.launch {
+            val failed = withContext(Dispatchers.IO) { items.count { !lockedFolder.restore(it) } }
+            refreshLocked()
+            val res = getApplication<Application>().resources
+            _messages.emit(
+                if (failed == 0) res.getQuantityString(R.plurals.moved_out, items.size, items.size)
+                else res.getQuantityString(R.plurals.move_failed, failed, failed),
+            )
+        }
+    }
+
+    /** Deletes [items] from the Locked folder for good. */
+    fun deleteLocked(items: List<Media>) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { items.forEach(lockedFolder::delete) }
+            refreshLocked()
+        }
+    }
 
     /** Reloads after the user grants (or changes) photo access. */
     fun onAccessChanged() {

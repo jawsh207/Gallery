@@ -25,7 +25,7 @@ import app.roll.gallery.R
 import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.Memory
-import app.roll.gallery.image.Thumbnail
+import app.roll.gallery.image.thumbnail
 import coil3.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -118,7 +118,7 @@ private fun MemoriesRow(memories: List<Memory>, onOpen: (Memory) -> Unit) {
                         .clickable(onClickLabel = label) { onOpen(memory) },
                 ) {
                     AsyncImage(
-                        model = Thumbnail(memory.cover.uri, memory.cover.modifiedAt),
+                        model = memory.cover.thumbnail(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHighest),

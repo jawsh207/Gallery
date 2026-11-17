@@ -2,6 +2,13 @@ package app.roll.gallery.ui.viewer
 
 import android.app.Activity
 import android.app.WallpaperManager
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.roll.gallery.ui.locked.DeleteLockedDialog
+import app.roll.gallery.ui.locked.SecureWindow
+import app.roll.gallery.ui.locked.rememberMoveToLocked
 import androidx.compose.material.icons.outlined.MotionPhotosOn
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -90,7 +97,8 @@ import kotlinx.coroutines.launch
  * the top bar's menu has Slideshow, Add to album and, for photos, Set as wallpaper. A slideshow
  * starts straight away when [slideshowAtStart] (opening a memory). A motion photo's video plays
  * once when it comes up, and again from the Motion chip under the top bar. Edit (photos only)
- * opens [onEdit].
+ * opens [onEdit]. In the Locked folder the actions are Move out and Delete instead, screenshots
+ * are blocked, and the viewer closes if the folder locks.
  * [onCurrentChange] reports the item on screen so the back stack reopens it after a restart.
  */
 @Composable
@@ -104,6 +112,16 @@ fun ViewerScreen(
     slideshowAtStart: Boolean = false,
     onEdit: (Media) -> Unit = {},
 ) {
+    // The Locked folder's items only show while it's unlocked; leaving the app locks it, and
+    // coming back closes the viewer.
+    val unlocked by viewModel.unlocked.collectAsStateWithLifecycle()
+    if (set == MediaSet.Locked) {
+        SecureWindow()
+        if (!unlocked) {
+            LaunchedEffect(Unit) { onBack() }
+            return
+        }
+    }
     val words = rememberSearchWords()
     val locale = currentLocale()
     val items = remember(library, set, words, locale) { library.itemsIn(set, words, locale) }
@@ -163,7 +181,14 @@ fun ViewerScreen(
     }
 
     val editAction = BarAction(Icons.Outlined.Edit, stringResource(R.string.edit)) { onEdit(current) }
-    val actions = if (set == MediaSet.Trash) {
+    var confirmDeleteLocked by remember { mutableStateOf(false) }
+    val moveToLocked = rememberMoveToLocked(viewModel)
+    val actions = if (set == MediaSet.Locked) {
+        listOf(
+            BarAction(Icons.Outlined.LockOpen, stringResource(R.string.locked_move_out)) { viewModel.unlockItems(listOf(current)) },
+            BarAction(Icons.Outlined.Delete, stringResource(R.string.delete_forever)) { confirmDeleteLocked = true },
+        )
+    } else if (set == MediaSet.Trash) {
         trashActions(viewModel, listOf(current)) {}
     } else {
         val basic = libraryActions(viewModel, library, listOf(current), onDone = {}, withAlbum = false)
@@ -178,8 +203,10 @@ fun ViewerScreen(
     var wallpaper by remember { mutableStateOf(false) }
     val menu = buildList {
         if (items.size > 1) add(BarAction(Icons.Outlined.Slideshow, stringResource(R.string.slideshow)) { slideshow = true })
-        if (set != MediaSet.Trash) add(BarAction(Icons.Outlined.LibraryAdd, stringResource(R.string.add_to_album)) { addingToAlbum = true })
-        if (set != MediaSet.Trash && !current.isVideo) {
+        val shared = set != MediaSet.Trash && set != MediaSet.Locked
+        if (shared) add(BarAction(Icons.Outlined.LibraryAdd, stringResource(R.string.add_to_album)) { addingToAlbum = true })
+        if (shared) add(BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(listOf(current)) })
+        if (shared && !current.isVideo) {
             add(BarAction(Icons.Outlined.Wallpaper, stringResource(R.string.set_wallpaper)) { wallpaper = true })
         }
     }
@@ -259,6 +286,16 @@ fun ViewerScreen(
                     viewModel.setWallpaper(current, which)
                 },
                 onDismiss = { wallpaper = false },
+            )
+        }
+        if (confirmDeleteLocked) {
+            DeleteLockedDialog(
+                count = 1,
+                onConfirm = {
+                    confirmDeleteLocked = false
+                    viewModel.deleteLocked(listOf(current))
+                },
+                onDismiss = { confirmDeleteLocked = false },
             )
         }
     }

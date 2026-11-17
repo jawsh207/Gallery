@@ -35,6 +35,10 @@ store, so other apps see the same favorites and trash.
 - **Slideshow:** from the viewer's menu; a new photo every four seconds, tap to stop.
 - **Duplicates:** finds copies of the same photo and near-identical shots taken moments apart,
   suggests which to keep, and trashes the rest in one go.
+- **Locked folder:** move photos and videos into a private folder behind your screen lock
+  (fingerprint, face, PIN, pattern or password). They're hidden from your photos and other
+  apps, screenshots are blocked there, and it locks again when you leave the app. The folder
+  stays on the phone: it isn't backed up and is deleted if Gallery is uninstalled.
 - **Wallpaper:** set a photo as the home screen, lock screen or both, from the viewer's menu.
 - **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can

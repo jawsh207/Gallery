@@ -31,6 +31,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.roll.gallery.R
+import app.roll.gallery.ui.locked.rememberMoveToLocked
+import app.roll.gallery.ui.components.BarAction
+import androidx.compose.material.icons.outlined.Lock
 import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
@@ -52,6 +55,7 @@ fun MediaSet.title(library: Library): String = when (this) {
     MediaSet.Favorites -> stringResource(R.string.favorites)
     MediaSet.Videos -> stringResource(R.string.videos)
     MediaSet.Trash -> stringResource(R.string.trash)
+    MediaSet.Locked -> stringResource(R.string.locked_folder)
     is MediaSet.Album -> library.album(id).firstOrNull()?.albumName.orEmpty()
     is MediaSet.Search -> query
     is MediaSet.Memory -> pluralStringResource(R.plurals.years_ago, yearsAgo, yearsAgo)
@@ -74,12 +78,14 @@ fun SetScreen(
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
+    val moveToLocked = rememberMoveToLocked(viewModel) { selectedIds = emptySet() }
+    val lockMenu = BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(selected) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         topBar = {
             if (selecting) {
-                SelectionTopBar(selected.size) { selectedIds = emptySet() }
+                SelectionTopBar(selected.size, menu = listOf(lockMenu)) { selectedIds = emptySet() }
             } else {
                 TopAppBar(
                     title = { Text(set.title(library)) },

@@ -53,7 +53,7 @@ import app.roll.gallery.R
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.MotionVideo
 import app.roll.gallery.data.formatDuration
-import app.roll.gallery.image.Thumbnail
+import app.roll.gallery.image.thumbnail
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
@@ -96,7 +96,7 @@ fun PhotoPage(
     ) {
         if (!loaded) {
             AsyncImage(
-                model = Thumbnail(media.uri, media.modifiedAt),
+                model = media.thumbnail(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
@@ -210,7 +210,7 @@ fun VideoPage(media: Media, active: Boolean, controlsVisible: Boolean, gestures:
             }
             if (!firstFrame) {
                 AsyncImage(
-                    model = Thumbnail(media.uri, media.modifiedAt),
+                    model = media.thumbnail(),
                     contentDescription = stringResource(R.string.video),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),

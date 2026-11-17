@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Lock
+import app.roll.gallery.ui.components.SEGMENT_GAP
 import app.roll.gallery.ui.components.ListRow
 import app.roll.gallery.ui.components.segmentShape
 import androidx.compose.material3.Icon
@@ -51,12 +53,13 @@ import app.roll.gallery.data.Album
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.MediaSet
 import app.roll.gallery.data.buildAlbums
-import app.roll.gallery.image.Thumbnail
+import app.roll.gallery.image.thumbnail
 import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: shortcuts to Favorites, Videos and Trash, the duplicate finder, then every folder with photos
+ * The Collections tab: shortcuts to Favorites, Videos and Trash, the duplicate finder and the
+ * Locked folder, then every folder with photos
  * as an album, camera and screenshots first, with a button to make a new one ([onNewAlbum]
  * gets its name once it's been checked).
  */
@@ -67,6 +70,7 @@ fun CollectionsTab(
     onOpenTrash: () -> Unit,
     onNewAlbum: (String) -> Unit,
     onOpenDuplicates: () -> Unit,
+    onOpenLocked: () -> Unit,
     contentPadding: PaddingValues,
 ) {
     val albums = remember(library.items) { buildAlbums(library.items) }
@@ -99,14 +103,23 @@ fun CollectionsTab(
                 Shortcut(Icons.Outlined.Delete, stringResource(R.string.trash), Modifier.weight(1f), onClick = onOpenTrash)
             }
         }
-        item(key = "duplicates", span = { GridItemSpan(maxLineSpan) }) {
-            ListRow(
-                icon = Icons.Outlined.ContentCopy,
-                title = stringResource(R.string.duplicates),
-                summary = stringResource(R.string.duplicates_summary),
-                shape = segmentShape(0, 1),
-                onClick = onOpenDuplicates,
-            )
+        item(key = "tools", span = { GridItemSpan(maxLineSpan) }) {
+            Column(verticalArrangement = Arrangement.spacedBy(SEGMENT_GAP)) {
+                ListRow(
+                    icon = Icons.Outlined.ContentCopy,
+                    title = stringResource(R.string.duplicates),
+                    summary = stringResource(R.string.duplicates_summary),
+                    shape = segmentShape(0, 2),
+                    onClick = onOpenDuplicates,
+                )
+                ListRow(
+                    icon = Icons.Outlined.Lock,
+                    title = stringResource(R.string.locked_folder),
+                    summary = stringResource(R.string.locked_summary),
+                    shape = segmentShape(1, 2),
+                    onClick = onOpenLocked,
+                )
+            }
         }
         item(key = "albums", span = { GridItemSpan(maxLineSpan) }) {
             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -160,7 +173,7 @@ private fun Shortcut(icon: ImageVector, label: String, modifier: Modifier = Modi
 private fun AlbumCard(album: Album, onClick: () -> Unit) {
     Column(Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick)) {
         AsyncImage(
-            model = Thumbnail(album.cover.uri, album.cover.modifiedAt),
+            model = album.cover.thumbnail(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier

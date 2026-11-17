@@ -29,7 +29,7 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
 | Settings | Photo access, Media management, On this day, version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
-| Collections tab | Favorites, Videos and Trash shortcuts, Duplicates, and every album | `ui/collections/CollectionsTab.kt` |
+| Collections tab | Favorites, Videos and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites, Videos | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
@@ -39,6 +39,7 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
 | Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
 | Editor | Cropping, turning, colour adjustments and filters, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt` |
+| Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
 The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
@@ -165,6 +166,20 @@ photos to change what's ticked, then move the ticked ones to the trash. Fingerpr
 in memory while the app is open, so a second look only reads new or changed photos; nothing is
 saved.
 
+**Locked folder.** On the Collections tab. "Move to Locked folder" (in a photo's menu, or the
+menu at the top while selecting) copies the items into Gallery's own private storage, then asks
+Android to delete the originals (no question if Media management is on); if you say no, the
+copies are removed, so nothing is ever in both places. Locked items are hidden from the Photos
+tab, albums, search and every other app. Opening the folder asks for your screen lock
+(fingerprint, face, or PIN, pattern or password), and it needs the phone to have one. It locks
+again as soon as Gallery leaves the screen, and a locked-folder viewer closes when that happens.
+Screenshots and screen recording are blocked while it's showing, and the recent apps list shows
+it blank. Inside, items can be viewed, moved out (back to the folder they came from, or to
+Pictures if Android won't allow that folder) or deleted for good; there's no trash here and no
+sharing. The folder is excluded from Android's backups and from moving to a new phone, and it
+is deleted if Gallery is uninstalled, which the folder itself warns about. Each item is its file
+plus a small note of its name, type, dates, size and original folder.
+
 **Wallpaper.** The viewer's menu (top right) has "Set as wallpaper" for photos: home screen,
 lock screen, or both. Android fits the photo to the screen.
 
@@ -196,7 +211,10 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Reading camera settings from a photo | `data/Details.kt` |
 | Formatting lengths, sizes, megapixels and camera settings | `data/Formats.kt` |
 | Keeping the library loaded and refreshing it when the media store changes | `ui/GalleryViewModel.kt`, `util/ContentChanges.kt` |
-| Grid thumbnails from Android's own thumbnail cache | `image/Thumbnails.kt`, `GalleryApplication.kt` |
+| Keeping, listing, restoring and deleting Locked folder files | `data/LockedFolder.kt` |
+| Asking for the screen lock, blocking screenshots, moving items in | `ui/locked/LockedAccess.kt` |
+| Keeping the Locked folder out of backups | `res/xml/data_extraction_rules.xml` |
+| Grid thumbnails from Android's own thumbnail cache (or the file, for locked items) | `image/Thumbnails.kt`, `GalleryApplication.kt` |
 | Picking each year's "On this day" photos | `data/Memories.kt` |
 | Gallery's own settings | `data/Settings.kt` |
 | Grouping duplicates and choosing what to keep | `data/Duplicates.kt` |
@@ -215,6 +233,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, duplicate fingerprints and grouping, editing maths and saved-file names, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Locked folder never leaves the phone: it's kept out of cloud backups and out of
+     transfers to a new device. Settings are backed up as usual. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="locked/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="locked/" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,7 +1,10 @@
 package app.roll.gallery.image
 
 import android.content.ContentResolver
+import android.media.ThumbnailUtils
 import android.net.Uri
+import app.roll.gallery.data.Media
+import java.io.File
 import android.util.Size as AndroidSize
 import coil3.ImageLoader
 import coil3.asImage
@@ -17,9 +20,13 @@ import coil3.size.pxOrElse
  * A grid thumbnail of a photo or video. Loading one asks Android for the thumbnail it already
  * keeps for the file, which is much faster than decoding the full file and works for videos
  * without a video decoder. [modifiedAt] is part of the cache key, so an edited file gets a
- * new thumbnail.
+ * new thumbnail. Files in the Locked folder aren't in Android's catalogue, so for those
+ * ([uri] is a file address) the thumbnail is made from the file, which is where [isVideo] matters.
  */
-data class Thumbnail(val uri: Uri, val modifiedAt: Long)
+data class Thumbnail(val uri: Uri, val modifiedAt: Long, val isVideo: Boolean = false)
+
+/** The grid thumbnail for this item. */
+fun Media.thumbnail(): Thumbnail = Thumbnail(uri, modifiedAt, isVideo)
 
 /**
  * The thumbnail size to ask for: the next of 256, 512 or 1024 pixels up from what's being
@@ -38,7 +45,7 @@ class ThumbnailKeyer : Keyer<Thumbnail> {
         "thumb:${data.uri}:${data.modifiedAt}:${thumbnailBucket(options.longestSide())}"
 }
 
-/** Loads a [Thumbnail] through Android's own thumbnail cache. Coil runs this off the main thread. */
+/** Loads a [Thumbnail] through Android's own thumbnail cache (or from the file, for locked items). Coil runs this off the main thread. */
 class ThumbnailFetcher(
     private val resolver: ContentResolver,
     private val data: Thumbnail,
@@ -46,7 +53,13 @@ class ThumbnailFetcher(
 ) : Fetcher {
     override suspend fun fetch(): FetchResult {
         val side = thumbnailBucket(options.longestSide())
-        val bitmap = resolver.loadThumbnail(data.uri, AndroidSize(side, side), null)
+        val size = AndroidSize(side, side)
+        val bitmap = if (data.uri.scheme == ContentResolver.SCHEME_FILE) {
+            val file = File(requireNotNull(data.uri.path))
+            if (data.isVideo) ThumbnailUtils.createVideoThumbnail(file, size, null) else ThumbnailUtils.createImageThumbnail(file, size, null)
+        } else {
+            resolver.loadThumbnail(data.uri, size, null)
+        }
         return ImageFetchResult(image = bitmap.asImage(), isSampled = true, dataSource = DataSource.DISK)
     }
 

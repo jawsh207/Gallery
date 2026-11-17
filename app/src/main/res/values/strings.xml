@@ -214,4 +214,36 @@
     <string name="edit_discard_body">The photo hasn\'t been changed.</string>
     <string name="discard">Discard</string>
     <string name="keep_editing">Keep editing</string>
+
+    <!-- Locked folder -->
+    <string name="locked_folder">Locked folder</string>
+    <string name="locked_summary">Photos hidden behind your screen lock</string>
+    <string name="locked_move_in">Move to Locked folder</string>
+    <string name="locked_move_out">Move out</string>
+    <string name="locked_unlock">Unlock</string>
+    <string name="locked_unlock_title">Open Locked folder</string>
+    <string name="locked_unlock_subtitle">Use your screen lock</string>
+    <string name="locked_intro">Photos and videos here are hidden from your photos and other apps, behind your screen lock.</string>
+    <string name="locked_needs_screen_lock">The Locked folder uses your phone\'s screen lock. Set a PIN, pattern or password to use it.</string>
+    <string name="locked_set_screen_lock">Set a screen lock</string>
+    <string name="locked_empty_title">Nothing here yet</string>
+    <string name="locked_empty_body">Choose \u201cMove to Locked folder\u201d from a photo\'s menu or a selection.</string>
+    <string name="locked_warning">Kept only on this phone: not backed up, and deleted if you uninstall Gallery. Move items out to keep them.</string>
+    <string name="locked_delete_body">They\'ll be gone for good. Items in the Locked folder have no trash.</string>
+    <plurals name="locked_delete_title">
+        <item quantity="one">Delete <xliff:g id="count" example="3">%1$d</xliff:g> item?</item>
+        <item quantity="other">Delete <xliff:g id="count" example="3">%1$d</xliff:g> items?</item>
+    </plurals>
+    <plurals name="locked_count">
+        <item quantity="one">Moved <xliff:g id="count" example="3">%1$d</xliff:g> item to the Locked folder</item>
+        <item quantity="other">Moved <xliff:g id="count" example="3">%1$d</xliff:g> items to the Locked folder</item>
+    </plurals>
+    <plurals name="lock_failed">
+        <item quantity="one"><xliff:g id="count" example="3">%1$d</xliff:g> item couldn\'t be moved to the Locked folder</item>
+        <item quantity="other"><xliff:g id="count" example="3">%1$d</xliff:g> items couldn\'t be moved to the Locked folder</item>
+    </plurals>
+    <plurals name="moved_out">
+        <item quantity="one">Moved <xliff:g id="count" example="3">%1$d</xliff:g> item back to your photos</item>
+        <item quantity="other">Moved <xliff:g id="count" example="3">%1$d</xliff:g> items back to your photos</item>
+    </plurals>
 </resources>

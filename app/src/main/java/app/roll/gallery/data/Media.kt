@@ -47,8 +47,11 @@ data class Media(
         )
 }
 
-/** Everything the store holds, split into what's in the library and what's in the trash. */
-data class Library(val items: List<Media>, val trash: List<Media>) {
+/**
+ * Everything Gallery can show: the media store's items, split into the library and the trash,
+ * plus the Locked folder's [locked] items (kept apart, and only shown once unlocked).
+ */
+data class Library(val items: List<Media>, val trash: List<Media>, val locked: List<Media> = emptyList()) {
     /** One album's items, newest first. */
     fun album(albumId: Long): List<Media> = items.filter { it.albumId == albumId }
 
@@ -66,6 +69,7 @@ sealed interface MediaSet {
     data object Favorites : MediaSet
     data object Videos : MediaSet
     data object Trash : MediaSet
+    data object Locked : MediaSet
     data class Album(val id: Long) : MediaSet
     /** Today's "On this day" photos from [yearsAgo] years ago (see [memoriesFor]). */
     data class Memory(val yearsAgo: Int) : MediaSet
@@ -87,6 +91,7 @@ fun Library.itemsIn(
     MediaSet.Favorites -> favorites
     MediaSet.Videos -> videos
     MediaSet.Trash -> trash
+    MediaSet.Locked -> locked
     is MediaSet.Album -> album(set.id)
     is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone)
     is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()

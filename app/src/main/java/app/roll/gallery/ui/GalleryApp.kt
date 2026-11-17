@@ -60,6 +60,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.roll.gallery.R
+import app.roll.gallery.ui.locked.rememberMoveToLocked
+import app.roll.gallery.ui.components.BarAction
+import androidx.compose.material.icons.outlined.Lock
 import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
@@ -74,6 +77,7 @@ import app.roll.gallery.ui.access.photoAccess
 import app.roll.gallery.ui.collections.CollectionsTab
 import app.roll.gallery.ui.collections.NewAlbumScreen
 import app.roll.gallery.ui.collections.DuplicatesScreen
+import app.roll.gallery.ui.locked.LockedScreen
 import app.roll.gallery.ui.editor.EditorScreen
 import app.roll.gallery.ui.collections.SetScreen
 import app.roll.gallery.ui.collections.TrashScreen
@@ -150,6 +154,9 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
     val back: () -> Unit = { if (stack.size > 1) stack.removeAt(stack.lastIndex) }
     BackHandler(enabled = stack.size > 1, onBack = back)
 
+    // The Locked folder locks again whenever the app leaves the screen.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.lock() }
+
     // Messages from background work (copies, moves, wallpaper), over whichever screen is open.
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
@@ -171,6 +178,7 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
             )
             Screen.Settings -> SettingsScreen(viewModel, onBack = back)
             Screen.Duplicates -> DuplicatesScreen(viewModel, loaded, onBack = back)
+            Screen.Locked -> LockedScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Locked, it.id)) })
             is Screen.NewAlbum -> NewAlbumScreen(viewModel, loaded, screen.name, onDone = back)
             Screen.Trash -> TrashScreen(viewModel, loaded, onBack = back, onOpen = { open(Screen.Viewer(MediaSet.Trash, it.id)) })
             is Screen.Viewer -> ViewerScreen(
@@ -215,6 +223,8 @@ private fun Home(
     BackHandler(enabled = selecting) { selectedIds = emptySet() }
     BackHandler(enabled = !selecting && tab != Tab.Photos) { tab = Tab.Photos }
     val actions = libraryActions(viewModel, library, selected, onDone = { selectedIds = emptySet() })
+    val moveToLocked = rememberMoveToLocked(viewModel) { selectedIds = emptySet() }
+    val lockMenu = BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(selected) }
     val openMedia: (Media) -> Unit = { open(Screen.Viewer(MediaSet.All, it.id)) }
     val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
     val memories = remember(library.items, showMemories) {
@@ -224,7 +234,7 @@ private fun Home(
     Scaffold(
         topBar = {
             if (selecting) {
-                SelectionTopBar(selected.size) { selectedIds = emptySet() }
+                SelectionTopBar(selected.size, menu = listOf(lockMenu)) { selectedIds = emptySet() }
             } else {
                 // Pinned above the tabs, as in Contacts: the grid scrolls behind it. The strip is
                 // opaque in the background colour (status bar included) so nothing shows around the pill.
@@ -288,6 +298,7 @@ private fun Home(
                     onOpenTrash = { open(Screen.Trash) },
                     onNewAlbum = { open(Screen.NewAlbum(it)) },
                     onOpenDuplicates = { open(Screen.Duplicates) },
+                    onOpenLocked = { open(Screen.Locked) },
                     contentPadding = padding,
                 )
             }
