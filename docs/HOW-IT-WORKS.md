@@ -123,10 +123,17 @@ when the battery isn't low and, unless that setting is turned off, only while ch
 pauses it otherwise; it picks up where it stopped, and checks for new photos every 12 hours.
 To go faster, each photo is first given a quick look at a small size (480 pixels), and only
 looked at properly if that finds something like text, since most photos have none (very small
-text can be missed this way). The next photo loads while the current one is being looked at,
-text and faces are looked for at the same time, and each model uses 2 processor cores, or
-every performance core while the phone is charging (the fast cores, worked out from each
-core's top speed; the small power-saving ones are left alone).
+text can be missed this way). Newest photos are looked at first. Each photo is loaded once
+and shared by the text reader, face finder and description model, each of which works through
+the photos at its own pace with a few loaded ahead, so a quick one isn't held up by a slow
+one. When only a description is still needed, Android's ready-made thumbnail is used instead
+of loading the full photo. Each model uses 2 processor cores, or every performance core while
+the phone is charging (the fast cores, worked out from each core's top speed; the small
+power-saving ones are left alone). Android normally stops background work after 10 minutes,
+so when this starts while Gallery is open it runs as a foreground job instead, with a quiet
+"Getting photos ready for search" notification showing progress, and keeps going after Gallery
+is closed (Android allows this kind of job up to 6 hours a day). Started with Gallery closed,
+it runs as ordinary background work and picks up again later if Android stops it.
 Settings → Text and people shows how many photos have been read, updating as it goes, can turn reading off (which
 deletes the text file) and can let it run without charging. The reader knows the Latin
 alphabet: English and most European languages.
@@ -299,7 +306,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Reading text in a photo (Plus) | `app/src/plus/.../recognition/PaddleTextReader.kt`, `recognition/TextReader.kt` |
 | Sizing images for the models, finding text boxes, turning scores into characters | `recognition/OcrMath.kt` |
 | The file of text read in photos | `recognition/TextIndex.kt` |
-| Looking at photos in the background (text and faces), and scheduling it | `recognition/RecognitionWorker.kt` |
+| Looking at photos in the background (text, faces and descriptions), and scheduling it | `recognition/RecognitionWorker.kt` |
+| The notification shown while photos are being looked at | `recognition/ScanNotification.kt` |
 | Counting the phone's performance cores | `recognition/CpuCores.kt` |
 | Loading a model with its number of processor cores (Plus) | `app/src/plus/.../recognition/Sessions.kt` |
 | Finding faces and fingerprinting them (Plus) | `app/src/plus/.../recognition/YuNetFaceFinder.kt`, `recognition/FaceFinder.kt` |

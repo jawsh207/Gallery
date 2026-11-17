@@ -270,4 +270,9 @@
     <string name="settings_describe">Search by description</string>
     <string name="settings_describe_progress">Looked at <xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos, on this phone, so searches like \u201ca black dog\u201d find them</string>
     <string name="settings_describe_off">Off. Turning it off forgets what was learned about each photo.</string>
+
+    <!-- The notification while photos are looked at for search (Gallery Plus) -->
+    <string name="scan_channel">Getting photos ready for search</string>
+    <string name="scan_title">Getting photos ready for search</string>
+    <string name="scan_progress"><xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos</string>
 </resources>

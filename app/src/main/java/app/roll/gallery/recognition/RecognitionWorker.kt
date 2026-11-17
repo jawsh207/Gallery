@@ -16,23 +16,34 @@ import app.roll.gallery.Edition
 import app.roll.gallery.data.EditRenderer
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.Media
+import android.graphics.Bitmap
 import android.os.BatteryManager
+import android.util.Size
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.TimeUnit
 
 /**
  * Looks at every photo that hasn't been looked at yet (or has changed since), in the
  * background: reads its text into the [TextIndex], finds its faces for the [FaceIndex], and
  * fingerprints it for searching by description in the [DescriptionIndex], whichever are turned
- * on. Each photo is decoded once for all of them, the next photo loads
- * while the current one is looked at, and the three are done at the same time. Each
- * model uses 2 processor cores, or 4 while the phone is charging. Results are saved in
+ * on. Newest photos go first. Each photo is decoded once and shared by the models that need
+ * it, at a good size for text and faces, or as Android's ready-made thumbnail when only a
+ * description is needed. Each model works through its own queue at its own pace, with a few
+ * photos decoded ahead, so the quick ones aren't held up by the slow ones; each uses 2
+ * processor cores, or every performance core while the phone is charging. Results are saved in
  * small batches, so stopping part way loses little, and progress is reported after each batch
- * so Settings can update its counts. Android runs it when its conditions are met (by default
- * only while charging) and stops it when they aren't. Gallery Plus only; in the plain edition
- * there are no models and it does nothing. Videos and the Locked folder are never looked at.
+ * so Settings can update its counts. When started while Gallery is open it runs as a
+ * foreground job, with a notification, so Android doesn't stop it after 10 minutes. Android
+ * runs it when its conditions are met (by default only while charging) and stops it when they
+ * aren't. Gallery Plus only; in the plain edition there are no models and it does nothing.
+ * Videos and the Locked folder are never looked at.
  */
 class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
@@ -71,61 +82,128 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         fun needsDescription(photo: Media) = describer != null && knownDescriptions[photo.id]?.first != photo.modifiedAt
         val todo = photos.filter { needsText(it) || needsFaces(it) || needsDescription(it) }
 
+        if (todo.isEmpty()) {
+            listOfNotNull(reader, finder, describer).forEach { it.close() }
+            return Result.success()
+        }
+        // Newest first: those are the photos most likely to be searched for.
+        val queue = todo.sortedByDescending { it.takenAt }
+        val notifications = ScanNotification(context, queue.size)
+        // A foreground job isn't stopped after Android's usual 10 minutes for background work.
+        // Android only allows starting one while Gallery is open, so a run that starts with
+        // Gallery closed carries on as ordinary background work instead.
+        try {
+            setForeground(notifications.foregroundInfo(0))
+        } catch (_: IllegalStateException) {
+        }
+
         val renderer = EditRenderer(context)
-        val texts = ArrayList<IndexEntry>()
-        val faces = ArrayList<FaceEntry>()
-        val descriptions = ArrayList<Triple<Long, Long, ByteArray?>>()
-        var batches = 0
+        val batches = AtomicInteger()
+        val lanes = ArrayList<Lane<*>>()
         try {
             coroutineScope {
-                fun load(photo: Media) = async(Dispatchers.IO) { runCatching { renderer.decode(photo, MAX_SIDE) }.getOrNull() }
-                // The next photo loads while this one is looked at.
-                var next = todo.firstOrNull()?.let(::load)
-                for ((i, photo) in todo.withIndex()) {
-                    if (isStopped) break
-                    val bitmap = next!!.await()
-                    next = todo.getOrNull(i + 1)?.let(::load)
-                    // Text and faces are looked for at the same time, each on its own cores.
-                    val text = if (needsText(photo)) {
-                        async(Dispatchers.Default) { bitmap?.let { runCatching { reader!!.read(it) }.getOrNull() }.orEmpty() }
-                    } else {
-                        null
-                    }
-                    val found = if (needsFaces(photo)) {
-                        async(Dispatchers.Default) { bitmap?.let { runCatching { finder!!.find(it) }.getOrNull() }.orEmpty() }
-                    } else {
-                        null
-                    }
-                    val fingerprint = if (needsDescription(photo)) {
-                        async(Dispatchers.Default) { bitmap?.let { runCatching { packFingerprint(describer!!.describe(it)) }.getOrNull() } }
-                    } else {
-                        null
-                    }
-                    text?.let { texts += IndexEntry(photo.id, photo.modifiedAt, it.await()) }
-                    found?.let { faces += FaceEntry(photo.id, photo.modifiedAt, it.await()) }
-                    fingerprint?.let { descriptions += Triple(photo.id, photo.modifiedAt, it.await()) }
-                    bitmap?.recycle()
-                    if (texts.size + faces.size + descriptions.size >= BATCH) {
-                        textIndex.append(texts)
-                        faceIndex.append(faces)
-                        descriptionIndex.append(descriptions)
-                        texts.clear()
-                        faces.clear()
-                        descriptions.clear()
-                        setProgress(workDataOf(PROGRESS to ++batches))
+                // Each model works through the photos at its own pace, so a quick one isn't
+                // held up by a slow one; each has its own few decoded photos waiting.
+                val text = reader?.let { r ->
+                    lane(lanes, { r.read(it) }) { done -> textIndex.append(done.map { (p, t) -> IndexEntry(p.id, p.modifiedAt, t.orEmpty()) }) }
+                }
+                val faces = finder?.let { f ->
+                    lane(lanes, { f.find(it) }) { done -> faceIndex.append(done.map { (p, found) -> FaceEntry(p.id, p.modifiedAt, found.orEmpty()) }) }
+                }
+                val fingerprints = describer?.let { d ->
+                    lane(lanes, { packFingerprint(d.describe(it)) }) { done -> descriptionIndex.append(done.map { (p, f) -> Triple(p.id, p.modifiedAt, f) }) }
+                }
+                lanes.forEach { lane ->
+                    lane.onBatch = {
+                        setProgress(workDataOf(PROGRESS to batches.incrementAndGet()))
+                        notifications.update(lanes.minOf { it.done.get() })
                     }
                 }
-                next?.cancel()
+                try {
+                    for (photo in queue) {
+                        if (isStopped) break
+                        val wanted = listOfNotNull(
+                            text?.takeIf { needsText(photo) },
+                            faces?.takeIf { needsFaces(photo) },
+                            fingerprints?.takeIf { needsDescription(photo) },
+                        )
+                        if (wanted.isEmpty()) continue
+                        val bitmap = withContext(Dispatchers.IO) {
+                            runCatching {
+                                // Text and faces need the photo at a good size; a description
+                                // only needs 224 pixels, so Android's ready-made thumbnail does.
+                                if (needsText(photo) || needsFaces(photo)) {
+                                    renderer.decode(photo, MAX_SIDE)
+                                } else {
+                                    context.contentResolver.loadThumbnail(photo.uri, Size(THUMBNAIL_SIDE, THUMBNAIL_SIDE), null)
+                                }
+                            }.getOrNull()
+                        }
+                        val shared = SharedBitmap(bitmap, wanted.size)
+                        wanted.forEach { it.photos.send(Scan(photo, shared)) }
+                    }
+                } finally {
+                    lanes.forEach { it.photos.close() }
+                }
             }
-            textIndex.append(texts)
-            faceIndex.append(faces)
-            descriptionIndex.append(descriptions)
         } finally {
             reader?.close()
             finder?.close()
             describer?.close()
+            notifications.cancel()
         }
         return Result.success()
+    }
+
+    /** One photo on its way to a model, with the decoded picture it shares with the others. */
+    private class Scan(val photo: Media, val image: SharedBitmap)
+
+    /** A decoded photo shared by several models; freed once the last of them is done with it. */
+    private class SharedBitmap(val bitmap: Bitmap?, users: Int) {
+        private val left = AtomicInteger(users)
+
+        fun release() {
+            if (left.decrementAndGet() == 0) bitmap?.recycle()
+        }
+    }
+
+    /** One model's queue of photos, and how many it has finished. */
+    private class Lane<T>(val photos: Channel<Scan>) {
+        val done = AtomicInteger()
+        var onBatch: suspend () -> Unit = {}
+    }
+
+    /**
+     * Starts a model working through its own queue: [look] runs on each photo (a failure counts
+     * as nothing found), and results are handed to [save] every [BATCH] photos and at the end,
+     * even when the work is being stopped.
+     */
+    private fun <T> CoroutineScope.lane(
+        lanes: MutableList<Lane<*>>,
+        look: (Bitmap) -> T,
+        save: (List<Pair<Media, T?>>) -> Unit,
+    ): Lane<T> {
+        val lane = Lane<T>(Channel(AHEAD))
+        lanes += lane
+        launch(Dispatchers.Default) {
+            val found = ArrayList<Pair<Media, T?>>()
+            try {
+                for (scan in lane.photos) {
+                    val result = scan.image.bitmap?.let { runCatching { look(it) }.getOrNull() }
+                    scan.image.release()
+                    found += scan.photo to result
+                    lane.done.incrementAndGet()
+                    if (found.size >= BATCH) {
+                        save(found)
+                        found.clear()
+                        lane.onBatch()
+                    }
+                }
+            } finally {
+                withContext(NonCancellable) { save(found) }
+            }
+        }
+        return lane
     }
 
     /** Starting, re-scheduling and stopping the work. */
@@ -140,6 +218,10 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         private const val PROGRESS = "batches"
         private const val BATTERY_THREADS = 2
         private const val BATCH = 20
+        // Photos decoded ahead for each model: enough to keep it busy, few enough for memory.
+        private const val AHEAD = 3
+        // Android's ready-made thumbnails at this size are already cached for the face pictures.
+        private const val THUMBNAIL_SIDE = 512
         // Photos are looked at no bigger than this on their longer side: plenty for text and
         // faces, quick to decode.
         private const val MAX_SIDE = 1280
