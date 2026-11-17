@@ -38,6 +38,7 @@ Nothing goes over the network: the app has no internet access and uses no Google
 | Add to album | Moving or copying photos into an album or a new one | `ui/collections/AddToAlbum.kt` |
 | New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
 | Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
+| Editor | Cropping, turning, colour adjustments and filters, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
 
 The main screen (the search bar with its Settings button, the two tabs and the bottom bar) and moving between screens are in
@@ -105,6 +106,19 @@ an album, Favorites, Videos or the trash. Tap to show or hide the controls and A
 Pinch or double-tap to zoom; while zoomed in, dragging moves the photo instead of changing
 photo. Drag down to close, drag up to open the details. The thumbnail shows at once while the
 full photo loads.
+
+**Editing.** Edit (next to Share in the viewer, for photos) opens the editor on a screen-sized
+copy of the photo, so every change shows at once. Crop has a frame you drag by its corners or
+middle, a choice of shapes (free, the photo's own, square, 4:3, 3:4, 16:9), a button that turns
+the photo a quarter clockwise, one that mirrors it, and a reset. Adjust has brightness, contrast,
+saturation and warmth, each a slider from -100 to 100 (tap the number to put it back to 0).
+Filters has Vivid, Warm, Cool, Fade, Mono, Noir and Sepia, each shown on a small copy of the
+photo. Holding the photo shows the original colours. Nothing changes until you save. **Save**
+writes over the original, after Android asks you to allow it (unless Media management is on);
+it's offered only for JPEG, PNG and WebP, the formats Android can write back. **Save as copy**
+leaves the original and adds "name-edited" next to it (or in Pictures/Edited if that folder
+can't hold photos). Saving works on the full-size photo, up to 8192 pixels on its longer side,
+and carries over the date and camera details. Leaving with unsaved edits asks first.
 
 **Videos.** The video on screen plays by itself, with a play/pause button and seek bar that
 come and go with the other controls. It pauses when you leave the app and stops when you swipe
@@ -185,6 +199,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Grouping duplicates and choosing what to keep | `data/Duplicates.kt` |
 | Working out a photo's fingerprint from its thumbnail | `data/PhotoHash.kt` |
 | Running the duplicate search in the background | `ui/GalleryViewModel.kt` |
+| What an edit is, colour maths, crop shapes and dragging the crop frame | `data/Edits.kt` |
+| Drawing edits and saving the result | `data/EditRenderer.kt` |
 | Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
@@ -196,6 +212,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, duplicate fingerprints and grouping, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, duplicate fingerprints and grouping, editing maths and saved-file names, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

@@ -7,6 +7,8 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.runtime.produceState
 import app.roll.gallery.data.MotionVideo
+import app.roll.gallery.data.Media
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.outlined.Slideshow
 import kotlinx.coroutines.delay
@@ -87,7 +89,8 @@ import kotlinx.coroutines.launch
  * actions as a selection: share, favorite and trash, or restore and delete inside the trash;
  * the top bar's menu has Slideshow, Add to album and, for photos, Set as wallpaper. A slideshow
  * starts straight away when [slideshowAtStart] (opening a memory). A motion photo's video plays
- * once when it comes up, and again from the Motion chip under the top bar.
+ * once when it comes up, and again from the Motion chip under the top bar. Edit (photos only)
+ * opens [onEdit].
  * [onCurrentChange] reports the item on screen so the back stack reopens it after a restart.
  */
 @Composable
@@ -99,6 +102,7 @@ fun ViewerScreen(
     onCurrentChange: (Long) -> Unit,
     onBack: () -> Unit,
     slideshowAtStart: Boolean = false,
+    onEdit: (Media) -> Unit = {},
 ) {
     val words = rememberSearchWords()
     val locale = currentLocale()
@@ -158,10 +162,13 @@ fun ViewerScreen(
         scope.launch { animate(from, 0f) { value, _ -> dragY = value } }
     }
 
+    val editAction = BarAction(Icons.Outlined.Edit, stringResource(R.string.edit)) { onEdit(current) }
     val actions = if (set == MediaSet.Trash) {
         trashActions(viewModel, listOf(current)) {}
     } else {
-        libraryActions(viewModel, library, listOf(current), onDone = {}, withAlbum = false)
+        val basic = libraryActions(viewModel, library, listOf(current), onDone = {}, withAlbum = false)
+        // Edit sits next to Share, for photos only.
+        if (current.isVideo) basic else listOf(basic.first(), editAction) + basic.drop(1)
     }
 
     // Motion photos: the video plays once when the photo comes up, and again from the chip.

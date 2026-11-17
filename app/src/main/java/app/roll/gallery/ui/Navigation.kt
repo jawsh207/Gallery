@@ -18,6 +18,8 @@ sealed interface Screen {
     data object Search : Screen
     data object Settings : Screen
     data object Duplicates : Screen
+    /** The editor, for the photo with this id. */
+    data class Editor(val id: Long) : Screen
     /** Choosing the photos for a new album called [name]. */
     data class NewAlbum(val name: String) : Screen
     /** One photo or video full screen, paging through the rest of [set]; as a slideshow when [slideshow]. */
@@ -54,6 +56,7 @@ private fun Screen.encode(): String = when (this) {
     Screen.Search -> "search"
     Screen.Settings -> "settings"
     Screen.Duplicates -> "duplicates"
+    is Screen.Editor -> "editor|$id"
     is Screen.NewAlbum -> "newalbum|" + URLEncoder.encode(name, "UTF-8")
     is Screen.Grid -> "grid|${set.encode()}"
     is Screen.Viewer -> "viewer|$id|${set.encode()}|$slideshow"
@@ -67,6 +70,7 @@ private fun decode(text: String): Screen? {
         "search" -> Screen.Search
         "settings" -> Screen.Settings
         "duplicates" -> Screen.Duplicates
+        "editor" -> parts.getOrNull(1)?.toLongOrNull()?.let { Screen.Editor(it) }
         "newalbum" -> parts.getOrNull(1)?.let { Screen.NewAlbum(URLDecoder.decode(it, "UTF-8")) }
         "grid" -> parts.getOrNull(1)?.let(::decodeMediaSet)?.let { Screen.Grid(it) }
         "viewer" -> {

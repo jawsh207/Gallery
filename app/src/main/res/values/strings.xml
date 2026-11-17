@@ -179,4 +179,37 @@
         <item quantity="one">Move <xliff:g id="count" example="3">%1$d</xliff:g> to trash (<xliff:g id="size" example="2.4 MB">%2$s</xliff:g>)</item>
         <item quantity="other">Move <xliff:g id="count" example="3">%1$d</xliff:g> to trash (<xliff:g id="size" example="24 MB">%2$s</xliff:g>)</item>
     </plurals>
+
+    <!-- Editor -->
+    <string name="edit">Edit</string>
+    <string name="save">Save</string>
+    <string name="save_copy">Save as copy</string>
+    <string name="edit_crop">Crop</string>
+    <string name="edit_adjust">Adjust</string>
+    <string name="edit_filters">Filters</string>
+    <string name="edit_rotate">Rotate</string>
+    <string name="edit_flip">Flip</string>
+    <string name="edit_reset">Reset crop</string>
+    <string name="edit_aspect_free">Free</string>
+    <string name="edit_aspect_original">Original</string>
+    <string name="edit_aspect_square">Square</string>
+    <string name="edit_brightness">Brightness</string>
+    <string name="edit_contrast">Contrast</string>
+    <string name="edit_saturation">Saturation</string>
+    <string name="edit_warmth">Warmth</string>
+    <string name="filter_none">Original</string>
+    <string name="filter_vivid">Vivid</string>
+    <string name="filter_warm">Warm</string>
+    <string name="filter_cool">Cool</string>
+    <string name="filter_fade">Fade</string>
+    <string name="filter_mono">Mono</string>
+    <string name="filter_noir">Noir</string>
+    <string name="filter_sepia">Sepia</string>
+    <string name="edit_saved">Saved</string>
+    <string name="edit_saved_copy">Saved as a copy</string>
+    <string name="edit_save_failed">Couldn\'t save the edit</string>
+    <string name="edit_discard_title">Discard your edits?</string>
+    <string name="edit_discard_body">The photo hasn\'t been changed.</string>
+    <string name="discard">Discard</string>
+    <string name="keep_editing">Keep editing</string>
 </resources>

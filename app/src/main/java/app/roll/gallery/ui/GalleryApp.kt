@@ -74,6 +74,7 @@ import app.roll.gallery.ui.access.photoAccess
 import app.roll.gallery.ui.collections.CollectionsTab
 import app.roll.gallery.ui.collections.NewAlbumScreen
 import app.roll.gallery.ui.collections.DuplicatesScreen
+import app.roll.gallery.ui.editor.EditorScreen
 import app.roll.gallery.ui.collections.SetScreen
 import app.roll.gallery.ui.collections.TrashScreen
 import app.roll.gallery.ui.components.BottomBar
@@ -177,7 +178,12 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
                 onCurrentChange = { id -> if (stack.lastOrNull() == screen) stack[stack.lastIndex] = screen.copy(id = id) },
                 onBack = back,
                 slideshowAtStart = screen.slideshow,
+                onEdit = { open(Screen.Editor(it.id)) },
             )
+            is Screen.Editor -> {
+                val media = loaded.items.firstOrNull { it.id == screen.id }
+                if (media == null) LaunchedEffect(Unit) { back() } else EditorScreen(viewModel, media, onClose = back)
+            }
         }
         SnackbarHost(
             snackbar,

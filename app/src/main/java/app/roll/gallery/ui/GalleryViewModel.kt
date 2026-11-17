@@ -11,6 +11,9 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.R
 import app.roll.gallery.data.MediaStoreSource
 import app.roll.gallery.data.MediaWriter
+import app.roll.gallery.data.EditRenderer
+import app.roll.gallery.data.Edits
+import android.graphics.Bitmap
 import app.roll.gallery.data.DuplicateGroup
 import app.roll.gallery.data.findDuplicates
 import app.roll.gallery.data.hashPhoto
@@ -144,6 +147,26 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
                 if (index % 25 == 0) _duplicates.value = DuplicateScan(index, photos.size, null)
             }
             _duplicates.value = DuplicateScan(photos.size, photos.size, findDuplicates(photos, hashes))
+        }
+    }
+
+    private val renderer = EditRenderer(app)
+
+    /** [media] at editing-preview size (2048 pixels on its longer side), or null if it can't be read. */
+    suspend fun editPreview(media: Media): Bitmap? = withContext(Dispatchers.IO) {
+        runCatching { renderer.decode(media, 2048) }.getOrNull()
+    }
+
+    /**
+     * Saves [edits] of [media] in the background, over the original or as a copy, says how it
+     * went, and calls [onSaved] with whether it worked.
+     */
+    fun saveEdits(media: Media, edits: Edits, asCopy: Boolean, onSaved: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val saved = withContext(Dispatchers.Default) { renderer.save(media, edits, asCopy) } != null
+            val app = getApplication<Application>()
+            _messages.emit(app.getString(if (!saved) R.string.edit_save_failed else if (asCopy) R.string.edit_saved_copy else R.string.edit_saved))
+            onSaved(saved)
         }
     }
 

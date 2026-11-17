@@ -25,6 +25,9 @@ store, so other apps see the same favorites and trash.
 - **Viewer:** swipe between photos, pinch or double-tap to zoom, drag down to close, drag up
   for details. Videos play in place with a seek bar. Motion photos play their moment of video
   when they come up, and again from the Motion chip.
+- **Editor:** crop (free or a fixed shape), rotate, flip, brightness, contrast, saturation,
+  warmth and filters, with a live preview; hold the photo to compare. Save over the original
+  or as a copy beside it.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,
   shutter speed, ISO and focal length stored in the photo.
 - **Collections:** Favorites, Videos, Trash, and every folder with photos as an album (camera
