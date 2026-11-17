@@ -1,15 +1,18 @@
 """
 Prepares the Plus edition's models: the text finder and reader, the face finder (YuNet) and
 face matcher (SFace, already 8-bit), and TinyCLIP's image and text halves for searching by
-description (shrunk to 8-bit with a check of their fingerprints, below). The text reader's weights are shrunk to 8-bit numbers
-where that's safe (below); the rest are used as published. All are converted to ONNX Runtime's
+description (shrunk to 8-bit with a check of their fingerprints, below). The text reader is shrunk to 8-bit
+(below); the rest are used as published. All are converted to ONNX Runtime's
 own format, which also writes the list of operators they use. That list is what the cut-down
 runtime is built with.
 
-Shrinking can cost accuracy, so the shrunk reader is checked against the original on a few
-lines of test text drawn here: it must read every line the same. Shrinking every layer is
-tried first (smallest); if that reads anything differently, only the matrix layers are shrunk;
-if even that differs, the original is kept.
+The text reader is shrunk to 8-bit with calibration: its heavy layers (convolutions and matrix
+multiplications) work in 8-bit, with the rounding of the numbers passed between layers worked
+out beforehand from lines of text drawn here. Phone processors have fast instructions for that,
+so it's about twice as quick, and a third of the size. It's kept only if it reads at least as
+many differently drawn test lines correctly as the original does; otherwise the original is
+used. (Other models were compared the same way with scripts/compare_quantization.py and lost
+too much accuracy, so they stay as they are.)
 
 Usage: python3 prepare_models.py <folder with the downloads in models.txt> <output folder>
 """
@@ -20,7 +23,10 @@ import sys
 
 import numpy as np
 import onnxruntime as ort
-from onnxruntime.quantization import QuantType, quantize_dynamic
+from onnxruntime.quantization import (
+    CalibrationDataReader, CalibrationMethod, QuantFormat, QuantType, quantize_dynamic, quantize_static,
+)
+from onnxruntime.quantization.shape_inference import quant_pre_process
 from PIL import Image, ImageDraw, ImageFont
 
 src = pathlib.Path(sys.argv[1])
@@ -31,17 +37,29 @@ work.mkdir(parents=True, exist_ok=True)
 trial.mkdir(parents=True, exist_ok=True)
 
 characters = [c for c in (src / "rec_dict.txt").read_text(encoding="utf-8").split("\n") if c] + [" "]
-LINES = ["Boarding pass 2026", "Open daily 9 to 5", "Café Größe niño", "TOTAL $42.17", "gallery@example.org"]
+# Lines the shrunk reader is tested on, and different ones its rounding is worked out from.
+LINES = [
+    "Boarding pass 2026", "Open daily 9 to 5", "Café Größe niño", "TOTAL $42.17", "gallery@example.org",
+    "Main Street", "Library hours", "Do not disturb", "Sale ends Sunday", "Flight AA 1234",
+    "Coffee & Tea", "Wi-Fi password: sunshine", "Emergency exit only", "Lot 7", "Season's greetings",
+]
+CALIBRATION_LINES = [
+    "Welcome to the museum", "Exit", "Total 18.99", "Monday to Friday", "Parking only",
+    "Grand Opening Sale", "Happy Birthday Emma", "Platform 4", "Fresh bread daily", "No entry",
+    "Room 214", "www.example.com", "Call 555-0142", "Best before 12/2027", "Merry Christmas",
+    "Ingredients: flour, sugar", "Gate B12", "Speed limit 35", "Open 24 hours", "Thank you!",
+]
+SIZES = [24, 30, 36]
 
 
-def line_image(text):
+def line_image(text, size=32):
     """A line of black text on white, 48 pixels high, as blue-green-red values scaled to -1..1."""
-    font = ImageFont.load_default(size=32)
+    font = ImageFont.load_default(size=size)
     width = int(font.getlength(text)) + 16
     image = Image.new("RGB", (width, 48), "white")
-    ImageDraw.Draw(image).text((8, 6), text, fill="black", font=font)
+    ImageDraw.Draw(image).text((8, (48 - size) // 2 - 2), text, fill="black", font=font)
     pixels = np.asarray(image, dtype=np.float32)[:, :, ::-1] / 255.0
-    return ((pixels - 0.5) / 0.5).transpose(2, 0, 1)[np.newaxis]
+    return ((pixels - 0.5) / 0.5).transpose(2, 0, 1)[np.newaxis].astype(np.float32)
 
 
 def read(model, image):
@@ -57,27 +75,43 @@ def read(model, image):
     return "".join(text)
 
 
-images = [line_image(t) for t in LINES]
-expected = [read(src / "rec.onnx", i) for i in images]
-print("Original reads:", expected)
+class Lines(CalibrationDataReader):
+    """The calibration lines, at each size, as the reader's input."""
 
-chosen = None
-for name, op_types in [("all layers", None), ("matrix layers only", ["MatMul", "Gemm"])]:
-    candidate = trial / f"rec-{len(op_types or [])}.onnx"
-    quantize_dynamic(
-        str(src / "rec.onnx"), str(candidate),
-        weight_type=QuantType.QInt8, per_channel=True,
-        **({"op_types_to_quantize": op_types} if op_types else {}),
-    )
-    got = [read(candidate, i) for i in images]
-    print(f"Shrunk ({name}) reads:", got, f"{candidate.stat().st_size} bytes")
-    if got == expected:
-        chosen = candidate
-        print(f"::notice title=Reader model::shrunk ({name}), {candidate.stat().st_size} bytes")
-        break
-if chosen is None:
-    print("::warning title=Reader model::shrinking changed what it reads; keeping the original")
+    def __init__(self, name):
+        self.feeds = iter([{name: line_image(t, s)} for t in CALIBRATION_LINES for s in SIZES])
+
+    def get_next(self):
+        return next(self.feeds, None)
+
+
+tests = [(t, line_image(t, s)) for t in LINES for s in SIZES]
+
+
+def correct(model):
+    return sum(read(model, image) == text for text, image in tests)
+
+
+baseline = correct(src / "rec.onnx")
+print(f"Original reads {baseline}/{len(tests)} test lines correctly")
+input_name = ort.InferenceSession(str(src / "rec.onnx"), providers=["CPUExecutionProvider"]).get_inputs()[0].name
+prepared = trial / "rec-prepared.onnx"
+quant_pre_process(str(src / "rec.onnx"), str(prepared), skip_symbolic_shape=True)
+calibrated = trial / "rec-calibrated.onnx"
+quantize_static(
+    str(prepared), str(calibrated), Lines(input_name),
+    quant_format=QuantFormat.QDQ, per_channel=True,
+    weight_type=QuantType.QInt8, activation_type=QuantType.QUInt8,
+    calibrate_method=CalibrationMethod.MinMax, op_types_to_quantize=["Conv", "MatMul", "Gemm"],
+)
+got = correct(calibrated)
+print(f"Calibrated 8-bit reader reads {got}/{len(tests)} correctly, {calibrated.stat().st_size} bytes")
+if got >= baseline:
+    chosen = calibrated
+    print(f"::notice title=Reader model::calibrated 8-bit, {calibrated.stat().st_size} bytes, {got}/{len(tests)} test lines read correctly (original {baseline})")
+else:
     chosen = src / "rec.onnx"
+    print(f"::warning title=Reader model::calibrated 8-bit read {got}/{len(tests)} lines correctly against the original's {baseline}; keeping the original")
 
 # Search by description: both halves of TinyCLIP shrunk to 8-bit. The check here is on their
 # fingerprints: for a few test pictures and phrases, the shrunk model's must point almost the

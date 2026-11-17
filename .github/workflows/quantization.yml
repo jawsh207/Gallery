@@ -1,6 +1,6 @@
 # Compare 8-bit shrinking (run by hand from the Actions tab). Tries shrinking each Gallery Plus
-# model in different ways and reports size, speed and accuracy on the run page, on an Arm
-# machine like a phone's processor. It changes nothing the app ships; see
+# model in different ways and reports size, speed (with and without XNNPACK) and accuracy on
+# the run page, on an Arm machine like a phone's processor. It changes nothing the app ships; see
 # scripts/compare_quantization.py.
 name: Compare 8-bit shrinking
 
@@ -8,7 +8,40 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The published ONNX Runtime for Python has no XNNPACK, so one is built with it (once; cached).
+  xnnpack-runtime:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 150
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: wheel
+          key: onnxruntime-1.20.1-xnnpack-py312-arm64
+
+      - name: Build ONNX Runtime with XNNPACK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          python3 -m pip install --quiet numpy packaging wheel setuptools
+          git clone --quiet --depth 1 --branch v1.20.1 https://github.com/microsoft/onnxruntime
+          # Same Eigen archive fix as scripts/plus/build.sh.
+          sed -i 's/be8be39fdbc6e60e94fa7870b280707069b5b81a/32b145f525a8308d7ab1c09388b2e288312d8eba/' onnxruntime/cmake/deps.txt
+          python3 onnxruntime/tools/ci_build/build.py --build_dir ort-build --config Release \
+            --build_wheel --use_xnnpack --parallel --skip_tests --skip_submodule_sync \
+            --compile_no_warning_as_error --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF
+          mkdir -p wheel && cp ort-build/Release/dist/*.whl wheel/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xnnpack-runtime
+          path: wheel
+
   compare:
+    needs: xnnpack-runtime
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 90
     steps:
@@ -18,8 +51,15 @@ jobs:
         with:
           python-version: '3.12'
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: xnnpack-runtime
+          path: wheel
+
       - name: Install tools
-        run: python3 -m pip install --quiet "onnxruntime==1.20.1" "onnx==1.17.0" "pillow>=10.1" numpy tokenizers
+        run: |
+          python3 -m pip install --quiet wheel/*.whl "onnx==1.17.0" "pillow>=10.1" numpy tokenizers
+          python3 -c "import onnxruntime as o; print(o.__version__, o.get_available_providers())"
 
       # The same downloads and pinned checks as the Plus build.
       - name: Download models

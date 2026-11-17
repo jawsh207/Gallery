@@ -34,10 +34,12 @@ The models are PaddleOCR's small text finder (about 2.5 MB) and Latin-script tex
 (about 10 MB), and TinyCLIP ViT-39M/16 + Text-19M for searching by description, shrunk to
 8-bit by the build where that keeps its fingerprints nearly unchanged. They and a cut-down copy of ONNX Runtime 1.20 (only the operators these models use, for
 64-bit phones; about 1.4 MB) are built by `scripts/plus/build.sh`, which CI runs and caches. The
-script tries shrinking the reader's numbers to 8 bits and keeps that only if the shrunk model
-reads a set of test lines exactly as the original does. With the current model, shrinking every
-layer changed some readings, and shrinking only the matrix layers passed but saved almost
-nothing, so the reader is effectively as published.
+script shrinks the reader to 8-bit numbers with "calibration": the rounding is worked out
+beforehand from sample lines of text, which lets phone processors use their fast 8-bit
+instructions throughout. That makes it about twice as fast and a third of the size (about
+2.2 MB), and it's kept only if it reads at least as many test lines correctly as the original.
+The other models were tried the same way (the by-hand "Compare 8-bit shrinking" workflow) and
+lost too much accuracy, so they stay as they are.
 
 ## Screens
 

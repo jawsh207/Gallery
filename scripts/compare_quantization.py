@@ -4,7 +4,7 @@ different way is worth switching to. Nothing here changes what the app ships.
 
 For each model it tries:
   - original: the model as published (32-bit numbers; SFace is left out, it's published 8-bit)
-  - dynamic: what the build does today for the reader and TinyCLIP. Only the weights are stored
+  - dynamic: what the build does for TinyCLIP. Only the weights are stored
     8-bit; the numbers flowing between layers are rounded to 8-bit afresh on every run.
   - static: weights and the numbers between layers are both 8-bit, with the rounding worked out
     once beforehand from sample photos ("calibration"). Phone processors have fast instructions
@@ -12,7 +12,8 @@ For each model it tries:
     (convolutions and matrix multiplications), which is gentler on accuracy.
 
 and measures, on this machine (an Arm processor like a phone's): file size, time per photo
-with 1 and 4 cores, and accuracy against the original:
+with 1 and 4 cores (also with XNNPACK, a library of fast Arm routines, when the ONNX Runtime
+installed has it), and accuracy against the original:
   - text finder: overlap of the "text here" areas it marks
   - text reader: lines read exactly as the original reads them
   - face finder: overlap of where it finds faces
@@ -195,7 +196,7 @@ def at_least_opset_13(name, original):
 
 def variants(name, original):
     made = {"original": original}
-    for label, op_types in [("dynamic, every layer", None), ("dynamic, matrix layers", ["MatMul", "Gemm"] + (["Gather"] if name == "clip_text" else []))]:
+    for label, op_types in [("dynamic, matrix layers", ["MatMul", "Gemm"] + (["Gather"] if name == "clip_text" else []))]:
         out = work / f"{name}-{label.replace(', ', '-').replace(' ', '_')}.onnx"
         try:
             quantize_dynamic(
@@ -214,21 +215,27 @@ def variants(name, original):
         prepared = base
     heavy = HEAVY + (["Gather"] if name == "clip_text" else [])
     options = [
-        ("static, every layer", None, CalibrationMethod.MinMax, QuantType.QUInt8),
-        ("static, heavy layers", heavy, CalibrationMethod.MinMax, QuantType.QUInt8),
-        ("static, heavy layers, percentile", heavy, CalibrationMethod.Percentile, QuantType.QUInt8),
-        ("static, heavy layers, signed", heavy, CalibrationMethod.MinMax, QuantType.QInt8),
+        ("static, heavy layers", heavy, [], QuantType.QUInt8),
+        ("static, heavy layers, signed", heavy, [], QuantType.QInt8),
     ]
-    for label, op_types, method, activations in options:
+    if name in ("det", "yunet"):
+        # The last layers turn features into the final "text here"/"face here" scores, where
+        # rounding shows most, so they're tried left at full precision.
+        graph = onnx.load(str(prepared)).graph
+        layers = [n.name for n in graph.node if n.op_type in HEAVY + ["ConvTranspose"]]
+        for count in (3, 8):
+            options.append((f"static, heavy layers, last {count} kept", heavy, layers[-count:], QuantType.QUInt8))
+    for label, op_types, excluded, activations in options:
         out = work / f"{name}-{label.replace(', ', '-').replace(' ', '_')}.onnx"
         try:
             quantize_static(
                 str(prepared), str(out), Feeds(calibration_feeds(original, name)),
                 quant_format=QuantFormat.QDQ, per_channel=True,
                 weight_type=QuantType.QInt8, activation_type=activations,
-                calibrate_method=method,
+                calibrate_method=CalibrationMethod.MinMax,
+                nodes_to_exclude=excluded,
                 extra_options={"ActivationSymmetric": activations == QuantType.QInt8},
-                **({"op_types_to_quantize": op_types} if op_types else {}),
+                op_types_to_quantize=op_types,
             )
             made[label] = out
         except Exception as error:
@@ -238,15 +245,26 @@ def variants(name, original):
 
 # --- Measuring -----------------------------------------------------------------------------
 
-def session(model, threads=1):
+XNNPACK = "XnnpackExecutionProvider" in ort.get_available_providers()
+
+
+def session(model, threads=1, xnnpack=False):
     options = ort.SessionOptions()
-    options.intra_op_num_threads = threads
     options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    return ort.InferenceSession(str(model), options, providers=["CPUExecutionProvider"])
+    if xnnpack:
+        # XNNPACK runs its own threads; ONNX Runtime's are kept to one and don't spin, as its
+        # documentation advises.
+        options.intra_op_num_threads = 1
+        options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        providers = [("XnnpackExecutionProvider", {"intra_op_num_threads": threads}), "CPUExecutionProvider"]
+    else:
+        options.intra_op_num_threads = threads
+        providers = ["CPUExecutionProvider"]
+    return ort.InferenceSession(str(model), options, providers=providers)
 
 
-def timing(model, feeds, threads):
-    s = session(model, threads)
+def timing(model, feeds, threads, xnnpack=False):
+    s = session(model, threads, xnnpack)
     for _ in range(3):
         s.run(None, feeds)
     times = []
@@ -397,6 +415,15 @@ for key, title, original, feeds_for in MODELS:
             feeds = feeds_for(session(model))
             one = timing(model, feeds, 1)
             many = timing(model, feeds, min(4, cores))
+            if XNNPACK:
+                try:
+                    x_one = f"{timing(model, feeds, 1, True):.1f} ms"
+                    x_many = f"{timing(model, feeds, min(4, cores), True):.1f} ms"
+                except Exception as error:
+                    print(f"{title} {label} with XNNPACK: {error}")
+                    x_one = x_many = "-"
+            else:
+                x_one = x_many = "n/a"
             if key == "det":
                 accuracy = det_accuracy(original, model)
             elif key == "rec":
@@ -407,14 +434,17 @@ for key, title, original, feeds_for in MODELS:
                 accuracy = clip_image_accuracy(original, model, work / "clip_text.onnx")
             else:
                 accuracy = clip_text_accuracy(original, model, work / "clip_image.onnx")
-            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", f"{one:.1f} ms", f"{many:.1f} ms", accuracy)
+            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", f"{one:.1f} ms", f"{many:.1f} ms", x_one, x_many, accuracy)
         except Exception as error:
             print(f"{title} {label} can't run: {error}")
-            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", "-", "-", f"can't run: {str(error).splitlines()[0][:160]}")
+            row = (title, label, f"{model.stat().st_size / 1e6:.1f} MB", "-", "-", "-", "-", f"can't run: {str(error).splitlines()[0][:160]}")
         print(" | ".join(row), flush=True)
         rows.append(row)
 
-table = ["| Model | Way | Size | 1 core | 4 cores | Accuracy against the original |", "|---|---|---|---|---|---|"]
+table = [
+    "| Model | Way | Size | 1 core | 4 cores | XNNPACK, 1 core | XNNPACK, 4 cores | Accuracy against the original |",
+    "|---|---|---|---|---|---|---|---|",
+]
 table += ["| " + " | ".join(r) + " |" for r in rows]
 report = "\n".join(table)
 print(report)

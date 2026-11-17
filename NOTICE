@@ -19,8 +19,8 @@ Gallery Plus also includes:
 - PaddleOCR's PP-OCRv3 text detection and PP-OCRv5 Latin text recognition models
   (https://github.com/PaddlePaddle/PaddleOCR), under the Apache License 2.0, as converted to
   ONNX in https://huggingface.co/monkt/paddleocr-onnx (Apache License 2.0). Modified: both
-  are converted to ONNX Runtime's format, and the recognition model's weights are reduced to
-  8-bit numbers where that leaves its readings unchanged (scripts/plus/prepare_models.py).
+  are converted to ONNX Runtime's format, and the recognition model is reduced to 8-bit
+  numbers when that reads test lines as well as the original (scripts/plus/prepare_models.py).
 
 - YuNet face detection (face_detection_yunet_2023mar), from the OpenCV Zoo
   (https://github.com/opencv/opencv_zoo), under the MIT License. Converted to ONNX Runtime's
