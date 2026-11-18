@@ -275,4 +275,68 @@
     <string name="scan_channel">Getting photos ready for search</string>
     <string name="scan_title">Getting photos ready for search</string>
     <string name="scan_progress"><xliff:g id="done" example="1,234">%1$,d</xliff:g> of <xliff:g id="total" example="5,678">%2$,d</xliff:g> photos</string>
+    <!-- Collections tiles -->
+    <string name="recently_added">Recently added</string>
+    <string name="no_screenshots_title">No screenshots</string>
+    <string name="no_screenshots_body">Screenshots you take show up here.</string>
+    <string name="no_recent_title">Nothing new</string>
+    <string name="no_recent_body">Photos and videos that arrived on this phone in the last 30 days show up here.</string>
+    <string name="reorder">Reorder</string>
+    <string name="reorder_title">Reorder collections</string>
+    <string name="reorder_reset">Reset</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+
+    <!-- Create tab -->
+    <string name="tab_create">Create</string>
+    <string name="create_collage">Collage</string>
+    <string name="create_collage_summary">Put 2 to 9 photos together in one</string>
+    <string name="create_animation">Animation</string>
+    <string name="create_animation_summary">Turn a burst of photos into a looping clip</string>
+    <string name="create_video">Video maker</string>
+    <string name="create_video_summary">A slideshow of photos and clips, with music</string>
+    <string name="create_moods">Moods</string>
+    <string name="create_moods_summary">Give a photo a look, from airy to night lights</string>
+    <string name="choose_at_least">Choose at least <xliff:g id="count" example="2">%1$d</xliff:g></string>
+    <string name="choose_first_only">Only the first <xliff:g id="count" example="9">%1$d</xliff:g> are used</string>
+    <string name="making">Making your video…</string>
+    <string name="made_collage">Collage saved to Pictures/Gallery</string>
+    <string name="made_video">Video saved to Movies/Gallery</string>
+    <string name="made_failed">Couldn\'t make it</string>
+    <string name="collage_layout">Layout</string>
+    <string name="collage_shape">Shape</string>
+    <string name="collage_spacing">Spacing</string>
+    <string name="collage_corners">Corners</string>
+    <string name="collage_background">Background</string>
+    <string name="collage_white">White</string>
+    <string name="collage_black">Black</string>
+    <string name="shape_square">Square</string>
+    <string name="shape_portrait">Portrait</string>
+    <string name="shape_story">Story</string>
+    <string name="shape_landscape">Landscape</string>
+    <string name="animation_speed">Speed</string>
+    <string name="animation_bounce">Play there and back</string>
+    <string name="video_shape">Frame</string>
+    <string name="video_length">Length <xliff:g id="minutes" example="1">%1$d</xliff:g>:<xliff:g id="seconds" example="05">%2$02d</xliff:g></string>
+    <string name="video_photo_length">Each photo</string>
+    <string name="seconds_short"><xliff:g id="seconds" example="3">%1$d</xliff:g> s</string>
+    <string name="video_fill">Fill the frame (crops the edges)</string>
+    <string name="video_music">Music</string>
+    <string name="video_add_music">Add music</string>
+    <string name="video_music_chosen">Music chosen</string>
+    <string name="video_remove_music">Remove music</string>
+    <plurals name="photo_count">
+        <item quantity="one"><xliff:g id="count" example="1">%d</xliff:g> photo</item>
+        <item quantity="other"><xliff:g id="count" example="12">%d</xliff:g> photos</item>
+    </plurals>
+
+    <!-- Moods (named looks in the editor) -->
+    <string name="mood_airy">Airy</string>
+    <string name="mood_golden">Golden hour</string>
+    <string name="mood_night_lights">Night lights</string>
+    <string name="mood_film">Film</string>
+    <string name="mood_pastel">Pastel</string>
+    <string name="mood_crisp">Crisp</string>
+    <string name="mood_matte">Matte</string>
+    <string name="mood_teal_orange">Teal &amp; orange</string>
 </resources>

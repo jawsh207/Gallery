@@ -94,13 +94,22 @@ import app.roll.gallery.ui.components.SelectionBottomBar
 import app.roll.gallery.ui.components.SelectionTopBar
 import app.roll.gallery.ui.photos.PhotosTab
 import app.roll.gallery.ui.viewer.ViewerScreen
+import app.roll.gallery.data.Creation
+import app.roll.gallery.ui.create.AnimationScreen
+import app.roll.gallery.ui.create.ChooseScreen
+import app.roll.gallery.ui.create.CollageScreen
+import app.roll.gallery.ui.create.CreateTab
+import app.roll.gallery.ui.create.VideoMakerScreen
+import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.outlined.Brush
 import kotlinx.coroutines.launch
 
-/** The three bottom tabs, in order. Photos is home. */
+/** The bottom tabs, in order. Photos is home. */
 enum class Tab(@param:StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
     Photos(R.string.tab_photos, Icons.Outlined.Photo, Icons.Filled.Photo),
     Videos(R.string.videos, Icons.Outlined.VideoLibrary, Icons.Filled.VideoLibrary),
     Collections(R.string.tab_collections, Icons.Outlined.PhotoLibrary, Icons.Filled.PhotoLibrary),
+    Create(R.string.tab_create, Icons.Outlined.Brush, Icons.Filled.Brush),
 }
 
 /**
@@ -217,7 +226,27 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
                 )
                 is Screen.Editor -> {
                     val media = loaded.items.firstOrNull { it.id == screen.id }
-                    if (media == null) LaunchedEffect(Unit) { back() } else EditorScreen(viewModel, media, onClose = back)
+                    if (media == null) LaunchedEffect(Unit) { back() } else EditorScreen(viewModel, media, onClose = back, moods = screen.moods)
+                }
+                is Screen.Choose -> ChooseScreen(viewModel, loaded, screen.kind, onBack = back) { chosen ->
+                    open(
+                        if (screen.kind == Creation.Moods) Screen.Editor(chosen.first().id, moods = true)
+                        else Screen.Make(screen.kind, chosen.map { it.id }),
+                    )
+                }
+                is Screen.Make -> {
+                    val byId = remember(loaded.items) { loaded.items.associateBy { it.id } }
+                    val chosen = screen.ids.mapNotNull { byId[it] }
+                    if (chosen.size < screen.kind.least) {
+                        LaunchedEffect(Unit) { back() }
+                    } else {
+                        when (screen.kind) {
+                            Creation.Collage -> CollageScreen(viewModel, chosen, onBack = back)
+                            Creation.Animation -> AnimationScreen(viewModel, chosen, onBack = back)
+                            Creation.VideoMaker -> VideoMakerScreen(viewModel, chosen, onBack = back)
+                            Creation.Moods -> LaunchedEffect(Unit) { back() }
+                        }
+                    }
                 }
             }
         }
@@ -229,10 +258,10 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
 }
 
 /**
- * The bottom tabs (Photos, Videos, Collections) under the search bar with its Settings button,
- * as in Contacts. Long-pressing a photo or video selects it; while selecting, the search bar
- * becomes a count of the selection and the bottom tabs give way to its actions. Back from
- * Videos or Collections returns to Photos.
+ * The bottom tabs (Photos, Videos, Collections, Create) under the search bar with its Settings
+ * button, as in Contacts. Long-pressing a photo or video selects it; while selecting, the search
+ * bar becomes a count of the selection and the bottom tabs give way to its actions. Back from
+ * any other tab returns to Photos.
  */
 @Composable
 private fun Home(
@@ -247,7 +276,7 @@ private fun Home(
     var videoZoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }
     val selected = library.items.filter { it.id in selectedIds }
-    val selecting = selected.isNotEmpty() && tab != Tab.Collections
+    val selecting = selected.isNotEmpty() && (tab == Tab.Photos || tab == Tab.Videos)
     // A selection belongs to the tab it was made on.
     LaunchedEffect(tab) { selectedIds = emptySet() }
     val gridState = rememberLazyGridState()
@@ -261,6 +290,7 @@ private fun Home(
     val openMedia: (Media) -> Unit = { open(Screen.Viewer(MediaSet.All, it.id)) }
     val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
     val people by viewModel.people.collectAsStateWithLifecycle()
+    val collectionOrder by viewModel.collectionOrder.collectAsStateWithLifecycle()
     val memories = remember(library.items, showMemories) {
         if (showMemories) memoriesFor(library.items, LocalDate.now(), ZoneId.systemDefault()) else emptyList()
     }
@@ -349,6 +379,8 @@ private fun Home(
                 }
                 Tab.Collections -> CollectionsTab(
                     library = library,
+                    order = collectionOrder,
+                    onReorder = viewModel::setCollectionOrder,
                     onOpenSet = { open(Screen.Grid(it)) },
                     onOpenTrash = { open(Screen.Trash) },
                     onNewAlbum = { open(Screen.NewAlbum(it)) },
@@ -358,6 +390,7 @@ private fun Home(
                     people = people,
                     onOpenPerson = { open(Screen.Person(it.key)) },
                 )
+                Tab.Create -> CreateTab(onStart = { open(Screen.Choose(it)) }, contentPadding = padding)
             }
         }
     }

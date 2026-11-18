@@ -23,8 +23,19 @@ data class Adjustments(
     val warmth: Float = 0f,
 )
 
-/** The editor's looks: each is a fixed set of colour changes applied before the adjustments. */
-enum class Filter { None, Vivid, Warm, Cool, Fade, Mono, Noir, Sepia }
+/**
+ * The editor's looks: each is a fixed set of colour changes applied before the adjustments. The
+ * first few are simple filters; the rest are moods, fuller styles that change several things at
+ * once (see [isMood]).
+ */
+enum class Filter {
+    None, Vivid, Warm, Cool, Fade, Mono, Noir, Sepia,
+    Airy, Golden, NightLights, Film, Pastel, Crisp, Matte, TealOrange,
+    ;
+
+    /** Whether this is one of the moods offered from the Create tab. */
+    val isMood: Boolean get() = ordinal >= Airy.ordinal
+}
 
 /** Crop shapes the editor offers; [ratio] is width ÷ height, null for free or the photo's own. */
 enum class CropAspect(val ratio: Float?) {
@@ -143,7 +154,43 @@ fun filterMatrix(filter: Filter): FloatArray = when (filter) {
     Filter.Mono -> saturationMatrix(-1f)
     Filter.Noir -> concat(saturationMatrix(-1f), contrastMatrix(0.45f))
     Filter.Sepia -> SEPIA_MATRIX
+    // Bright and soft, a little cool: white rooms and daylight.
+    Filter.Airy -> concat(concat(brightnessMatrix(0.15f), contrastMatrix(-0.15f)), concat(saturationMatrix(-0.15f), warmthMatrix(-0.15f)))
+    // Low evening sun: warm and glowing.
+    Filter.Golden -> concat(concat(warmthMatrix(0.8f), saturationMatrix(0.15f)), brightnessMatrix(0.05f))
+    // City lights after dark: punchy colours on deep shadows.
+    Filter.NightLights -> concat(concat(saturationMatrix(0.4f), contrastMatrix(0.25f)), concat(warmthMatrix(-0.2f), brightnessMatrix(-0.05f)))
+    // Like print film: softer contrast, lifted blacks, a warm cast.
+    Filter.Film -> concat(concat(contrastMatrix(-0.2f), liftMatrix(0.08f)), concat(saturationMatrix(-0.15f), warmthMatrix(0.25f)))
+    // Washed-out, gentle colour.
+    Filter.Pastel -> concat(concat(saturationMatrix(-0.35f), brightnessMatrix(0.15f)), contrastMatrix(-0.25f))
+    // Sharp-looking: more contrast and a little more colour.
+    Filter.Crisp -> concat(contrastMatrix(0.3f), saturationMatrix(0.1f))
+    // Flat and moody, with blacks lifted to grey.
+    Filter.Matte -> concat(concat(contrastMatrix(-0.3f), liftMatrix(0.12f)), saturationMatrix(-0.1f))
+    // The film look: warm skin and highlights, cool blue-green shadows.
+    Filter.TealOrange -> concat(TEAL_ORANGE_MATRIX, contrastMatrix(0.1f))
 }
+
+/** Lifts the darkest tones towards grey by [amount] (0 to 1), leaving white where it is. */
+fun liftMatrix(amount: Float): FloatArray {
+    val scale = 1f - amount
+    val offset = 255f * amount
+    return floatArrayOf(
+        scale, 0f, 0f, 0f, offset,
+        0f, scale, 0f, 0f, offset,
+        0f, 0f, scale, 0f, offset,
+        0f, 0f, 0f, 1f, 0f,
+    )
+}
+
+/** Pushes reds up and adds blue-green to dark tones, for [Filter.TealOrange]. */
+val TEAL_ORANGE_MATRIX: FloatArray = floatArrayOf(
+    1.12f, 0f, 0f, 0f, -12f,
+    0f, 1.0f, 0f, 0f, 6f,
+    0f, 0f, 0.88f, 0f, 22f,
+    0f, 0f, 0f, 1f, 0f,
+)
 
 /** The full colour matrix for [edits]: the filter first, then each adjustment. */
 fun colorMatrix(edits: Edits): FloatArray {

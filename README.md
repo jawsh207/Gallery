@@ -2,7 +2,8 @@
 
 A gallery app for Android 16 and up, built with Jetpack Compose and Material 3 Expressive,
 laid out like the photo apps people already know: a date-grouped Photos grid, a Collections
-tab for albums, favorites, videos and trash, and a full-screen viewer. It takes its colours
+tab for albums, favorites, videos and trash, a Create tab for collages, animations and videos,
+and a full-screen viewer. It takes its colours
 from the wallpaper, as Contacts and Dialtone do.
 
 Everything stays on the phone. Gallery has no account, no cloud and no internet permission (the build strips it even if a library asks for it), and
@@ -26,13 +27,17 @@ store, so other apps see the same favorites and trash.
   for details. Videos play in place with a seek bar. Motion photos play their moment of video
   when they come up, and again from the Motion chip.
 - **Editor:** crop (free or a fixed shape), straighten, rotate, flip, brightness, contrast, saturation,
-  warmth and filters, with a live preview; hold the photo to compare. Save over the original
+  warmth, filters and moods, with a live preview; hold the photo to compare. Save over the original
   or as a copy beside it.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,
   shutter speed, ISO and focal length stored in the photo.
 - **Videos:** a tab of its own with every video, newest first, selectable like Photos.
-- **Collections:** Favorites, Trash, and every folder with photos as an album (camera
-  and screenshots first). Make new albums, and move or copy photos into albums.
+- **Collections:** tiles for Favorites, Videos, Screenshots, Recently added, Duplicates, the
+  Locked folder and Trash, in an order you can change, then every folder with photos as an
+  album (camera and screenshots first). Make new albums, and move or copy photos into albums.
+- **Create:** make a collage of 2 to 9 photos, an animation from a burst of photos, or a
+  slideshow video of photos and clips with music from your own audio files, all on the phone
+  and saved as new files. Moods give a photo a named look, from Airy to Night lights.
 - **Slideshow:** from the viewer's menu; a new photo every four seconds, tap to stop.
 - **Duplicates:** finds copies of the same photo and near-identical shots taken moments apart,
   suggests which to keep, and trashes the rest in one go.

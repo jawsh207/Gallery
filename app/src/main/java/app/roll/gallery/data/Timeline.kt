@@ -44,17 +44,32 @@ data class Section(val key: String, val label: SectionLabel, val items: List<Med
 /** The day [media] was taken, in [zone]. */
 fun Media.day(zone: ZoneId): LocalDate = Instant.ofEpochMilli(takenAt).atZone(zone).toLocalDate()
 
+/** Which date the grid groups by: when each was taken (usually), or when it arrived on the phone. */
+enum class GroupBy { Taken, Added }
+
+/** The day [media] is grouped under by [by], in [zone]. */
+fun Media.day(zone: ZoneId, by: GroupBy): LocalDate = when (by) {
+    GroupBy.Taken -> day(zone)
+    GroupBy.Added -> Instant.ofEpochSecond(addedAt).atZone(zone).toLocalDate()
+}
+
 /**
  * Splits [items] (newest first) into the grid's groups: one per day, or one per month when
- * [byMonth]. [today] decides which days read "Today", "Yesterday" or a weekday.
+ * [byMonth], by when each was taken or, with [by] set to [GroupBy.Added], when it arrived. [today] decides which days read "Today", "Yesterday" or a weekday.
  */
-fun buildSections(items: List<Media>, byMonth: Boolean, today: LocalDate, zone: ZoneId): List<Section> {
+fun buildSections(
+    items: List<Media>,
+    byMonth: Boolean,
+    today: LocalDate,
+    zone: ZoneId,
+    by: GroupBy = GroupBy.Taken,
+): List<Section> {
     val sections = ArrayList<Section>()
     var currentKey: String? = null
     var current = ArrayList<Media>()
     var currentLabel: SectionLabel? = null
     for (item in items) {
-        val day = item.day(zone)
+        val day = item.day(zone, by)
         val key = if (byMonth) "m${YearMonth.from(day)}" else "d$day"
         if (key != currentKey) {
             if (currentKey != null) sections += Section(currentKey, currentLabel!!, current)

@@ -118,16 +118,17 @@ private fun colorFilterOf(matrix: FloatArray): ColorFilter = ColorFilter.colorMa
 
 /**
  * The photo editor: crop (with fixed shapes), straighten, turn, mirror, brightness, contrast, saturation,
- * warmth and filters, previewed live on a screen-sized copy. Hold the photo to see the original.
+ * warmth, filters and moods, previewed live on a screen-sized copy. Hold the photo to see the
+ * original. Opened from Create → Moods ([moods]) it starts on the looks, scrolled to the moods.
  * Save writes over the original (after Android's write confirmation) when its format allows,
  * or Save as copy keeps the original and adds an "-edited" file beside it. Nothing is changed
  * until then; leaving with unsaved edits asks first.
  */
 @Composable
-fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit) {
+fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit, moods: Boolean = false) {
     val preview by produceState<Bitmap?>(null, media.id) { value = viewModel.editPreview(media) }
     var edits by remember(media.id) { mutableStateOf(Edits()) }
-    var tab by rememberSaveable { mutableStateOf(EditTab.Crop) }
+    var tab by rememberSaveable { mutableStateOf(if (moods) EditTab.Filters else EditTab.Crop) }
     var adjustment by rememberSaveable { mutableStateOf(Adjustment.Brightness) }
     var comparing by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
@@ -258,7 +259,7 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit)
                         onSelect = { adjustment = it },
                         onChange = { edits = edits.copy(adjustments = it) },
                     )
-                    EditTab.Filters -> FilterTools(tiny, edits.filter) { edits = edits.copy(filter = it) }
+                    EditTab.Filters -> FilterTools(tiny, edits.filter, moods) { edits = edits.copy(filter = it) }
                 }
             }
 
@@ -390,10 +391,13 @@ private fun AdjustTools(selected: Adjustment, adjustments: Adjustments, onSelect
     }
 }
 
-/** Each filter as a small preview of the photo with its name. */
+/** Each filter and mood as a small preview of the photo with its name, scrolled to the moods when [moodsFirst]. */
 @Composable
-private fun FilterTools(tiny: ImageBitmap?, current: Filter, onPick: (Filter) -> Unit) {
-    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun FilterTools(tiny: ImageBitmap?, current: Filter, moodsFirst: Boolean, onPick: (Filter) -> Unit) {
+    val list = androidx.compose.foundation.lazy.rememberLazyListState(
+        initialFirstVisibleItemIndex = if (moodsFirst) Filter.Airy.ordinal else 0,
+    )
+    LazyRow(state = list, contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(Filter.entries) { entry ->
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onPick(entry) }) {
                 val shape = RoundedCornerShape(16.dp)
@@ -428,4 +432,12 @@ private fun filterName(filter: Filter): Int = when (filter) {
     Filter.Mono -> R.string.filter_mono
     Filter.Noir -> R.string.filter_noir
     Filter.Sepia -> R.string.filter_sepia
+    Filter.Airy -> R.string.mood_airy
+    Filter.Golden -> R.string.mood_golden
+    Filter.NightLights -> R.string.mood_night_lights
+    Filter.Film -> R.string.mood_film
+    Filter.Pastel -> R.string.mood_pastel
+    Filter.Crisp -> R.string.mood_crisp
+    Filter.Matte -> R.string.mood_matte
+    Filter.TealOrange -> R.string.mood_teal_orange
 }

@@ -38,6 +38,9 @@ import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.MediaSet
+import app.roll.gallery.data.GroupBy
+import androidx.compose.material.icons.outlined.Screenshot
+import androidx.compose.material.icons.outlined.Schedule
 import app.roll.gallery.data.itemsIn
 import app.roll.gallery.ui.GalleryViewModel
 import app.roll.gallery.ui.components.EmptyState
@@ -56,13 +59,18 @@ fun MediaSet.title(library: Library): String = when (this) {
     MediaSet.Videos -> stringResource(R.string.videos)
     MediaSet.Trash -> stringResource(R.string.trash)
     MediaSet.Locked -> stringResource(R.string.locked_folder)
+    MediaSet.Screenshots -> stringResource(R.string.screenshots)
+    MediaSet.RecentlyAdded -> stringResource(R.string.recently_added)
     is MediaSet.Album -> library.album(id).firstOrNull()?.albumName.orEmpty()
     is MediaSet.Search -> query
     is MediaSet.Memory -> pluralStringResource(R.plurals.years_ago, yearsAgo, yearsAgo)
     is MediaSet.Person -> stringResource(R.string.person)
 }
 
-/** One album, Favorites or Videos as its own grid, with the same selecting as the Photos tab. */
+/**
+ * One album, or Favorites, Videos, Screenshots or Recently Added, as its own grid, with the same
+ * selecting as the Photos tab. Recently Added is grouped by the day things arrived.
+ */
 @Composable
 fun SetScreen(
     viewModel: GalleryViewModel,
@@ -101,6 +109,8 @@ fun SetScreen(
             val (icon, title, body) = when (set) {
                 MediaSet.Favorites -> Triple(Icons.Outlined.FavoriteBorder, R.string.no_favorites_title, R.string.no_favorites_body)
                 MediaSet.Videos -> Triple(Icons.Outlined.Videocam, R.string.no_videos_title, R.string.no_videos_body)
+                MediaSet.Screenshots -> Triple(Icons.Outlined.Screenshot, R.string.no_screenshots_title, R.string.no_screenshots_body)
+                MediaSet.RecentlyAdded -> Triple(Icons.Outlined.Schedule, R.string.no_recent_title, R.string.no_recent_body)
                 else -> Triple(Icons.Outlined.PhotoAlbum, R.string.album_empty_title, R.string.album_empty_body)
             }
             EmptyState(icon, stringResource(title), stringResource(body), Modifier.padding(padding))
@@ -114,6 +124,7 @@ fun SetScreen(
             onSelectionChange = { selectedIds = it },
             onOpen = onOpen,
             contentPadding = padding,
+            groupBy = if (set == MediaSet.RecentlyAdded) GroupBy.Added else GroupBy.Taken,
         )
     }
 }

@@ -17,6 +17,13 @@ fun buildAlbums(items: List<Media>): List<Album> {
     return albums.sortedWith(compareBy<Album> { albumRank(it.path) }.thenByDescending { it.cover.takenAt })
 }
 
+/**
+ * Whether [path] is a screenshots folder: Android's own (Pictures/Screenshots or
+ * DCIM/Screenshots) or one of the same name elsewhere, as some phones and apps use.
+ */
+fun isScreenshotFolder(path: String): Boolean =
+    path.lowercase().trimEnd('/').substringAfterLast('/') in setOf("screenshots", "screen recordings", "screenrecords")
+
 /** 0 for the camera folder, 1 for screenshots, 2 for everything else. */
 fun albumRank(path: String): Int {
     val p = path.lowercase().trimEnd('/')

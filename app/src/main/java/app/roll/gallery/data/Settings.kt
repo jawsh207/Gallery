@@ -2,6 +2,7 @@ package app.roll.gallery.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -63,7 +64,18 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[ASKED_NOTIFICATIONS] = true }
     }
 
+    /** The order of the Collections tab's tiles, by name (see [orderTiles]); empty for the usual order. */
+    val collectionOrder: Flow<List<String>> = context.settingsStore.data.map { prefs ->
+        prefs[COLLECTION_ORDER]?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    }
+
+    /** Keeps [tiles] as the Collections tab's order. */
+    suspend fun setCollectionOrder(tiles: List<CollectionTile>) {
+        context.settingsStore.edit { it[COLLECTION_ORDER] = tiles.joinToString(",") { tile -> tile.name } }
+    }
+
     private companion object {
+        val COLLECTION_ORDER = stringPreferencesKey("collection_order")
         val ASKED_NOTIFICATIONS = booleanPreferencesKey("asked_notifications")
         val DESCRIBE = booleanPreferencesKey("describe_photos")
         val FIND_PEOPLE = booleanPreferencesKey("find_people")

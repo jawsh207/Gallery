@@ -20,13 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.PhotoAlbum
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Lock
-import app.roll.gallery.ui.components.SEGMENT_GAP
-import app.roll.gallery.ui.components.ListRow
-import app.roll.gallery.ui.components.segmentShape
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.foundation.layout.size
@@ -52,6 +48,18 @@ import app.roll.gallery.R
 import app.roll.gallery.recognition.Person
 import app.roll.gallery.ui.people.PeopleRow
 import app.roll.gallery.data.Album
+import app.roll.gallery.data.CollectionTile
+import app.roll.gallery.data.moveTile
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Screenshot
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.SwapVert
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.MediaSet
 import app.roll.gallery.data.buildAlbums
@@ -60,14 +68,17 @@ import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: shortcuts to Favorites and Trash, [people] (Gallery Plus), the duplicate finder and the
- * Locked folder, then every folder with photos
- * as an album, camera and screenshots first, with a button to make a new one ([onNewAlbum]
- * gets its name once it's been checked).
+ * The Collections tab: [people] (Gallery Plus), then tiles for Favorites, Videos, Screenshots,
+ * Recently Added, the duplicate finder, the Locked folder and Trash in the [order] chosen (with
+ * a Reorder button, [onReorder] getting the new order), then every folder with photos as an
+ * album, camera and screenshots first, with a button to make a new one ([onNewAlbum] gets its
+ * name once it's been checked).
  */
 @Composable
 fun CollectionsTab(
     library: Library,
+    order: List<CollectionTile>,
+    onReorder: (List<CollectionTile>) -> Unit,
     onOpenSet: (MediaSet) -> Unit,
     onOpenTrash: () -> Unit,
     onNewAlbum: (String) -> Unit,
@@ -80,6 +91,7 @@ fun CollectionsTab(
     val albums = remember(library.items) { buildAlbums(library.items) }
     val photosById = remember(library.items) { library.items.associateBy { it.id } }
     var naming by remember { mutableStateOf(false) }
+    var reordering by remember { mutableStateOf(false) }
     if (naming) {
         NewAlbumDialog(
             existing = albums.map { it.name },
@@ -89,6 +101,27 @@ fun CollectionsTab(
             },
             onDismiss = { naming = false },
         )
+    }
+    if (reordering) {
+        ReorderDialog(
+            order,
+            onConfirm = {
+                reordering = false
+                onReorder(it)
+            },
+            onDismiss = { reordering = false },
+        )
+    }
+    val openTile: (CollectionTile) -> Unit = { tile ->
+        when (tile) {
+            CollectionTile.Favorites -> onOpenSet(MediaSet.Favorites)
+            CollectionTile.Videos -> onOpenSet(MediaSet.Videos)
+            CollectionTile.Screenshots -> onOpenSet(MediaSet.Screenshots)
+            CollectionTile.RecentlyAdded -> onOpenSet(MediaSet.RecentlyAdded)
+            CollectionTile.Duplicates -> onOpenDuplicates()
+            CollectionTile.Locked -> onOpenLocked()
+            CollectionTile.Trash -> onOpenTrash()
+        }
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(150.dp),
@@ -101,33 +134,29 @@ fun CollectionsTab(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        item(key = "shortcuts", span = { GridItemSpan(maxLineSpan) }) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Shortcut(Icons.Outlined.FavoriteBorder, stringResource(R.string.favorites), Modifier.weight(1f)) { onOpenSet(MediaSet.Favorites) }
-                Shortcut(Icons.Outlined.Delete, stringResource(R.string.trash), Modifier.weight(1f), onClick = onOpenTrash)
-            }
-        }
         if (people.isNotEmpty()) {
             item(key = "people", span = { GridItemSpan(maxLineSpan) }) {
                 PeopleRow(people, photosById, onOpenPerson)
             }
         }
-        item(key = "tools", span = { GridItemSpan(maxLineSpan) }) {
-            Column(verticalArrangement = Arrangement.spacedBy(SEGMENT_GAP)) {
-                ListRow(
-                    icon = Icons.Outlined.ContentCopy,
-                    title = stringResource(R.string.duplicates),
-                    summary = stringResource(R.string.duplicates_summary),
-                    shape = segmentShape(0, 2),
-                    onClick = onOpenDuplicates,
-                )
-                ListRow(
-                    icon = Icons.Outlined.Lock,
-                    title = stringResource(R.string.locked_folder),
-                    summary = stringResource(R.string.locked_summary),
-                    shape = segmentShape(1, 2),
-                    onClick = onOpenLocked,
-                )
+        item(key = "tiles", span = { GridItemSpan(maxLineSpan) }) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (pair in order.chunked(2)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (tile in pair) {
+                            Tile(tile, Modifier.weight(1f)) { openTile(tile) }
+                        }
+                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+                OutlinedButton(
+                    onClick = { reordering = true },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    Icon(Icons.Rounded.SwapVert, contentDescription = null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.reorder))
+                }
             }
         }
         item(key = "albums", span = { GridItemSpan(maxLineSpan) }) {
@@ -160,21 +189,72 @@ fun CollectionsTab(
     }
 }
 
-/** A tonal button with an icon over a label, for the shortcuts row. */
+/** A tile's icon and name. */
+private fun tileLook(tile: CollectionTile): Pair<ImageVector, Int> = when (tile) {
+    CollectionTile.Favorites -> Icons.Outlined.FavoriteBorder to R.string.favorites
+    CollectionTile.Videos -> Icons.Outlined.PlayCircle to R.string.videos
+    CollectionTile.Screenshots -> Icons.Outlined.Screenshot to R.string.screenshots
+    CollectionTile.RecentlyAdded -> Icons.Outlined.Schedule to R.string.recently_added
+    CollectionTile.Duplicates -> Icons.Outlined.ContentCopy to R.string.duplicates
+    CollectionTile.Locked -> Icons.Outlined.Lock to R.string.locked_folder
+    CollectionTile.Trash -> Icons.Outlined.Delete to R.string.trash
+}
+
+/** One of the Collections tab's tiles: an icon and a name on a tonal background. */
 @Composable
-private fun Shortcut(icon: ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun Tile(tile: CollectionTile, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val (icon, label) = tileLook(tile)
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
     ) {
-        Column(Modifier.padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(6.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(label), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+}
+
+/**
+ * Changing the tiles' order: each tile with buttons to move it up or down (buttons rather than
+ * dragging, so it works the same with a screen reader). [onConfirm] gets the new order.
+ */
+@Composable
+private fun ReorderDialog(
+    order: List<CollectionTile>,
+    onConfirm: (List<CollectionTile>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var tiles by remember { mutableStateOf(order) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.reorder_title)) },
+        text = {
+            Column {
+                tiles.forEachIndexed { index, tile ->
+                    val (icon, label) = tileLook(tile)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(label), Modifier.weight(1f))
+                        IconButton(onClick = { tiles = moveTile(tiles, index, -1) }, enabled = index > 0) {
+                            Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.move_up))
+                        }
+                        IconButton(onClick = { tiles = moveTile(tiles, index, 1) }, enabled = index < tiles.lastIndex) {
+                            Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.move_down))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(tiles) }) { Text(stringResource(R.string.done)) } },
+        dismissButton = {
+            TextButton(onClick = { tiles = CollectionTile.entries }) { Text(stringResource(R.string.reorder_reset)) }
+        },
+    )
 }
 
 /** An album's cover (its newest photo), name and how many items it holds. */

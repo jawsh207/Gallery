@@ -1,6 +1,7 @@
 package app.roll.gallery.ui
 
 import android.app.Application
+import android.net.Uri
 import android.content.IntentSender
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
@@ -14,6 +15,14 @@ import app.roll.gallery.data.MediaWriter
 import app.roll.gallery.Edition
 import app.roll.gallery.recognition.TextIndex
 import app.roll.gallery.recognition.RecognitionWorker
+import app.roll.gallery.data.CollectionTile
+import app.roll.gallery.data.Cell
+import app.roll.gallery.data.CollageShape
+import app.roll.gallery.data.CreationWriter
+import app.roll.gallery.data.Shot
+import app.roll.gallery.data.VideoShape
+import app.roll.gallery.data.makeVideo
+import app.roll.gallery.data.orderTiles
 import app.roll.gallery.recognition.DescriptionIndex
 import app.roll.gallery.recognition.TextDescriber
 import app.roll.gallery.recognition.bestMatches
@@ -175,6 +184,16 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         textDescriber?.close()
+    }
+
+    /** The Collections tab's tiles, in the order chosen. */
+    val collectionOrder: StateFlow<List<CollectionTile>> = settings.collectionOrder
+        .map { orderTiles(it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, CollectionTile.entries)
+
+    /** Keeps [tiles] as the Collections tab's order. */
+    fun setCollectionOrder(tiles: List<CollectionTile>) {
+        viewModelScope.launch { settings.setCollectionOrder(tiles) }
     }
 
     /**
@@ -437,6 +456,69 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             _messages.emit(app.getString(if (!saved) R.string.edit_save_failed else if (asCopy) R.string.edit_saved_copy else R.string.edit_saved))
             onSaved(saved)
         }
+    }
+
+    /** Shows [message] (a string resource, filled with [args]) over whichever screen is open. */
+    fun tell(@androidx.annotation.StringRes message: Int, vararg args: Any) {
+        _messages.tryEmit(getApplication<Application>().getString(message, *args))
+    }
+
+    private val creations = CreationWriter(app)
+    private val _making = MutableStateFlow<Float?>(null)
+
+    /** How far making a video is (0 to 1), or null when nothing is being made. */
+    val making: StateFlow<Float?> = _making
+    private var makingJob: Job? = null
+
+    /**
+     * Draws and saves a collage of [photos] in [cells] (see [CreationWriter.drawCollage]), then
+     * calls [onDone] with whether it was saved.
+     */
+    fun saveCollage(
+        photos: List<Media>,
+        cells: List<Cell>,
+        shape: CollageShape,
+        gap: Float,
+        corners: Float,
+        background: Int,
+        onDone: (Boolean) -> Unit,
+    ) {
+        viewModelScope.launch {
+            _making.value = 0f
+            val saved = withContext(Dispatchers.Default) {
+                runCatching {
+                    val bitmap = creations.drawCollage(photos, cells, shape, gap, corners, background)
+                    creations.saveImage(bitmap, "Collage").also { bitmap.recycle() }
+                }.getOrNull()
+            } != null
+            _making.value = null
+            tell(if (saved) R.string.made_collage else R.string.made_failed)
+            onDone(saved)
+        }
+    }
+
+    /**
+     * Makes a video of [shots] (see [makeVideo]) and saves it to Movies/Gallery named after
+     * [prefix], reporting progress in [making]; [onDone] gets whether it was saved.
+     */
+    fun makeMovie(shots: List<Shot>, shape: VideoShape, fill: Boolean, music: Uri?, prefix: String, onDone: (Boolean) -> Unit) {
+        makingJob?.cancel()
+        makingJob = viewModelScope.launch {
+            _making.value = 0f
+            val app = getApplication<Application>()
+            val file = makeVideo(app, shots, shape, fill, music) { _making.value = it }
+            val saved = file?.let { withContext(Dispatchers.IO) { creations.saveVideo(it, prefix).also { _ -> it.delete() } } } != null
+            _making.value = null
+            tell(if (saved) R.string.made_video else R.string.made_failed)
+            onDone(saved)
+        }
+    }
+
+    /** Stops making a video part way; nothing is saved. */
+    fun cancelMaking() {
+        makingJob?.cancel()
+        makingJob = null
+        _making.value = null
     }
 
     /** Where [media]'s motion video is, if it's a motion photo, read off the main thread. */

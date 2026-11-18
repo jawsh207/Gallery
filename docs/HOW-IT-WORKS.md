@@ -50,8 +50,11 @@ lost too much accuracy, so they stay as they are.
 | Settings | Photo access, Media management, On this day, Text and people (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Videos tab | Every video, newest first, in the same grid as Photos | `ui/GalleryApp.kt` |
-| Collections tab | People (Plus), Favorites and Trash shortcuts, Duplicates, Locked folder, and every album | `ui/collections/CollectionsTab.kt` |
-| Album, Favorites | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
+| Collections tab | People (Plus), reorderable tiles (Favorites, Videos, Screenshots, Recently added, Duplicates, Locked folder, Trash), and every album | `ui/collections/CollectionsTab.kt` |
+| Album, Favorites, Videos, Screenshots, Recently added | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
+| Create tab | Collage, Animation, Video maker and Moods | `ui/create/CreateTab.kt` |
+| Choosing for Create | Picking the photos (and clips) to make something from | `ui/create/MakeScreens.kt` |
+| Collage, Animation, Video maker | Setting up and saving each | `ui/create/MakeScreens.kt` |
 | Trash | Trashed items, to restore, delete, or empty all at once | `ui/collections/SetScreens.kt` |
 | Viewer | One photo or video full screen, swiping through the rest | `ui/viewer/ViewerScreen.kt`, `Pages.kt`, `Gestures.kt` |
 | Single-file viewer | A photo or video another app opened in Gallery | `ui/viewer/ExternalViewer.kt` |
@@ -59,7 +62,7 @@ lost too much accuracy, so they stay as they are.
 | Add to album | Moving or copying photos into an album or a new one | `ui/collections/AddToAlbum.kt` |
 | New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
 | Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
-| Editor | Cropping, turning, colour adjustments and filters, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt` |
+| Editor | Cropping, turning, colour adjustments, filters and moods, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt` |
 | Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
 | Person | One person's photos, and giving them a name (Plus) | `ui/people/People.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
@@ -197,8 +200,9 @@ in half-degree steps; tap the number to put it back to 0), a frame you drag by i
 middle, a choice of shapes (free, the photo's own, square, 4:3, 3:4, 16:9), a button that turns
 the photo a quarter clockwise, one that mirrors it, and a reset. Adjust has brightness, contrast,
 saturation and warmth, each a slider from -100 to 100 (tap the number to put it back to 0).
-Filters has Vivid, Warm, Cool, Fade, Mono, Noir and Sepia, each shown on a small copy of the
-photo. Straightening zooms the photo in just enough that its tilted edges never leave empty
+Filters has Vivid, Warm, Cool, Fade, Mono, Noir and Sepia, then the moods, fuller looks that
+change several things at once: Airy, Golden hour, Night lights, Film, Pastel, Crisp, Matte, and
+Teal & orange. Each is shown on a small copy of the photo. Straightening zooms the photo in just enough that its tilted edges never leave empty
 corners, so a small tilt loses a little of the edges. Holding the photo shows the original
 colours. Nothing changes until you save. **Save**
 writes over the original, after Android asks you to allow it (unless Media management is on);
@@ -222,6 +226,39 @@ the photo file; nothing is copied out. It doesn't play during a slideshow.
 in, and, for photos, the camera and its settings (aperture, shutter speed, focal length, ISO).
 In the trash, the date Android will delete it for good. Gallery doesn't read where a photo was
 taken.
+
+**Collections tiles.** The top of the Collections tab has a tile each for Favorites, Videos,
+Screenshots, Recently added, Duplicates, the Locked folder and Trash. Reorder (under them) lets
+you move each up or down, or reset to the usual order; the order is kept in Gallery's settings.
+Screenshots holds everything in a folder called Screenshots (or Screen recordings), wherever it
+is. Recently added holds whatever arrived on the phone in the last 30 days, whenever it was
+taken (downloads and saved photos too), grouped by the day it arrived.
+
+**Create.** The Create tab makes new things from your photos, on the phone; the photos used
+aren't changed. Each starts by choosing photos in the usual grid, and what you choose is used
+oldest first.
+
+- **Collage:** 2 to 9 photos in one picture. Pick a layout (rows, columns, one big photo with
+  the rest beside it, and more), a shape (square, portrait, story or landscape), the spacing,
+  how round the corners are, and a white or black background. Tap one photo and then another
+  to swap them. Each photo fills its cell, cut around its middle. Saved as a 3000-pixel JPEG in
+  Pictures/Gallery.
+- **Animation:** 2 to 60 photos shown one after another, quickly, previewed on a loop. Speed
+  goes from half a second down to a tenth of a second per photo, and it can play there and back
+  so the loop has no jump. Saved as a video (played through enough times to last at least
+  three seconds, since not every player loops) in Movies/Gallery.
+- **Video maker:** photos and clips one after another, each photo for 2, 3 or 5 seconds and
+  clips in full with their sound, in a landscape, portrait or square frame, either fitted inside
+  it with black bars or filling it (cropping the edges). Music can be added from any audio file
+  on the phone, chosen with Android's own file picker; it repeats if it's shorter than the video
+  and is cut off at the end if it's longer. There are no transitions between shots. Saved as
+  an MP4 in Movies/Gallery.
+- **Moods:** opens one photo in the editor on its looks, scrolled to the moods (see Editing).
+
+Videos are made with Media3's Transformer, the open-source AndroidX media library, using the
+phone's own video encoder; a progress bar shows while it works, and Cancel stops it without
+saving anything. New files are named after when they were made, like
+Collage_20261117_194512.jpg.
 
 **Albums.** Every folder holding photos or videos is an album, with its newest photo as the
 cover. The camera folder comes first, screenshots second, then the rest by their newest photo.
@@ -305,6 +342,10 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Running the duplicate search in the background | `ui/GalleryViewModel.kt` |
 | What an edit is, colour maths, straighten zoom, crop shapes and dragging the crop frame | `data/Edits.kt` |
 | Drawing edits and saving the result | `data/EditRenderer.kt` |
+| What Create makes, collage layouts and crops, animation timing, new file names | `data/Creations.kt` |
+| Drawing and saving collages, and saving made videos | `data/CreationWriter.kt` |
+| Making videos from photos and clips | `data/VideoMaking.kt` |
+| The Collections tiles and their order | `data/CollectionTiles.kt` |
 | Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
 | Share sheet and change confirmations | `ui/components/MediaActions.kt`, `ui/Actions.kt` |
@@ -335,6 +376,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, editing maths and saved-file names, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

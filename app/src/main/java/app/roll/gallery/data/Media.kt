@@ -37,6 +37,8 @@ data class Media(
     val expiresAt: Long,
     /** Set for a file another app handed over (it isn't in the media store); null otherwise. */
     val externalUri: Uri? = null,
+    /** When the file arrived on the phone, in seconds; 0 if unknown. */
+    val addedAt: Long = 0,
 ) {
     /** Where to open the file, e.g. content://media/external/images/media/42. */
     val uri: Uri
@@ -60,7 +62,21 @@ data class Library(val items: List<Media>, val trash: List<Media>, val locked: L
 
     /** Videos only, newest first. */
     val videos: List<Media> get() = items.filter { it.isVideo }
+
+    /** Screenshots and screen recordings from any screenshots folder, newest first. */
+    val screenshots: List<Media> get() = items.filter { isScreenshotFolder(it.path) }
+
+    /**
+     * Everything that arrived on the phone in the last [RECENT_DAYS] days before [now] (in
+     * seconds), whenever it was taken, most recently arrived first: new downloads and saved
+     * photos as well as new shots.
+     */
+    fun recentlyAdded(now: Long = System.currentTimeMillis() / 1000): List<Media> =
+        items.filter { it.addedAt >= now - RECENT_DAYS * 24 * 60 * 60 }.sortedByDescending { it.addedAt }
 }
+
+/** How far back Recently Added goes, in days. */
+const val RECENT_DAYS = 30L
 
 /** The places a set of photos can come from, so the viewer can page through the same set. */
 sealed interface MediaSet {
@@ -70,6 +86,9 @@ sealed interface MediaSet {
     data object Videos : MediaSet
     data object Trash : MediaSet
     data object Locked : MediaSet
+    data object Screenshots : MediaSet
+    /** Whatever arrived on the phone lately, by when it arrived (see [Library.recentlyAdded]). */
+    data object RecentlyAdded : MediaSet
     data class Album(val id: Long) : MediaSet
     /** Today's "On this day" photos from [yearsAgo] years ago (see [memoriesFor]). */
     data class Memory(val yearsAgo: Int) : MediaSet
@@ -98,6 +117,8 @@ fun Library.itemsIn(
     MediaSet.Videos -> videos
     MediaSet.Trash -> trash
     MediaSet.Locked -> locked
+    MediaSet.Screenshots -> screenshots
+    MediaSet.RecentlyAdded -> recentlyAdded()
     is MediaSet.Album -> album(set.id)
     is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, descriptionMatches(set.query), photoText)
     is MediaSet.Person -> personPhotos(set.key).let { ids -> items.filter { it.id in ids } }

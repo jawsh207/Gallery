@@ -113,6 +113,9 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     // Video and motion photo playback in the viewer.
     implementation(libs.androidx.media3.exoplayer)
+    // Making videos on the Create tab: Transformer encodes with the phone's own encoder.
+    implementation(libs.androidx.media3.transformer)
+    implementation(libs.androidx.media3.effect)
     // Reading a motion photo's video straight out of the photo file.
     implementation(libs.androidx.media3.datasource)
     // Loading and caching thumbnails and full-size photos.

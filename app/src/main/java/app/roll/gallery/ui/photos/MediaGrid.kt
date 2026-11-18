@@ -51,6 +51,7 @@ import app.roll.gallery.data.Media
 import app.roll.gallery.data.Section
 import app.roll.gallery.data.SectionLabel
 import app.roll.gallery.data.buildSections
+import app.roll.gallery.data.GroupBy
 import app.roll.gallery.data.dragSelection
 import app.roll.gallery.ui.components.MediaThumb
 import app.roll.gallery.ui.components.text
@@ -77,6 +78,7 @@ sealed interface GridEntry {
  * the finger nears its top or bottom edge). A fast-scroll handle appears while scrolling.
  *
  * [header] adds anything that should scroll above the photos (a banner, an intro line).
+ * [groupBy] picks the date the headers go by: when taken, or (for Recently Added) when it arrived.
  */
 @Composable
 fun MediaGrid(
@@ -90,10 +92,11 @@ fun MediaGrid(
     state: LazyGridState = rememberLazyGridState(),
     contentPadding: PaddingValues = PaddingValues(),
     header: LazyGridScope.() -> Unit = {},
+    groupBy: GroupBy = GroupBy.Taken,
 ) {
     val today = remember { LocalDate.now() }
     val zone = remember { ZoneId.systemDefault() }
-    val sections = remember(items, zoom.byMonth) { buildSections(items, zoom.byMonth, today, zone) }
+    val sections = remember(items, zoom.byMonth, groupBy) { buildSections(items, zoom.byMonth, today, zone, groupBy) }
     val entries = remember(sections) {
         sections.flatMap { section -> listOf(GridEntry.Header(section)) + section.items.map { GridEntry.Cell(it, section) } }
     }

@@ -36,6 +36,7 @@ class MediaStoreSource(private val resolver: ContentResolver) {
             val mime = c.getColumnIndexOrThrow(MediaColumns.MIME_TYPE)
             val taken = c.getColumnIndexOrThrow(MediaColumns.DATE_TAKEN)
             val modified = c.getColumnIndexOrThrow(MediaColumns.DATE_MODIFIED)
+            val added = c.getColumnIndexOrThrow(MediaColumns.DATE_ADDED)
             val width = c.getColumnIndexOrThrow(MediaColumns.WIDTH)
             val height = c.getColumnIndexOrThrow(MediaColumns.HEIGHT)
             val orientation = c.getColumnIndexOrThrow(MediaColumns.ORIENTATION)
@@ -68,6 +69,7 @@ class MediaStoreSource(private val resolver: ContentResolver) {
                         ?: dateFromName(fileName, zone)
                         ?: (modifiedSec * 1000),
                     modifiedAt = modifiedSec,
+                    addedAt = c.getLong(added),
                     width = if (sideways) h else w,
                     height = if (sideways) w else h,
                     durationMs = if (isVideo) c.getLong(duration) else 0,
@@ -109,7 +111,7 @@ class MediaStoreSource(private val resolver: ContentResolver) {
         const val MEDIA_TYPE_VIDEO = MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
         val PROJECTION = arrayOf(
             BaseColumns._ID, MEDIA_TYPE, MediaColumns.MIME_TYPE, MediaColumns.DATE_TAKEN,
-            MediaColumns.DATE_MODIFIED, MediaColumns.WIDTH, MediaColumns.HEIGHT,
+            MediaColumns.DATE_MODIFIED, MediaColumns.DATE_ADDED, MediaColumns.WIDTH, MediaColumns.HEIGHT,
             MediaColumns.ORIENTATION, MediaColumns.DURATION, MediaColumns.BUCKET_ID,
             MediaColumns.BUCKET_DISPLAY_NAME, MediaColumns.RELATIVE_PATH, MediaColumns.DISPLAY_NAME,
             MediaColumns.SIZE, MediaColumns.IS_FAVORITE, MediaColumns.IS_TRASHED,
