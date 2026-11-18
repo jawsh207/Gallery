@@ -339,4 +339,30 @@
     <string name="mood_crisp">Crisp</string>
     <string name="mood_matte">Matte</string>
     <string name="mood_teal_orange">Teal &amp; orange</string>
+
+    <!-- Undo -->
+    <string name="undo">Undo</string>
+    <plurals name="trashed">
+        <item quantity="one">Moved to trash</item>
+        <item quantity="other"><xliff:g id="count" example="3">%d</xliff:g> moved to trash</item>
+    </plurals>
+
+    <!-- Albums and folders -->
+    <string name="settings_folders">Folders in Photos</string>
+    <string name="settings_folders_summary">Choose which folders show in the Photos tab</string>
+    <string name="folders_intro">Folders turned off stay as albums and in search, but aren\'t mixed in with your photos.</string>
+    <string name="album_sort">Sort albums</string>
+    <string name="album_sort_recent">Most recent</string>
+    <string name="album_sort_name">Name</string>
+    <string name="album_pin">Pin to top</string>
+    <string name="album_unpin">Unpin</string>
+    <string name="album_pinned">Pinned</string>
+    <string name="album_in_photos">Show in Photos</string>
+    <string name="album_use_as_cover">Use as album cover</string>
+
+    <!-- Date editing -->
+    <string name="edit_date">Edit date &amp; time</string>
+    <string name="next">Next</string>
+    <string name="date_changed">Date changed</string>
+    <string name="date_change_failed">Couldn\'t change the date</string>
 </resources>

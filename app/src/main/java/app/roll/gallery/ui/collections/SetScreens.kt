@@ -38,6 +38,13 @@ import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.MediaSet
+import androidx.compose.material.icons.outlined.Photo
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.foundation.layout.Box
 import app.roll.gallery.data.GroupBy
 import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.Schedule
@@ -99,6 +106,7 @@ fun SetScreen(
                 TopAppBar(
                     title = { Text(set.title(library)) },
                     navigationIcon = { BackButton(onBack) },
+                    actions = { if (set is MediaSet.Album) AlbumMenu(viewModel, library, set.albumId) },
                     scrollBehavior = scroll,
                 )
             }
@@ -206,6 +214,39 @@ fun TrashScreen(viewModel: GalleryViewModel, library: Library, onBack: () -> Uni
             },
             dismissButton = { TextButton(onClick = { confirmEmpty = false }) { Text(stringResource(R.string.cancel)) } },
         )
+    }
+}
+
+/**
+ * An album's menu: pin it to the top of the albums (or unpin it), and whether it shows in the
+ * Photos grid. Its cover is chosen from the viewer ("Use as album cover").
+ */
+@Composable
+private fun AlbumMenu(viewModel: GalleryViewModel, library: Library, albumId: Long) {
+    var open by remember { mutableStateOf(false) }
+    val pinned = albumId in library.albumPrefs.pinned
+    val inPhotos = albumId !in library.albumPrefs.hidden
+    Box {
+        IconButton(onClick = { open = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more)) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(if (pinned) R.string.album_unpin else R.string.album_pin)) },
+                leadingIcon = { Icon(Icons.Outlined.PushPin, contentDescription = null) },
+                onClick = {
+                    open = false
+                    viewModel.setAlbumPinned(albumId, !pinned)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.album_in_photos)) },
+                leadingIcon = { Icon(Icons.Outlined.Photo, contentDescription = null) },
+                trailingIcon = { Checkbox(checked = inPhotos, onCheckedChange = null) },
+                onClick = {
+                    open = false
+                    viewModel.setAlbumInPhotos(albumId, !inPhotos)
+                },
+            )
+        }
     }
 }
 

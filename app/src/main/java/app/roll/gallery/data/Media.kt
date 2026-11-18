@@ -51,9 +51,21 @@ data class Media(
 
 /**
  * Everything Gallery can show: the media store's items, split into the library and the trash,
- * plus the Locked folder's [locked] items (kept apart, and only shown once unlocked).
+ * plus the Locked folder's [locked] items (kept apart, and only shown once unlocked), and the
+ * choices made about albums ([albumPrefs]).
  */
-data class Library(val items: List<Media>, val trash: List<Media>, val locked: List<Media> = emptyList()) {
+data class Library(
+    val items: List<Media>,
+    val trash: List<Media>,
+    val locked: List<Media> = emptyList(),
+    val albumPrefs: AlbumPrefs = AlbumPrefs(),
+) {
+    /** What the Photos grid shows: everything except folders kept out of it (still albums). */
+    val timeline: List<Media> get() = if (albumPrefs.hidden.isEmpty()) items else items.filter { it.albumId !in albumPrefs.hidden }
+
+    /** The albums, as arranged in the Collections tab (see [buildAlbums]). */
+    val albums: List<Album> get() = buildAlbums(items, albumPrefs)
+
     /** One album's items, newest first. */
     fun album(albumId: Long): List<Media> = items.filter { it.albumId == albumId }
 
@@ -112,7 +124,7 @@ fun Library.itemsIn(
     personPhotos: (String) -> Set<Long> = { emptySet() },
     descriptionMatches: (String) -> Set<Long> = { emptySet() },
 ): List<Media> = when (set) {
-    MediaSet.All -> items
+    MediaSet.All -> timeline
     MediaSet.Favorites -> favorites
     MediaSet.Videos -> videos
     MediaSet.Trash -> trash

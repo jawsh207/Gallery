@@ -25,6 +25,8 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.outlined.EditCalendar
+import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material3.TextButton
 import app.roll.gallery.ui.collections.AddToAlbumSheet
 import androidx.compose.animation.AnimatedVisibility
@@ -85,6 +87,7 @@ import app.roll.gallery.ui.components.takenAtText
 import app.roll.gallery.ui.libraryActions
 import app.roll.gallery.ui.theme.GalleryTheme
 import app.roll.gallery.ui.trashActions
+import app.roll.gallery.ui.components.rememberRequestLauncher
 import androidx.compose.material.icons.outlined.Info
 import kotlin.math.abs
 import kotlinx.coroutines.launch
@@ -94,7 +97,8 @@ import kotlinx.coroutines.launch
  * [set], tap to show or hide the controls (and Android's status and navigation bars), pinch or
  * double-tap to zoom, drag down to close and drag up for details. The bottom bar has the same
  * actions as a selection: share, favorite and trash, or restore and delete inside the trash;
- * the top bar's menu has Slideshow, Add to album and, for photos, Set as wallpaper. A slideshow
+ * the top bar's menu has Slideshow, Add to album, Move to Locked folder, Edit date & time,
+ * Use as album cover (when opened from an album) and, for photos, Set as wallpaper. A slideshow
  * starts straight away when [slideshowAtStart] (opening a memory). A motion photo's video plays
  * once when it comes up, and again from the Motion chip under the top bar. Edit (photos only)
  * opens [onEdit]. In the Locked folder the actions are Move out and Delete instead, screenshots
@@ -211,6 +215,14 @@ fun ViewerScreen(
     var playMotion by remember(current.id) { mutableStateOf(true) }
     var addingToAlbum by remember { mutableStateOf(false) }
     var wallpaper by remember { mutableStateOf(false) }
+    var editingDate by remember { mutableStateOf(false) }
+    var newDate by remember { mutableStateOf<Long?>(null) }
+    // Changing the date needs write access to the file, asked for once the new date is picked.
+    val dateRequest = rememberRequestLauncher { agreed ->
+        val date = newDate
+        if (agreed && date != null) viewModel.setTakenAt(current, date)
+        newDate = null
+    }
     val menu = buildList {
         if (items.size > 1) add(BarAction(Icons.Outlined.Slideshow, stringResource(R.string.slideshow)) { slideshow = true })
         val shared = set != MediaSet.Trash && set != MediaSet.Locked
@@ -218,6 +230,12 @@ fun ViewerScreen(
         if (shared) add(BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(listOf(current)) })
         if (shared && !current.isVideo) {
             add(BarAction(Icons.Outlined.Wallpaper, stringResource(R.string.set_wallpaper)) { wallpaper = true })
+        }
+        if (set is MediaSet.Album) {
+            add(BarAction(Icons.Outlined.PhotoAlbum, stringResource(R.string.album_use_as_cover)) { viewModel.setAlbumCover(current) })
+        }
+        if (shared && current.externalUri == null) {
+            add(BarAction(Icons.Outlined.EditCalendar, stringResource(R.string.edit_date)) { editingDate = true })
         }
     }
 
@@ -288,6 +306,17 @@ fun ViewerScreen(
         if (showInfo) InfoSheet(current, viewModel) { showInfo = false }
         if (addingToAlbum) {
             AddToAlbumSheet(viewModel, library, listOf(current), onDismiss = { addingToAlbum = false }, onDone = { addingToAlbum = false })
+        }
+        if (editingDate) {
+            EditDateDialog(
+                takenAt = current.takenAt,
+                onPick = { millis ->
+                    editingDate = false
+                    newDate = millis
+                    dateRequest(viewModel.writeRequest(listOf(current)))
+                },
+                onDismiss = { editingDate = false },
+            )
         }
         if (wallpaper) {
             WallpaperDialog(

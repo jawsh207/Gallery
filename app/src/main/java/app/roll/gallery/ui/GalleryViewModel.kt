@@ -16,6 +16,9 @@ import app.roll.gallery.Edition
 import app.roll.gallery.recognition.TextIndex
 import app.roll.gallery.recognition.RecognitionWorker
 import app.roll.gallery.data.CollectionTile
+import app.roll.gallery.data.AlbumPrefs
+import app.roll.gallery.data.AlbumSort
+import app.roll.gallery.data.setTakenAt
 import app.roll.gallery.data.Cell
 import app.roll.gallery.data.CollageShape
 import app.roll.gallery.data.CreationWriter
@@ -63,6 +66,21 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
+
+/** A short message for the user, with something [undo] can reverse if there is one. */
+data class Message(val text: String, val undo: Undo? = null)
+
+/** What Undo on a message reverses. */
+sealed interface Undo {
+    /** Items just trashed: Undo takes them out again. */
+    data class Untrash(val items: List<Media>) : Undo
+
+    /** Items just moved into another album: Undo moves each back to its old folder ([paths], by id). */
+    data class MoveBack(val paths: Map<Long, String>, val items: List<Media>) : Undo
+
+    /** Locked folder copies of items just moved in: Undo moves them back out. */
+    data class Unlock(val items: List<Media>) : Undo
+}
 
 /**
  * Holds the library for every screen and builds the change requests they send. The library
@@ -191,6 +209,23 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         .map { orderTiles(it) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, CollectionTile.entries)
 
+    /** Shows the album [albumId] in the Photos grid, or keeps it out ([shown] false); it stays an album either way. */
+    fun setAlbumInPhotos(albumId: Long, shown: Boolean) = updateAlbums { it.copy(hidden = if (shown) it.hidden - albumId else it.hidden + albumId) }
+
+    /** Pins the album [albumId] to the top of the albums, after any pinned before it, or unpins it. */
+    fun setAlbumPinned(albumId: Long, pinned: Boolean) =
+        updateAlbums { it.copy(pinned = if (pinned) it.pinned - albumId + albumId else it.pinned - albumId) }
+
+    /** Makes [photo] its album's cover. */
+    fun setAlbumCover(photo: Media) = updateAlbums { it.copy(covers = it.covers + (photo.albumId to photo.id)) }
+
+    /** Orders the albums by [sort] (after the pinned ones). */
+    fun setAlbumSort(sort: AlbumSort) = updateAlbums { it.copy(sort = sort) }
+
+    private fun updateAlbums(change: (AlbumPrefs) -> AlbumPrefs) {
+        viewModelScope.launch { settings.updateAlbumPrefs(change) }
+    }
+
     /** Keeps [tiles] as the Collections tab's order. */
     fun setCollectionOrder(tiles: List<CollectionTile>) {
         viewModelScope.launch { settings.setCollectionOrder(tiles) }
@@ -265,10 +300,10 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    private val _messages = MutableSharedFlow<Message>(extraBufferCapacity = 4)
 
-    /** Short messages for the user ("Copied 3 items"), shown as a snackbar. */
-    val messages: SharedFlow<String> = _messages
+    /** Short messages for the user ("Copied 3 items"), shown as a snackbar, some with Undo. */
+    val messages: SharedFlow<Message> = _messages
     private val accessChanged = MutableStateFlow(0)
 
     private val lockedFolder = LockedFolder(app)
@@ -282,6 +317,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         .map { source.load() }
         .flowOn(Dispatchers.IO)
         .combine(lockedItems) { library, locked -> library.copy(locked = locked) }
+        .combine(settings.albumPrefs) { library, prefs -> library.copy(albumPrefs = prefs) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _unlocked = MutableStateFlow(false)
@@ -318,7 +354,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             val pairs = withContext(Dispatchers.IO) { items.mapNotNull { item -> lockedFolder.add(item)?.let { item to it } } }
             if (pairs.size < items.size) {
                 val failed = items.size - pairs.size
-                _messages.emit(getApplication<Application>().resources.getQuantityString(R.plurals.lock_failed, failed, failed))
+                _messages.emit(Message(getApplication<Application>().resources.getQuantityString(R.plurals.lock_failed, failed, failed)))
             }
             if (pairs.isNotEmpty()) onCopied(pairs.map { it.first }, pairs.map { it.second })
         }
@@ -333,7 +369,12 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.IO) { if (!deleted) copies.forEach(lockedFolder::delete) }
             refreshLocked()
             if (deleted) {
-                _messages.emit(getApplication<Application>().resources.getQuantityString(R.plurals.locked_count, copies.size, copies.size))
+                _messages.emit(
+                    Message(
+                        getApplication<Application>().resources.getQuantityString(R.plurals.locked_count, copies.size, copies.size),
+                        Undo.Unlock(copies),
+                    ),
+                )
             }
         }
     }
@@ -345,8 +386,10 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             refreshLocked()
             val res = getApplication<Application>().resources
             _messages.emit(
-                if (failed == 0) res.getQuantityString(R.plurals.moved_out, items.size, items.size)
-                else res.getQuantityString(R.plurals.move_failed, failed, failed),
+                Message(
+                    if (failed == 0) res.getQuantityString(R.plurals.moved_out, items.size, items.size)
+                    else res.getQuantityString(R.plurals.move_failed, failed, failed),
+                ),
             )
         }
     }
@@ -379,25 +422,69 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     /** Copies [items] into the folder [path] in the background, then says how it went. */
     fun copy(items: List<Media>, path: String) = runAndReport(items, R.plurals.copied, R.plurals.copy_failed) { writer.copy(items, path) }
 
-    /** Moves [items] into the folder [path] in the background (after a write request), then says how it went. */
-    fun move(items: List<Media>, path: String) = runAndReport(items, R.plurals.moved, R.plurals.move_failed) { writer.move(items, path) }
+    /**
+     * Moves [items] into the folder [path] in the background (after a write request), then says
+     * how it went, with Undo putting each back where it was.
+     */
+    fun move(items: List<Media>, path: String) =
+        runAndReport(items, R.plurals.moved, R.plurals.move_failed, Undo.MoveBack(items.associate { it.id to it.path }, items)) {
+            writer.move(items, path)
+        }
+
+    /** Changes when [media] was taken to [millis] (after a write request), then says how it went. */
+    fun setTakenAt(media: Media, millis: Long) {
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) { getApplication<Application>().contentResolver.setTakenAt(media, millis) }
+            tell(if (ok) R.string.date_changed else R.string.date_change_failed)
+        }
+    }
+
+    /** Says [items] went to the trash, with Undo to bring them back. */
+    fun trashed(items: List<Media>) {
+        val res = getApplication<Application>().resources
+        _messages.tryEmit(Message(res.getQuantityString(R.plurals.trashed, items.size, items.size), Undo.Untrash(items)))
+    }
+
+    /**
+     * Carries out [undo] where no confirmation is needed: moving items back to their folders,
+     * or out of the Locked folder again. Taking things out of the trash needs Android's
+     * confirmation, so the screen does that with [trashRequest].
+     */
+    fun undo(undo: Undo) {
+        when (undo) {
+            is Undo.Untrash -> Unit
+            is Undo.Unlock -> unlockItems(undo.items)
+            is Undo.MoveBack -> viewModelScope.launch {
+                withContext(Dispatchers.IO) {
+                    // The items were moved, so their current entries are found by id.
+                    val now = source.load().items.associateBy { it.id }
+                    undo.items.mapNotNull { now[it.id] }.groupBy { undo.paths[it.id] }.forEach { (path, group) ->
+                        if (path != null) writer.move(group, path)
+                    }
+                }
+            }
+        }
+    }
 
     /** Sets [media] as wallpaper ([which]: home, lock or both), then says whether it worked. */
     fun setWallpaper(media: Media, which: Int) {
         viewModelScope.launch {
             val ok = withContext(Dispatchers.IO) { writer.setWallpaper(media, which) }
-            _messages.emit(getApplication<Application>().getString(if (ok) R.string.wallpaper_set else R.string.wallpaper_failed))
+            _messages.emit(Message(getApplication<Application>().getString(if (ok) R.string.wallpaper_set else R.string.wallpaper_failed)))
         }
     }
 
-    /** Runs [work] off the main thread and reports the count done ([done]) or failed ([failed]). */
-    private fun runAndReport(items: List<Media>, done: Int, failed: Int, work: () -> Int) {
+    /**
+     * Runs [work] off the main thread and reports the count done ([done], with [undo] if given)
+     * or failed ([failed]).
+     */
+    private fun runAndReport(items: List<Media>, done: Int, failed: Int, undo: Undo? = null, work: () -> Int) {
         viewModelScope.launch {
             val failures = withContext(Dispatchers.IO) { work() }
             val res = getApplication<Application>().resources
             _messages.emit(
-                if (failures == 0) res.getQuantityString(done, items.size, items.size)
-                else res.getQuantityString(failed, failures, failures),
+                if (failures == 0) Message(res.getQuantityString(done, items.size, items.size), undo)
+                else Message(res.getQuantityString(failed, failures, failures)),
             )
         }
     }
@@ -453,14 +540,14 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val saved = withContext(Dispatchers.Default) { renderer.save(media, edits, asCopy) } != null
             val app = getApplication<Application>()
-            _messages.emit(app.getString(if (!saved) R.string.edit_save_failed else if (asCopy) R.string.edit_saved_copy else R.string.edit_saved))
+            _messages.emit(Message(app.getString(if (!saved) R.string.edit_save_failed else if (asCopy) R.string.edit_saved_copy else R.string.edit_saved)))
             onSaved(saved)
         }
     }
 
     /** Shows [message] (a string resource, filled with [args]) over whichever screen is open. */
     fun tell(@androidx.annotation.StringRes message: Int, vararg args: Any) {
-        _messages.tryEmit(getApplication<Application>().getString(message, *args))
+        _messages.tryEmit(Message(getApplication<Application>().getString(message, *args)))
     }
 
     private val creations = CreationWriter(app)

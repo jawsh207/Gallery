@@ -37,4 +37,11 @@ class FileDatesTest {
         assertNull(date("IMG_20241332_000000.jpg"))
         assertNull(date("photo_12345678901234567.jpg"))
     }
+
+    @Test
+    fun writesExifDates() {
+        val (date, offset) = exifDateTime(at(2024, 5, 12, 14, 30), java.time.ZoneOffset.ofHours(-4))
+        assertEquals("2024:05:12 10:30:00", date)
+        assertEquals("-04:00", offset)
+    }
 }

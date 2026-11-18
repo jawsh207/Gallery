@@ -50,6 +50,14 @@ import app.roll.gallery.ui.people.PeopleRow
 import app.roll.gallery.data.Album
 import app.roll.gallery.data.CollectionTile
 import app.roll.gallery.data.moveTile
+import app.roll.gallery.data.AlbumSort
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -70,7 +78,8 @@ import coil3.compose.AsyncImage
  * The Collections tab: [people] (Gallery Plus), then tiles for Favorites, Screenshots,
  * Recently Added, the duplicate finder, the Locked folder and Trash in the [order] chosen (with
  * a Reorder button, [onReorder] getting the new order), then every folder with photos as an
- * album, camera and screenshots first, with a button to make a new one ([onNewAlbum] gets its
+ * album, pinned ones first, then by recent (camera and screenshots first) or by name
+ * ([onSortAlbums]), with a button to make a new one ([onNewAlbum] gets its
  * name once it's been checked).
  */
 @Composable
@@ -83,11 +92,13 @@ fun CollectionsTab(
     onNewAlbum: (String) -> Unit,
     onOpenDuplicates: () -> Unit,
     onOpenLocked: () -> Unit,
+    onSortAlbums: (AlbumSort) -> Unit,
     contentPadding: PaddingValues,
     people: List<Person> = emptyList(),
     onOpenPerson: (Person) -> Unit = {},
 ) {
-    val albums = remember(library.items) { buildAlbums(library.items) }
+    val albums = remember(library) { library.albums }
+    var sorting by remember { mutableStateOf(false) }
     val photosById = remember(library.items) { library.items.associateBy { it.id } }
     var naming by remember { mutableStateOf(false) }
     var reordering by remember { mutableStateOf(false) }
@@ -164,6 +175,23 @@ fun CollectionsTab(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 4.dp).weight(1f),
                 )
+                Box {
+                    IconButton(onClick = { sorting = true }) {
+                        Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.album_sort))
+                    }
+                    DropdownMenu(expanded = sorting, onDismissRequest = { sorting = false }) {
+                        for (sort in AlbumSort.entries) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(if (sort == AlbumSort.Recent) R.string.album_sort_recent else R.string.album_sort_name)) },
+                                trailingIcon = { if (library.albumPrefs.sort == sort) Icon(Icons.Rounded.Check, contentDescription = null) },
+                                onClick = {
+                                    sorting = false
+                                    onSortAlbums(sort)
+                                },
+                            )
+                        }
+                    }
+                }
                 FilledTonalButton(onClick = { naming = true }) {
                     Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -258,15 +286,25 @@ private fun ReorderDialog(
 @Composable
 private fun AlbumCard(album: Album, onClick: () -> Unit) {
     Column(Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick)) {
-        AsyncImage(
-            model = album.cover.thumbnail(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp)),
-        )
+        Box {
+            AsyncImage(
+                model = album.cover.thumbnail(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp)),
+            )
+            if (album.pinned) {
+                Icon(
+                    Icons.Rounded.PushPin,
+                    contentDescription = stringResource(R.string.album_pinned),
+                    tint = Color.White,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(18.dp),
+                )
+            }
+        }
         Text(
             album.name,
             style = MaterialTheme.typography.titleSmall,

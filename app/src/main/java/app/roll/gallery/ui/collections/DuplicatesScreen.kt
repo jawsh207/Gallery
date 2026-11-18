@@ -53,7 +53,7 @@ import app.roll.gallery.image.thumbnail
 import app.roll.gallery.ui.GalleryViewModel
 import app.roll.gallery.ui.components.EmptyState
 import app.roll.gallery.ui.components.currentLocale
-import app.roll.gallery.ui.components.rememberRequestLauncher
+import app.roll.gallery.ui.components.rememberTrash
 import app.roll.gallery.ui.components.takenAtText
 import coil3.compose.AsyncImage
 
@@ -74,7 +74,7 @@ fun DuplicatesScreen(viewModel: GalleryViewModel, library: Library, onBack: () -
         marked = groups.orEmpty().flatMap { g -> g.items.filter { it.id != g.keep.id } }.map { it.id }.toSet()
     }
     val markedItems = groups.orEmpty().flatMap { it.items }.filter { it.id in marked }
-    val request = rememberRequestLauncher()
+    val trash = rememberTrash(viewModel)
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.duplicates)) }, navigationIcon = { BackButton(onBack) }) },
@@ -82,7 +82,7 @@ fun DuplicatesScreen(viewModel: GalleryViewModel, library: Library, onBack: () -
             if (markedItems.isNotEmpty()) {
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                     Button(
-                        onClick = { request(viewModel.trashRequest(markedItems, trash = true)) },
+                        onClick = { trash(markedItems) },
                         modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
                     ) {
                         Text(

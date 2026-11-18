@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Switch
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -69,7 +70,7 @@ import app.roll.gallery.ui.components.segmentShape
  * Access can change in Android's settings, so it's read again whenever this screen returns.
  */
 @Composable
-fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
+fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit, onOpenFolders: () -> Unit = {}) {
     val context = LocalContext.current
     // Bumped to re-read access after coming back from Android's settings or the permission dialog.
     var refresh by remember { mutableIntStateOf(0) }
@@ -161,9 +162,19 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit) {
                     icon = Icons.Outlined.History,
                     title = stringResource(R.string.settings_memories),
                     summary = stringResource(R.string.settings_memories_summary),
-                    shape = segmentShape(0, 1),
+                    shape = segmentShape(0, 2),
                     onClick = { viewModel.setShowMemories(!showMemories) },
                     trailing = { Switch(checked = showMemories, onCheckedChange = viewModel::setShowMemories) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            item(key = "folders") {
+                ListRow(
+                    icon = Icons.Outlined.FolderOpen,
+                    title = stringResource(R.string.settings_folders),
+                    summary = stringResource(R.string.settings_folders_summary),
+                    shape = segmentShape(1, 2),
+                    onClick = onOpenFolders,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }

@@ -74,7 +74,37 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[COLLECTION_ORDER] = tiles.joinToString(",") { tile -> tile.name } }
     }
 
+    /** The choices made about albums: kept out of Photos, pinned, covers and order. */
+    val albumPrefs: Flow<AlbumPrefs> = context.settingsStore.data.map { albumPrefsIn(it) }
+
+    /** Changes the album choices with [change]. */
+    suspend fun updateAlbumPrefs(change: (AlbumPrefs) -> AlbumPrefs) {
+        context.settingsStore.edit { prefs ->
+            val now = change(albumPrefsIn(prefs))
+            prefs[HIDDEN_ALBUMS] = now.hidden.joinToString(",")
+            prefs[PINNED_ALBUMS] = now.pinned.joinToString(",")
+            prefs[ALBUM_COVERS] = now.covers.entries.joinToString(",") { "${it.key}:${it.value}" }
+            prefs[ALBUM_SORT] = now.sort.name
+        }
+    }
+
+    private fun albumPrefsIn(prefs: androidx.datastore.preferences.core.Preferences) = AlbumPrefs(
+        hidden = ids(prefs[HIDDEN_ALBUMS]).toSet(),
+        pinned = ids(prefs[PINNED_ALBUMS]),
+        covers = prefs[ALBUM_COVERS].orEmpty().split(',').mapNotNull { pair ->
+            val parts = pair.split(':')
+            if (parts.size != 2) null else parts[0].toLongOrNull()?.let { album -> parts[1].toLongOrNull()?.let { album to it } }
+        }.toMap(),
+        sort = AlbumSort.entries.firstOrNull { it.name == prefs[ALBUM_SORT] } ?: AlbumSort.Recent,
+    )
+
+    private fun ids(text: String?): List<Long> = text.orEmpty().split(',').mapNotNull { it.toLongOrNull() }
+
     private companion object {
+        val HIDDEN_ALBUMS = stringPreferencesKey("hidden_albums")
+        val PINNED_ALBUMS = stringPreferencesKey("pinned_albums")
+        val ALBUM_COVERS = stringPreferencesKey("album_covers")
+        val ALBUM_SORT = stringPreferencesKey("album_sort")
         val COLLECTION_ORDER = stringPreferencesKey("collection_order")
         val ASKED_NOTIFICATIONS = booleanPreferencesKey("asked_notifications")
         val DESCRIBE = booleanPreferencesKey("describe_photos")

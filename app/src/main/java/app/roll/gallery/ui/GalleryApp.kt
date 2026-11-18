@@ -42,6 +42,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.ShortNavigationBarItem
@@ -94,12 +96,14 @@ import app.roll.gallery.ui.components.SelectionBottomBar
 import app.roll.gallery.ui.components.SelectionTopBar
 import app.roll.gallery.ui.photos.PhotosTab
 import app.roll.gallery.ui.viewer.ViewerScreen
+import app.roll.gallery.ui.components.rememberRequestLauncher
 import app.roll.gallery.data.Creation
 import app.roll.gallery.ui.create.AnimationScreen
 import app.roll.gallery.ui.create.ChooseScreen
 import app.roll.gallery.ui.create.CollageScreen
 import app.roll.gallery.ui.create.CreateTab
 import app.roll.gallery.ui.create.VideoMakerScreen
+import app.roll.gallery.ui.settings.FoldersScreen
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.outlined.Brush
 import kotlinx.coroutines.launch
@@ -187,8 +191,23 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.lock() }
 
     // Messages from background work (copies, moves, wallpaper), over whichever screen is open.
+    // Some offer Undo; taking things back out of the trash needs Android's confirmation.
     val snackbar = remember { SnackbarHostState() }
-    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
+    val undoRequest = rememberRequestLauncher()
+    val undoLabel = stringResource(R.string.undo)
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            val undo = message.undo
+            val result = snackbar.showSnackbar(
+                message.text,
+                actionLabel = if (undo != null) undoLabel else null,
+                duration = SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed && undo != null) {
+                if (undo is Undo.Untrash) undoRequest(viewModel.trashRequest(undo.items, trash = false)) else viewModel.undo(undo)
+            }
+        }
+    }
     Box(Modifier.fillMaxSize()) {
         saved.SaveableStateProvider(stack.lastIndex) {
             when (val screen = stack.last()) {
@@ -206,7 +225,8 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
                     viewModel, loaded, onBack = back,
                     onOpen = { query, media -> open(Screen.Viewer(MediaSet.Search(query), media.id)) },
                 )
-                Screen.Settings -> SettingsScreen(viewModel, onBack = back)
+                Screen.Settings -> SettingsScreen(viewModel, onBack = back, onOpenFolders = { open(Screen.PhotoFolders) })
+                Screen.PhotoFolders -> FoldersScreen(viewModel, loaded, onBack = back)
                 Screen.Duplicates -> DuplicatesScreen(viewModel, loaded, onBack = back)
                 is Screen.Person -> PersonScreen(
                     viewModel, loaded, screen.key,
@@ -340,7 +360,7 @@ private fun Home(
         AnimatedContent(targetState = tab, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "tab") { shown ->
             when (shown) {
                 Tab.Photos -> PhotosTab(
-                    items = library.items,
+                    items = library.timeline,
                     partialAccess = partialAccess,
                     onAllowAll = onAllowAll,
                     zoom = zoom,
@@ -381,6 +401,7 @@ private fun Home(
                     library = library,
                     order = collectionOrder,
                     onReorder = viewModel::setCollectionOrder,
+                    onSortAlbums = viewModel::setAlbumSort,
                     onOpenSet = { open(Screen.Grid(it)) },
                     onOpenTrash = { open(Screen.Trash) },
                     onNewAlbum = { open(Screen.NewAlbum(it)) },

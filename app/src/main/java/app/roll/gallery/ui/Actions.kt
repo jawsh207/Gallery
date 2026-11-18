@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import app.roll.gallery.ui.components.BarAction
 import app.roll.gallery.ui.components.rememberRequestLauncher
+import app.roll.gallery.ui.components.rememberTrash
 import app.roll.gallery.ui.components.shareMedia
 
 /**
@@ -39,6 +40,7 @@ fun libraryActions(
 ): List<BarAction> {
     val context = LocalContext.current
     val request = rememberRequestLauncher { agreed -> if (agreed) onDone() }
+    val trash = rememberTrash(viewModel, onDone)
     val allFavorite = selected.isNotEmpty() && selected.all { it.isFavorite }
     var adding by remember { mutableStateOf(false) }
     if (adding) {
@@ -59,9 +61,7 @@ fun libraryActions(
             stringResource(if (allFavorite) R.string.unfavorite else R.string.favorite),
         ) { request(viewModel.favoriteRequest(selected, favorite = !allFavorite)) },
         album.takeIf { withAlbum },
-        BarAction(Icons.Outlined.Delete, stringResource(R.string.move_to_trash)) {
-            request(viewModel.trashRequest(selected, trash = true))
-        },
+        BarAction(Icons.Outlined.Delete, stringResource(R.string.move_to_trash)) { trash(selected) },
     )
 }
 

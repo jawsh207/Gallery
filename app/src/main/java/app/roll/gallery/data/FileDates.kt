@@ -57,3 +57,43 @@ fun ContentResolver.publish(target: Uri, takenAt: Long) {
     update(target, ContentValues().apply { put(MediaColumns.IS_PENDING, 0) }, null, null)
     runCatching { update(target, ContentValues().apply { put(MediaColumns.DATE_TAKEN, takenAt) }, null, null) }
 }
+
+/**
+ * [millis] as a photo's EXIF date and time ("2024:05:12 14:30:00") and time-zone offset
+ * ("-04:00"), in [zone], for writing a corrected date into the photo itself.
+ */
+fun exifDateTime(millis: Long, zone: ZoneId): Pair<String, String> {
+    val time = java.time.Instant.ofEpochMilli(millis).atZone(zone)
+    val date = "%04d:%02d:%02d %02d:%02d:%02d".format(time.year, time.monthValue, time.dayOfMonth, time.hour, time.minute, time.second)
+    val seconds = time.offset.totalSeconds
+    val sign = if (seconds < 0) "-" else "+"
+    val offset = "%s%02d:%02d".format(sign, kotlin.math.abs(seconds) / 3600, kotlin.math.abs(seconds) % 3600 / 60)
+    return date to offset
+}
+
+/**
+ * Changes when [media] was taken to [millis]: written into the photo's own date fields where
+ * its format allows (JPEG, PNG and WebP), so it moves with the file, and into the media store
+ * for every kind. Needs write access to the file (a write request, or Media management).
+ * Returns true if the media store took the new date.
+ */
+fun ContentResolver.setTakenAt(media: Media, millis: Long, zone: ZoneId = ZoneId.systemDefault()): Boolean {
+    if (!media.isVideo && media.mimeType in setOf("image/jpeg", "image/png", "image/webp")) {
+        runCatching {
+            openFileDescriptor(media.uri, "rw")?.use { fd ->
+                val exif = androidx.exifinterface.media.ExifInterface(fd.fileDescriptor)
+                val (date, offset) = exifDateTime(millis, zone)
+                for (tag in listOf(
+                    androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL,
+                    androidx.exifinterface.media.ExifInterface.TAG_DATETIME_DIGITIZED,
+                    androidx.exifinterface.media.ExifInterface.TAG_DATETIME,
+                )) exif.setAttribute(tag, date)
+                exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_OFFSET_TIME_ORIGINAL, offset)
+                exif.saveAttributes()
+            }
+        }
+    }
+    return runCatching {
+        update(media.uri, ContentValues().apply { put(MediaColumns.DATE_TAKEN, millis) }, null, null) == 1
+    }.getOrDefault(false)
+}

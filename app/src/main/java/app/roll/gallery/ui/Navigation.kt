@@ -22,6 +22,9 @@ sealed interface Screen {
     data object Locked : Screen
     /** One person's photos, by the person's key. */
     data class Person(val key: String) : Screen
+    /** Choosing which folders show in the Photos grid. */
+    data object PhotoFolders : Screen
+
     /** The editor, for the photo with this id; opened on its looks when [moods]. */
     data class Editor(val id: Long, val moods: Boolean = false) : Screen
     /** Choosing the photos (and, for a video, clips) for something to make on the Create tab. */
@@ -71,6 +74,7 @@ private fun Screen.encode(): String = when (this) {
     Screen.Trash -> "trash"
     Screen.Search -> "search"
     Screen.Settings -> "settings"
+    Screen.PhotoFolders -> "folders"
     Screen.Duplicates -> "duplicates"
     Screen.Locked -> "lockedfolder"
     is Screen.Person -> "person|" + URLEncoder.encode(key, "UTF-8")
@@ -89,6 +93,7 @@ private fun decode(text: String): Screen? {
         "trash" -> Screen.Trash
         "search" -> Screen.Search
         "settings" -> Screen.Settings
+        "folders" -> Screen.PhotoFolders
         "duplicates" -> Screen.Duplicates
         "lockedfolder" -> Screen.Locked
         "person" -> parts.getOrNull(1)?.let { Screen.Person(URLDecoder.decode(it, "UTF-8")) }
