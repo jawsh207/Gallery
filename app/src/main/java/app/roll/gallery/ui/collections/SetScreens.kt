@@ -70,7 +70,15 @@ fun MediaSet.title(library: Library): String = when (this) {
     MediaSet.RecentlyAdded -> stringResource(R.string.recently_added)
     is MediaSet.Album -> library.album(id).firstOrNull()?.albumName.orEmpty()
     is MediaSet.Search -> query
-    is MediaSet.Memory -> pluralStringResource(R.plurals.years_ago, yearsAgo, yearsAgo)
+    is MediaSet.Memory -> when {
+        key == "recent" -> stringResource(R.string.memory_recent)
+        key.startsWith("day:") -> key.removePrefix("day:").let { day ->
+            runCatching {
+                java.time.LocalDate.parse(day).format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
+            }.getOrDefault(day)
+        }
+        else -> key.removePrefix("year:").toIntOrNull()?.let { pluralStringResource(R.plurals.years_ago, it, it) }.orEmpty()
+    }
     is MediaSet.Person -> stringResource(R.string.person)
 }
 

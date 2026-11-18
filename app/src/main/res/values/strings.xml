@@ -392,4 +392,8 @@
     <string name="settings_stacks">Stack similar shots</string>
     <string name="settings_stacks_summary">Show bursts and quick runs of shots as one tile in Photos</string>
     <string name="stacked">Stack</string>
+
+    <!-- Memories -->
+    <string name="memories">Memories</string>
+    <string name="memory_recent">Recent highlights</string>
 </resources>

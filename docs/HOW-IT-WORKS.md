@@ -175,10 +175,17 @@ and opens the dialog to pick more (or Android's settings, to take access back). 
 management opens Android's switch for it and shows whether it's on. About shows the version
 and the licenses.
 
-**On this day.** At the top of Photos, a card for each earlier year with at least three photos
-taken within three days of today's date, labelled "1 year ago", "3 years ago" and so on.
-Screenshots don't count. Tapping a card opens those photos as a slideshow. The row can be
-turned off in Settings.
+**Memories.** At the top of Photos, a row of cards:
+
+- **Recent highlights:** the last two weeks, when there are at least nine photos; up to 40,
+  favorites first, the rest picked evenly through the fortnight.
+- **On this day:** a card for each earlier year with at least three photos taken within three
+  days of today's date, labelled "1 year ago", "3 years ago" and so on.
+- **Busy days:** up to two of the past year's days with 20 or more photos (older than the last
+  two weeks), labelled with the date, up to 40 photos each.
+
+Screenshots and videos don't count, nor folders kept out of Photos. Tapping a card opens those
+photos as a slideshow. The row can be turned off in Settings (On this day).
 
 **Slideshow.** From the viewer's menu, or by opening a memory. The controls hide and a new
 photo slides in every four seconds, from the one on screen onwards; the screen stays on. It
@@ -384,7 +391,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Asking for the screen lock, blocking screenshots, moving items in | `ui/locked/LockedAccess.kt` |
 | Keeping the Locked folder out of backups | `res/xml/data_extraction_rules.xml` |
 | Grid thumbnails from Android's own thumbnail cache (or the file, for locked items) | `image/Thumbnails.kt`, `GalleryApplication.kt` |
-| Picking each year's "On this day" photos | `data/Memories.kt` |
+| Picking memories: On this day, Recent highlights, busy days | `data/Memories.kt` |
 | Gallery's own settings | `data/Settings.kt` |
 | Grouping duplicates and choosing what to keep | `data/Duplicates.kt` |
 | Working out a photo's fingerprint from its thumbnail | `data/PhotoHash.kt` |

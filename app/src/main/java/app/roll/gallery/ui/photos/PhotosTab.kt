@@ -25,6 +25,7 @@ import app.roll.gallery.R
 import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.Memory
+import androidx.compose.runtime.remember
 import app.roll.gallery.image.thumbnail
 import coil3.compose.AsyncImage
 import androidx.compose.foundation.background
@@ -44,7 +45,7 @@ import app.roll.gallery.ui.components.EmptyState
 
 /**
  * The Photos tab: every photo and video, newest first, in the date-grouped grid, under a row
- * of "On this day" [memories] when there are any ([onOpenMemory] plays one). With only
+ * of [memories] (Recent highlights, On this day, busy days) when there are any ([onOpenMemory] plays one). With only
  * some photos shared with the app ("Select photos" access), a card at the top offers to allow
  * all of them. Stack covers show how many shots they hold ([stackSizes]).
  */
@@ -98,12 +99,22 @@ fun PhotosTab(
     )
 }
 
-/** "On this day": a card per earlier year with photos from around today's date. */
+/** A memory's name: "2 years ago", "Recent highlights", or the busy day's date. */
+@Composable
+fun memoryTitle(memory: Memory): String = when {
+    memory.recent -> stringResource(R.string.memory_recent)
+    memory.day != null -> remember(memory.day) {
+        memory.day.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
+    }
+    else -> pluralStringResource(R.plurals.years_ago, memory.yearsAgo, memory.yearsAgo)
+}
+
+/** The memories row: a card per memory (highlights, On this day, busy days), each opening a slideshow. */
 @Composable
 private fun MemoriesRow(memories: List<Memory>, onOpen: (Memory) -> Unit) {
     Column(Modifier.padding(vertical = 8.dp)) {
         Text(
-            stringResource(R.string.on_this_day),
+            stringResource(R.string.memories),
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
         )
@@ -111,8 +122,8 @@ private fun MemoriesRow(memories: List<Memory>, onOpen: (Memory) -> Unit) {
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(memories, key = { it.yearsAgo }) { memory ->
-                val label = pluralStringResource(R.plurals.years_ago, memory.yearsAgo, memory.yearsAgo)
+            items(memories, key = { it.key }) { memory ->
+                val label = memoryTitle(memory)
                 Box(
                     Modifier
                         .size(width = 120.dp, height = 168.dp)

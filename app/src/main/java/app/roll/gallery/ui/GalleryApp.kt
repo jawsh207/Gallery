@@ -76,7 +76,7 @@ import app.roll.gallery.data.GridZoom
 import app.roll.gallery.data.Library
 import app.roll.gallery.data.Media
 import app.roll.gallery.data.MediaSet
-import app.roll.gallery.data.memoriesFor
+import app.roll.gallery.data.allMemories
 import java.time.LocalDate
 import java.time.ZoneId
 import app.roll.gallery.ui.access.AccessScreen
@@ -326,7 +326,7 @@ private fun Home(
     val people by viewModel.people.collectAsStateWithLifecycle()
     val collectionOrder by viewModel.collectionOrder.collectAsStateWithLifecycle()
     val memories = remember(library.items, showMemories) {
-        if (showMemories) memoriesFor(library.items, LocalDate.now(), ZoneId.systemDefault()) else emptyList()
+        if (showMemories) allMemories(library.timeline, LocalDate.now(), ZoneId.systemDefault()) else emptyList()
     }
 
     Scaffold(
@@ -387,7 +387,7 @@ private fun Home(
                     contentPadding = padding,
                     memories = memories,
                     onOpenMemory = { memory ->
-                        open(Screen.Viewer(MediaSet.Memory(memory.yearsAgo), memory.cover.id, slideshow = true))
+                        open(Screen.Viewer(MediaSet.Memory(memory.key), memory.cover.id, slideshow = true))
                     },
                 )
                 Tab.Videos -> {

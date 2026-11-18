@@ -102,8 +102,8 @@ sealed interface MediaSet {
     /** Whatever arrived on the phone lately, by when it arrived (see [Library.recentlyAdded]). */
     data object RecentlyAdded : MediaSet
     data class Album(val id: Long) : MediaSet
-    /** Today's "On this day" photos from [yearsAgo] years ago (see [memoriesFor]). */
-    data class Memory(val yearsAgo: Int) : MediaSet
+    /** Today's memory named [key] (see [Memory.key] and [allMemories]). */
+    data class Memory(val key: String) : MediaSet
     /** The photos of one person, by the person's key (Gallery Plus). */
     data class Person(val key: String) : MediaSet
     /** The results of a search for [query] (see [searchMedia]). */
@@ -134,5 +134,5 @@ fun Library.itemsIn(
     is MediaSet.Album -> album(set.id)
     is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, descriptionMatches(set.query), photoText)
     is MediaSet.Person -> personPhotos(set.key).let { ids -> items.filter { it.id in ids } }
-    is MediaSet.Memory -> memoriesFor(items, LocalDate.now(zone), zone).firstOrNull { it.yearsAgo == set.yearsAgo }?.items.orEmpty()
+    is MediaSet.Memory -> allMemories(items, LocalDate.now(zone), zone).firstOrNull { it.key == set.key }?.items.orEmpty()
 }

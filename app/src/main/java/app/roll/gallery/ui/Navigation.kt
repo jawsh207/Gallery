@@ -49,7 +49,7 @@ fun MediaSet.encode(): String = when (this) {
     is MediaSet.Album -> "album:$id"
     // Encoded, so a query can't contain the "|" that separates the saved parts.
     is MediaSet.Search -> "search:" + URLEncoder.encode(query, "UTF-8")
-    is MediaSet.Memory -> "memory:$yearsAgo"
+    is MediaSet.Memory -> "memory:$key"
     is MediaSet.Person -> "person:" + URLEncoder.encode(key, "UTF-8")
 }
 
@@ -64,7 +64,7 @@ fun decodeMediaSet(text: String): MediaSet? = when {
     text == "recent" -> MediaSet.RecentlyAdded
     text.startsWith("album:") -> text.removePrefix("album:").toLongOrNull()?.let { MediaSet.Album(it) }
     text.startsWith("person:") -> MediaSet.Person(URLDecoder.decode(text.removePrefix("person:"), "UTF-8"))
-    text.startsWith("memory:") -> text.removePrefix("memory:").toIntOrNull()?.let { MediaSet.Memory(it) }
+    text.startsWith("memory:") -> MediaSet.Memory(text.removePrefix("memory:"))
     text.startsWith("search:") -> MediaSet.Search(URLDecoder.decode(text.removePrefix("search:"), "UTF-8"))
     else -> null
 }

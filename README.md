@@ -18,8 +18,8 @@ store, so other apps see the same favorites and trash.
 - **Search:** a search bar across the top, as in Contacts, with Settings on its right. Search
   by file or album name, year, month, or kind ("videos", "favorites", "screenshots"), with
   shortcuts for each before you type.
-- **On this day:** cards at the top of Photos with photos from around today's date in past
-  years; tap one to play it as a slideshow. Can be turned off in Settings.
+- **Memories:** cards at the top of Photos: Recent highlights, On this day (photos from around
+  today's date in past years) and busy days from the past year, each played as a slideshow.
 - **Selecting:** long-press a photo, then keep your finger down and drag across others to
   select a run of them (the grid scrolls when you reach its edge). A circle by each date
   selects that whole day. Share, favorite, add to an album or trash the selection.
