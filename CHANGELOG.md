@@ -2,7 +2,7 @@
 
 What changed in each release, newest first. Each section becomes that release's notes.
 
-## 0.2.1
+## 0.3.0
 
 ### Photos and memories
 - Stacks: bursts and quick runs of shots show as one tile in Photos, with a count. Selecting the tile selects the whole stack. Can be turned off in Settings.

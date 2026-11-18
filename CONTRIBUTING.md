@@ -53,8 +53,9 @@ When the owner says "Build release":
 
 1. Collect the changes since the last release: `git log --format=%s origin/release..main`.
 2. In `version.txt`, raise line 1 (version code: today's date as YYYYMMDD, or +1 if that is not
-   higher) and line 2 (version name, MAJOR.MINOR.PATCH: every release bumps the patch number;
-   minor or major only when asked, resetting the parts after it to 0).
+   higher) and line 2 (version name, MAJOR.MINOR.PATCH: a release with new features bumps the minor
+   number and resets the patch to 0; a release with only fixes bumps the patch; major only
+   when asked).
 3. Add a `## <version name>` section at the top of the sections in `CHANGELOG.md` (one line per
    bullet or paragraph, no hard wraps), in plain, user-facing words, grouped by area.
 4. Commit, push `main`, then `git push origin main:release`. CI builds, signs, tags
