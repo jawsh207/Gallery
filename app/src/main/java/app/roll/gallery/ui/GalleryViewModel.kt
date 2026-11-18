@@ -25,6 +25,9 @@ import app.roll.gallery.data.CreationWriter
 import app.roll.gallery.data.Shot
 import app.roll.gallery.data.VideoShape
 import app.roll.gallery.data.makeVideo
+import app.roll.gallery.data.VideoEdits
+import app.roll.gallery.data.exportVideo
+import app.roll.gallery.data.videoFrame
 import app.roll.gallery.data.orderTiles
 import app.roll.gallery.recognition.DescriptionIndex
 import app.roll.gallery.recognition.TextDescriber
@@ -598,6 +601,34 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             _making.value = null
             tell(if (saved) R.string.made_video else R.string.made_failed)
             onDone(saved)
+        }
+    }
+
+    /**
+     * Saves [edits] of the video [media] as a new copy beside it, reporting progress in
+     * [making]; [onDone] gets whether it was saved.
+     */
+    fun saveVideoEdits(media: Media, edits: VideoEdits, onDone: (Boolean) -> Unit) {
+        makingJob?.cancel()
+        makingJob = viewModelScope.launch {
+            _making.value = 0f
+            val file = exportVideo(getApplication(), media, edits) { _making.value = it }
+            val saved = file?.let { withContext(Dispatchers.IO) { creations.saveEditedVideo(it, media).also { _ -> it.delete() } } } != null
+            _making.value = null
+            tell(if (saved) R.string.edit_saved_copy else R.string.made_failed)
+            onDone(saved)
+        }
+    }
+
+    /** Saves the frame of the video [media] at [positionMs] as a photo in Pictures/Gallery. */
+    fun saveFrame(media: Media, positionMs: Long) {
+        viewModelScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                videoFrame(getApplication(), media, positionMs)?.let { frame ->
+                    creations.saveImage(frame, "Frame").also { frame.recycle() }
+                }
+            } != null
+            tell(if (saved) R.string.frame_saved else R.string.made_failed)
         }
     }
 

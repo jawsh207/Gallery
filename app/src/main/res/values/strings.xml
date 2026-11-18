@@ -377,4 +377,14 @@
     <string name="markup_highlighter">Highlighter</string>
     <string name="markup_text">Text</string>
     <string name="markup_clear">Clear markup</string>
+
+    <!-- Video editor -->
+    <string name="video_save_frame">Save frame as photo</string>
+    <string name="frame_saved">Frame saved to Pictures/Gallery</string>
+    <string name="video_speed"><xliff:g id="speed" example="1.5">%1$s</xliff:g>×</string>
+    <string name="video_mute">Remove sound</string>
+    <string name="video_saving">Saving your video…</string>
+    <string name="video_crop_wide">16:9</string>
+    <string name="video_crop_tall">9:16</string>
+    <string name="video_crop_four_three">4:3</string>
 </resources>

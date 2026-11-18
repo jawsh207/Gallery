@@ -104,6 +104,7 @@ import app.roll.gallery.ui.create.CollageScreen
 import app.roll.gallery.ui.create.CreateTab
 import app.roll.gallery.ui.create.VideoMakerScreen
 import app.roll.gallery.ui.settings.FoldersScreen
+import app.roll.gallery.ui.editor.VideoEditorScreen
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.outlined.Brush
 import kotlinx.coroutines.launch
@@ -246,7 +247,11 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
                 )
                 is Screen.Editor -> {
                     val media = loaded.items.firstOrNull { it.id == screen.id }
-                    if (media == null) LaunchedEffect(Unit) { back() } else EditorScreen(viewModel, media, onClose = back, moods = screen.moods)
+                    when {
+                        media == null -> LaunchedEffect(Unit) { back() }
+                        media.isVideo -> VideoEditorScreen(viewModel, media, onClose = back)
+                        else -> EditorScreen(viewModel, media, onClose = back, moods = screen.moods)
+                    }
                 }
                 is Screen.Choose -> ChooseScreen(viewModel, loaded, screen.kind, onBack = back) { chosen ->
                     open(

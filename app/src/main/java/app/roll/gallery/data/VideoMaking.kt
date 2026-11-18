@@ -82,7 +82,21 @@ suspend fun makeVideo(
         }
     }
     val composition = Composition.Builder(sequences).build()
+    runTransformer(context, composition, output, onProgress)
+}
 
+/**
+ * Runs Transformer on [composition] into [output] (H.264 video, AAC sound) on the main thread,
+ * which it needs, reporting 0 to 1 to [onProgress]. Returns [output], or null if it failed (the
+ * file is then removed). Cancelling the caller stops it.
+ */
+@OptIn(UnstableApi::class)
+internal suspend fun runTransformer(
+    context: Context,
+    composition: Composition,
+    output: File,
+    onProgress: (Float) -> Unit,
+): File? = withContext(Dispatchers.Main) {
     suspendCancellableCoroutine { continuation ->
         val handler = Handler(Looper.getMainLooper())
         val progress = ProgressHolder()

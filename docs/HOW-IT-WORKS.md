@@ -65,6 +65,7 @@ lost too much accuracy, so they stay as they are.
 | New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
 | Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
 | Editor | Cropping, turning, Enhance and adjustments, filters and moods, Markup, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt`, `Markup.kt` |
+| Video editor | Trimming, turning, cutting to a shape, speed, removing sound, saving a frame | `ui/editor/VideoEditor.kt` |
 | Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
 | Person | One person's photos, and giving them a name (Plus) | `ui/people/People.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
@@ -222,6 +223,16 @@ leaves the original and adds "name-edited" next to it (or in Pictures/Edited if 
 can't hold photos). Saving works on the full-size photo, up to 8192 pixels on its longer side,
 and carries over the date and camera details. Leaving with unsaved edits asks first.
 
+**Editing videos.** Edit in the viewer opens the video editor for videos. Drag the two ends of
+the bar under the video to trim it; the kept part plays on a loop. The turn button turns it a
+quarter clockwise; the shape chips cut it to square, 16:9, 9:16 or 4:3 around the middle (after
+turning), with the parts cut off dimmed; the speed chips go from a quarter speed to four times
+(the sound changes speed too, keeping its pitch); and Remove sound takes the sound out. The photo
+button saves the frame on screen as a photo in Pictures/Gallery. Save as copy makes a new MP4
+beside the original, named like "VID_1234-edited.mp4" and dated as the original, with a
+progress bar and Cancel; the original isn't changed. It's done on the phone with Media3's
+Transformer.
+
 **Videos.** The video on screen plays by itself, with a play/pause button and seek bar that
 come and go with the other controls. It pauses when you leave the app and stops when you swipe
 to another item.
@@ -377,6 +388,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | What Create makes, collage layouts and crops, animation timing, new file names | `data/Creations.kt` |
 | Drawing and saving collages, and saving made videos | `data/CreationWriter.kt` |
 | Making videos from photos and clips | `data/VideoMaking.kt` |
+| Saving an edited video, and grabbing a frame from one | `data/VideoEditing.kt` |
 | The Collections tiles and their order | `data/CollectionTiles.kt` |
 | Album name rules and which folders can hold photos | `data/AlbumRules.kt` |
 | Copying and moving files, and setting the wallpaper | `data/MediaWriter.kt` |
@@ -408,6 +420,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, video trim, speed and crop maths, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

@@ -100,8 +100,8 @@ import kotlinx.coroutines.launch
  * the top bar's menu has Slideshow, Add to album, Move to Locked folder, Edit date & time,
  * Use as album cover (when opened from an album) and, for photos, Set as wallpaper. A slideshow
  * starts straight away when [slideshowAtStart] (opening a memory). A motion photo's video plays
- * once when it comes up, and again from the Motion chip under the top bar. Edit (photos only)
- * opens [onEdit]. In the Locked folder the actions are Move out and Delete instead, screenshots
+ * once when it comes up, and again from the Motion chip under the top bar. Edit opens [onEdit]
+ * (the photo or video editor). In the Locked folder the actions are Move out and Delete instead, screenshots
  * are blocked, and the viewer closes if the folder locks.
  * [onCurrentChange] reports the item on screen so the back stack reopens it after a restart.
  */
@@ -206,8 +206,8 @@ fun ViewerScreen(
         trashActions(viewModel, listOf(current)) {}
     } else {
         val basic = libraryActions(viewModel, library, listOf(current), onDone = {}, withAlbum = false)
-        // Edit sits next to Share, for photos only.
-        if (current.isVideo) basic else listOf(basic.first(), editAction) + basic.drop(1)
+        // Edit sits next to Share; for a video it opens the video editor.
+        if (current.externalUri != null) basic else listOf(basic.first(), editAction) + basic.drop(1)
     }
 
     // Motion photos: the video plays once when the photo comes up, and again from the chip.

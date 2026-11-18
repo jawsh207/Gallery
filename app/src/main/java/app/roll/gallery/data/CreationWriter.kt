@@ -15,8 +15,9 @@ import java.time.ZoneId
 import kotlin.math.roundToInt
 
 /**
- * Draws and saves what the Create tab makes. Collages go to Pictures/Gallery and videos to
- * Movies/Gallery, as new files named after when they were made; the photos used aren't changed.
+ * Draws and saves what the Create tab and the video editor make. Collages and saved video
+ * frames go to Pictures/Gallery and made videos to Movies/Gallery, as new files named after when
+ * they were made; edited videos go beside the original. What they're made from isn't changed.
  */
 class CreationWriter(private val context: Context) {
     private val resolver = context.contentResolver
@@ -67,18 +68,38 @@ class CreationWriter(private val context: Context) {
 
     /** Saves [bitmap] as a new JPEG in Pictures/Gallery named after [prefix] and now. Returns where, or null. */
     fun saveImage(bitmap: Bitmap, prefix: String): Uri? = save(
-        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), PICTURES, prefix, "jpg", "image/jpeg",
+        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), PICTURES,
+        creationName(prefix, "jpg", System.currentTimeMillis(), ZoneId.systemDefault()), "image/jpeg",
     ) { out -> check(bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)) }
 
     /** Saves the finished video [file] as a new MP4 in Movies/Gallery named after [prefix] and now. Returns where, or null. */
     fun saveVideo(file: File, prefix: String): Uri? = save(
-        MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), MOVIES, prefix, "mp4", "video/mp4",
+        MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), MOVIES,
+        creationName(prefix, "mp4", System.currentTimeMillis(), ZoneId.systemDefault()), "video/mp4",
     ) { out -> file.inputStream().use { it.copyTo(out) } }
 
-    private fun save(collection: Uri, folder: String, prefix: String, extension: String, mimeType: String, write: (java.io.OutputStream) -> Unit): Uri? {
-        val now = System.currentTimeMillis()
+    /**
+     * Saves an edited copy of the video [original] ([file]) beside it, named like
+     * "VID_1234-edited.mp4", or in Movies/Gallery if Android won't put videos in that folder;
+     * dated as the original, so it sits next to it.
+     */
+    fun saveEditedVideo(file: File, original: Media): Uri? = save(
+        MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+        if (canHold(original.path, isVideo = true)) original.path else MOVIES,
+        editedName(original.fileName, "mp4"), "video/mp4", takenAt = original.takenAt,
+    ) { out -> file.inputStream().use { it.copyTo(out) } }
+
+    private fun save(
+        collection: Uri,
+        folder: String,
+        name: String,
+        mimeType: String,
+        takenAt: Long = System.currentTimeMillis(),
+        write: (java.io.OutputStream) -> Unit,
+    ): Uri? {
+        val now = takenAt
         val values = ContentValues().apply {
-            put(MediaColumns.DISPLAY_NAME, creationName(prefix, extension, now, ZoneId.systemDefault()))
+            put(MediaColumns.DISPLAY_NAME, name)
             put(MediaColumns.MIME_TYPE, mimeType)
             put(MediaColumns.RELATIVE_PATH, folder)
             put(MediaColumns.DATE_TAKEN, now)
