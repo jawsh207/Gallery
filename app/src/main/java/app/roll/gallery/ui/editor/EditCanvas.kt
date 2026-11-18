@@ -26,6 +26,12 @@ import app.roll.gallery.data.CropHandle
 import app.roll.gallery.data.CropRect
 import app.roll.gallery.data.dragCrop
 import app.roll.gallery.data.straightenScale
+import app.roll.gallery.data.Mark
+import app.roll.gallery.data.drawMarkup
+import app.roll.gallery.data.drawVignette
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -64,17 +70,32 @@ private fun DrawScope.drawStraightened(image: ImageBitmap, frame: Rect, visible:
     }
 }
 
+/** Where the [crop]ped part of [image] lands when fitted into [area]: the finished photo's frame on screen. */
+fun editedFrame(image: ImageBitmap, crop: CropRect, area: Size): Rect {
+    val cropW = ((crop.right - crop.left) * image.width).coerceAtLeast(1f)
+    val cropH = ((crop.bottom - crop.top) * image.height).coerceAtLeast(1f)
+    return fit(Size(cropW, cropH), area)
+}
+
 /**
  * The photo as it will be saved: tilted by [degrees], only the [crop]ped part, fitted to the
  * space, with [filter] applied (null shows the original colours, while the user holds to
- * compare).
+ * compare), then the [vignette] and [markup] on top, as saving draws them.
  */
 @Composable
-fun EditedImage(image: ImageBitmap, crop: CropRect, degrees: Float, filter: ColorFilter?, modifier: Modifier = Modifier) {
+fun EditedImage(
+    image: ImageBitmap,
+    crop: CropRect,
+    degrees: Float,
+    filter: ColorFilter?,
+    modifier: Modifier = Modifier,
+    vignette: Float = 0f,
+    markup: List<Mark> = emptyList(),
+) {
     Canvas(modifier) {
         val cropW = ((crop.right - crop.left) * image.width).coerceAtLeast(1f)
         val cropH = ((crop.bottom - crop.top) * image.height).coerceAtLeast(1f)
-        val dst = fit(Size(cropW, cropH), size)
+        val dst = editedFrame(image, crop, size)
         // Where the whole (uncropped) frame would be, at the same scale, for the crop to land on dst.
         val k = dst.width / cropW
         val frame = Rect(
@@ -82,6 +103,16 @@ fun EditedImage(image: ImageBitmap, crop: CropRect, degrees: Float, filter: Colo
             Size(image.width * k, image.height * k),
         )
         drawStraightened(image, frame, dst, degrees, filter)
+        // Holding to compare (no filter) shows the photo as it was, without these either.
+        if (filter != null) {
+            translate(dst.left, dst.top) {
+                drawIntoCanvas { canvas ->
+                    // The same drawing code as saving, so what's shown is what's saved.
+                    drawVignette(canvas.nativeCanvas, dst.width.roundToInt(), dst.height.roundToInt(), vignette)
+                    drawMarkup(canvas.nativeCanvas, markup, dst.width.roundToInt(), dst.height.roundToInt())
+                }
+            }
+        }
     }
 }
 

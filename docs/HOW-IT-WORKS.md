@@ -64,7 +64,7 @@ lost too much accuracy, so they stay as they are.
 | Add to album | Moving or copying photos into an album or a new one | `ui/collections/AddToAlbum.kt` |
 | New album | Naming a new album and choosing its photos | `ui/collections/AddToAlbum.kt` |
 | Duplicates | Copies and near-identical shots, to trash the extras | `ui/collections/DuplicatesScreen.kt` |
-| Editor | Cropping, turning, colour adjustments, filters and moods, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt` |
+| Editor | Cropping, turning, Enhance and adjustments, filters and moods, Markup, then saving | `ui/editor/EditorScreen.kt`, `EditCanvas.kt`, `Markup.kt` |
 | Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
 | Person | One person's photos, and giving them a name (Plus) | `ui/people/People.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
@@ -201,8 +201,16 @@ full photo loads.
 copy of the photo, so every change shows at once. Crop has a straighten slider (up to 45° either way,
 in half-degree steps; tap the number to put it back to 0), a frame you drag by its corners or
 middle, a choice of shapes (free, the photo's own, square, 4:3, 3:4, 16:9), a button that turns
-the photo a quarter clockwise, one that mirrors it, and a reset. Adjust has brightness, contrast,
-saturation and warmth, each a slider from -100 to 100 (tap the number to put it back to 0).
+the photo a quarter clockwise, one that mirrors it, and a reset. Adjust starts with
+Enhance, which looks at how light, spread out and colourful the photo is and sets brightness,
+contrast, saturation, shadows and highlights to suit (gently, so a good photo changes little);
+then brightness, contrast, saturation, warmth, highlights and shadows, each a slider from -100
+to 100, and vignette (darkened corners) and sharpen, from 0 to 100 (tap the number to put it
+back to 0). Highlights and shadows change only the light or dark parts, and with sharpening are
+worked out pixel by pixel in the background, so the preview catches up a moment after the
+slider. Markup draws on the photo with a pen or a see-through highlighter, or places text where
+you tap, in six colours, with undo and clear; marks are kept relative to the finished photo, so
+they land in the same place when it's saved full size.
 Filters has Vivid, Warm, Cool, Fade, Mono, Noir and Sepia, then the moods, fuller looks that
 change several things at once: Airy, Golden hour, Night lights, Film, Pastel, Crisp, Matte, and
 Teal & orange. Each is shown on a small copy of the photo. Straightening zooms the photo in just enough that its tilted edges never leave empty
@@ -365,6 +373,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Running the duplicate search in the background | `ui/GalleryViewModel.kt` |
 | What an edit is, colour maths, straighten zoom, crop shapes and dragging the crop frame | `data/Edits.kt` |
 | Drawing edits and saving the result | `data/EditRenderer.kt` |
+| Highlights, shadows, sharpening, vignette, drawing markup, and Enhance's settings | `data/Tones.kt` |
 | What Create makes, collage layouts and crops, animation timing, new file names | `data/Creations.kt` |
 | Drawing and saving collages, and saving made videos | `data/CreationWriter.kt` |
 | Making videos from photos and clips | `data/VideoMaking.kt` |
@@ -399,6 +408,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

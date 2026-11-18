@@ -1,5 +1,20 @@
 package app.roll.gallery.ui.editor
 
+import app.roll.gallery.data.applyTones
+import app.roll.gallery.data.autoEnhance
+import app.roll.gallery.data.measure
+import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.outlined.AutoFixHigh
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Vignette
+import androidx.compose.material.icons.outlined.Details
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
+import kotlinx.coroutines.withContext
+
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -88,14 +103,21 @@ import app.roll.gallery.ui.theme.GalleryTheme
 import kotlin.math.roundToInt
 
 /** The editor's three sets of tools. */
-private enum class EditTab { Crop, Adjust, Filters }
+private enum class EditTab { Crop, Adjust, Filters, Markup }
 
-/** The adjustments the Adjust tab offers, each with how to read and change it. */
-private enum class Adjustment(val label: Int, val icon: ImageVector) {
+/**
+ * The adjustments the Adjust tab offers, each with how to read and change it; [from] is the
+ * slider's low end: -1 for two-way adjustments, 0 for those that only add.
+ */
+private enum class Adjustment(val label: Int, val icon: ImageVector, val from: Float = -1f) {
     Brightness(R.string.edit_brightness, Icons.Outlined.LightMode),
     Contrast(R.string.edit_contrast, Icons.Outlined.Contrast),
     Saturation(R.string.edit_saturation, Icons.Outlined.Palette),
     Warmth(R.string.edit_warmth, Icons.Outlined.Thermostat),
+    Highlights(R.string.edit_highlights, Icons.Outlined.WbSunny),
+    Shadows(R.string.edit_shadows, Icons.Outlined.DarkMode),
+    Vignette(R.string.edit_vignette, Icons.Outlined.Vignette, from = 0f),
+    Sharpen(R.string.edit_sharpen, Icons.Outlined.Details, from = 0f),
     ;
 
     fun read(a: Adjustments): Float = when (this) {
@@ -103,6 +125,10 @@ private enum class Adjustment(val label: Int, val icon: ImageVector) {
         Contrast -> a.contrast
         Saturation -> a.saturation
         Warmth -> a.warmth
+        Highlights -> a.highlights
+        Shadows -> a.shadows
+        Vignette -> a.vignette
+        Sharpen -> a.sharpen
     }
 
     fun write(a: Adjustments, value: Float): Adjustments = when (this) {
@@ -110,6 +136,10 @@ private enum class Adjustment(val label: Int, val icon: ImageVector) {
         Contrast -> a.copy(contrast = value)
         Saturation -> a.copy(saturation = value)
         Warmth -> a.copy(warmth = value)
+        Highlights -> a.copy(highlights = value)
+        Shadows -> a.copy(shadows = value)
+        Vignette -> a.copy(vignette = value)
+        Sharpen -> a.copy(sharpen = value)
     }
 }
 
@@ -117,8 +147,9 @@ private enum class Adjustment(val label: Int, val icon: ImageVector) {
 private fun colorFilterOf(matrix: FloatArray): ColorFilter = ColorFilter.colorMatrix(ColorMatrix(matrix))
 
 /**
- * The photo editor: crop (with fixed shapes), straighten, turn, mirror, brightness, contrast, saturation,
- * warmth, filters and moods, previewed live on a screen-sized copy. Hold the photo to see the
+ * The photo editor: crop (with fixed shapes), straighten, turn, mirror; one-tap Enhance,
+ * brightness, contrast, saturation, warmth, highlights, shadows, vignette and sharpening;
+ * filters and moods; and Markup (pen, highlighter and text), previewed live on a screen-sized copy. Hold the photo to see the
  * original. Opened from Create → Moods ([moods]) it starts on the looks, scrolled to the moods.
  * Save writes over the original (after Android's write confirmation) when its format allows,
  * or Save as copy keeps the original and adds an "-edited" file beside it. Nothing is changed
@@ -135,9 +166,22 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit,
     var confirmLeave by remember { mutableStateOf(false) }
     var saveMenu by remember { mutableStateOf(false) }
 
+    var markTool by rememberSaveable { mutableStateOf(MarkTool.Pen) }
+    var markColor by remember { mutableStateOf(MARK_COLORS[2]) }
+
     val source = preview
-    val turned: ImageBitmap? = remember(source, edits.quarterTurns, edits.flipped) {
-        source?.let { turnBitmap(it, edits.quarterTurns, edits.flipped).asImageBitmap() }
+    // Highlights, shadows and sharpening change each pixel, so they're worked out in the
+    // background on the preview copy; the last result stays up until the next is ready.
+    val a = edits.adjustments
+    var toned by remember(source) { mutableStateOf(source) }
+    LaunchedEffect(source, a.highlights, a.shadows, a.sharpen) {
+        val original = source ?: return@LaunchedEffect
+        delay(40)
+        val job = coroutineContext.job
+        toned = withContext(Dispatchers.Default) { applyTones(original, a) { job.isActive } }
+    }
+    val turned: ImageBitmap? = remember(toned, edits.quarterTurns, edits.flipped) {
+        toned?.let { turnBitmap(it, edits.quarterTurns, edits.flipped).asImageBitmap() }
     }
     val filter = remember(edits.filter, edits.adjustments) { colorFilterOf(colorMatrix(edits)) }
     val tiny: ImageBitmap? = remember(source) {
@@ -207,11 +251,25 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit,
                         onChange = { edits = edits.copy(crop = it) },
                         modifier = Modifier.fillMaxSize().padding(24.dp),
                     )
+                    tab == EditTab.Markup -> MarkupView(
+                        image = image,
+                        crop = edits.crop,
+                        degrees = edits.straighten,
+                        filter = filter,
+                        vignette = edits.adjustments.vignette,
+                        markup = edits.markup,
+                        tool = markTool,
+                        color = markColor,
+                        onAdd = { edits = edits.copy(markup = edits.markup + it) },
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                    )
                     else -> EditedImage(
                         image = image,
                         crop = edits.crop,
                         degrees = edits.straighten,
                         filter = if (comparing) null else filter,
+                        vignette = edits.adjustments.vignette,
+                        markup = edits.markup,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp)
@@ -258,6 +316,23 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit,
                         adjustments = edits.adjustments,
                         onSelect = { adjustment = it },
                         onChange = { edits = edits.copy(adjustments = it) },
+                        onEnhance = {
+                            source?.let { photo ->
+                                val (histogram, saturation) = measure(photo)
+                                val auto = autoEnhance(histogram, saturation)
+                                // Enhance sets the tone and colour; vignette and sharpening are left as they were.
+                                edits = edits.copy(adjustments = auto.copy(vignette = a.vignette, sharpen = a.sharpen, warmth = a.warmth))
+                            }
+                        },
+                    )
+                    EditTab.Markup -> MarkupTools(
+                        tool = markTool,
+                        color = markColor,
+                        hasMarks = edits.markup.isNotEmpty(),
+                        onTool = { markTool = it },
+                        onColor = { markColor = it },
+                        onUndo = { edits = edits.copy(markup = edits.markup.dropLast(1)) },
+                        onClear = { edits = edits.copy(markup = emptyList()) },
                     )
                     EditTab.Filters -> FilterTools(tiny, edits.filter, moods) { edits = edits.copy(filter = it) }
                 }
@@ -276,6 +351,7 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit,
                                     EditTab.Crop -> R.string.edit_crop
                                     EditTab.Adjust -> R.string.edit_adjust
                                     EditTab.Filters -> R.string.edit_filters
+                                    EditTab.Markup -> R.string.edit_markup
                                 },
                             ),
                         )
@@ -358,11 +434,27 @@ private fun CropTools(
     }
 }
 
-/** A chip per adjustment and a slider for the chosen one, from -100 to 100. */
+/**
+ * One-tap Enhance ([onEnhance]), then a chip per adjustment and a slider for the chosen one,
+ * from -100 to 100 (or 0 to 100 for vignette and sharpening).
+ */
 @Composable
-private fun AdjustTools(selected: Adjustment, adjustments: Adjustments, onSelect: (Adjustment) -> Unit, onChange: (Adjustments) -> Unit) {
+private fun AdjustTools(
+    selected: Adjustment,
+    adjustments: Adjustments,
+    onSelect: (Adjustment) -> Unit,
+    onChange: (Adjustments) -> Unit,
+    onEnhance: () -> Unit,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                AssistChip(
+                    onClick = onEnhance,
+                    label = { Text(stringResource(R.string.edit_enhance)) },
+                    leadingIcon = { Icon(Icons.Outlined.AutoFixHigh, contentDescription = null, Modifier.size(18.dp)) },
+                )
+            }
             items(Adjustment.entries) { entry ->
                 FilterChip(
                     selected = selected == entry,
@@ -377,7 +469,7 @@ private fun AdjustTools(selected: Adjustment, adjustments: Adjustments, onSelect
             Slider(
                 value = value,
                 onValueChange = { onChange(selected.write(adjustments, it)) },
-                valueRange = -1f..1f,
+                valueRange = selected.from..1f,
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(12.dp))

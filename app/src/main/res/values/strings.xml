@@ -365,4 +365,16 @@
     <string name="next">Next</string>
     <string name="date_changed">Date changed</string>
     <string name="date_change_failed">Couldn\'t change the date</string>
+
+    <!-- Editor additions -->
+    <string name="edit_enhance">Enhance</string>
+    <string name="edit_highlights">Highlights</string>
+    <string name="edit_shadows">Shadows</string>
+    <string name="edit_vignette">Vignette</string>
+    <string name="edit_sharpen">Sharpen</string>
+    <string name="edit_markup">Markup</string>
+    <string name="markup_pen">Pen</string>
+    <string name="markup_highlighter">Highlighter</string>
+    <string name="markup_text">Text</string>
+    <string name="markup_clear">Clear markup</string>
 </resources>

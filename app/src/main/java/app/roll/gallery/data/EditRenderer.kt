@@ -36,9 +36,13 @@ class EditRenderer(private val context: Context) {
         }
     }
 
-    /** Every edit applied to [bitmap]: turn and flip, crop, then colour. */
+    /**
+     * Every edit applied to [bitmap]: highlights, shadows and sharpening, turn and flip, crop,
+     * colour, then the vignette and markup on top.
+     */
     fun apply(bitmap: Bitmap, edits: Edits): Bitmap {
-        val turned = straightenBitmap(turnBitmap(bitmap, edits.quarterTurns, edits.flipped), edits.straighten)
+        val toned = applyTones(bitmap, edits.adjustments)
+        val turned = straightenBitmap(turnBitmap(toned, edits.quarterTurns, edits.flipped), edits.straighten)
         val c = edits.crop
         val x = (c.left * turned.width).roundToInt().coerceIn(0, turned.width - 1)
         val y = (c.top * turned.height).roundToInt().coerceIn(0, turned.height - 1)
@@ -46,10 +50,16 @@ class EditRenderer(private val context: Context) {
         val h = ((c.bottom - c.top) * turned.height).roundToInt().coerceIn(1, turned.height - y)
         val cropped = if (c.isFull) turned else Bitmap.createBitmap(turned, x, y, w, h)
         val matrix = colorMatrix(edits)
-        if (matrix.contentEquals(IDENTITY_MATRIX)) return cropped
+        val overlays = edits.adjustments.vignette > 0f || edits.markup.isNotEmpty()
+        if (matrix.contentEquals(IDENTITY_MATRIX) && !overlays) return cropped
         val out = Bitmap.createBitmap(cropped.width, cropped.height, Bitmap.Config.ARGB_8888)
-        val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply { colorFilter = ColorMatrixColorFilter(matrix) }
-        Canvas(out).drawBitmap(cropped, 0f, 0f, paint)
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply {
+            if (!matrix.contentEquals(IDENTITY_MATRIX)) colorFilter = ColorMatrixColorFilter(matrix)
+        }
+        val canvas = Canvas(out)
+        canvas.drawBitmap(cropped, 0f, 0f, paint)
+        drawVignette(canvas, out.width, out.height, edits.adjustments.vignette)
+        drawMarkup(canvas, edits.markup, out.width, out.height)
         return out
     }
 

@@ -21,7 +21,28 @@ data class Adjustments(
     val contrast: Float = 0f,
     val saturation: Float = 0f,
     val warmth: Float = 0f,
+    /** Brightens (up to 1) or darkens (down to -1) the light parts only. */
+    val highlights: Float = 0f,
+    /** Brightens (up to 1) or deepens (down to -1) the dark parts only. */
+    val shadows: Float = 0f,
+    /** How much the corners are darkened, 0 to 1. */
+    val vignette: Float = 0f,
+    /** How much edges are sharpened, 0 to 1. */
+    val sharpen: Float = 0f,
 )
+
+/**
+ * A drawing on the photo, in Markup: a [Stroke] of the pen or highlighter, or a [Label] of text.
+ * Positions are fractions of the finished (cropped) photo, 0 to 1 across and down, and sizes
+ * fractions of its shorter side, so marks land in the same place at any size.
+ */
+sealed interface Mark {
+    /** A freehand line through [points] (x, y pairs), [width] wide; [highlighter] draws see-through and broad. */
+    data class Stroke(val points: List<Float>, val color: Int, val width: Float, val highlighter: Boolean) : Mark
+
+    /** [text] with its top left at ([x], [y]), [size] high. */
+    data class Label(val x: Float, val y: Float, val text: String, val color: Int, val size: Float) : Mark
+}
 
 /**
  * The editor's looks: each is a fixed set of colour changes applied before the adjustments. The
@@ -56,10 +77,12 @@ data class Edits(
     val aspect: CropAspect = CropAspect.Free,
     val filter: Filter = Filter.None,
     val adjustments: Adjustments = Adjustments(),
+    val markup: List<Mark> = emptyList(),
 ) {
     /** True when saving would change nothing. */
     val isUnchanged: Boolean
-        get() = quarterTurns % 4 == 0 && !flipped && straighten == 0f && crop.isFull && filter == Filter.None && adjustments == Adjustments()
+        get() = quarterTurns % 4 == 0 && !flipped && straighten == 0f && crop.isFull && filter == Filter.None &&
+            adjustments == Adjustments() && markup.isEmpty()
 }
 
 /** How far the straighten slider goes either way, in degrees. */
