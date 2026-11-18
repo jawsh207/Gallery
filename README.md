@@ -62,6 +62,9 @@ store, so other apps see the same favorites and trash.
   Gallery Plus, Text and people.
 - **Search by description (Gallery Plus):** search for what's in a photo, like "red car" or
   "old log cabin", worked out on the phone.
+- **Things (Gallery Plus):** photos sorted into Documents, Receipts, Selfies, Pets, Food,
+  Landscapes, Flowers and Cars on the Collections tab, worked out on the phone.
+- **Copy text (Gallery Plus):** see and copy the text read in a photo, from the viewer's menu.
 - **People (Gallery Plus):** finds faces in your photos on the phone and groups them into
   people at the top of Collections. Name someone and search their name to find their photos.
 - **Text in photos (Gallery Plus):** reads the text in your photos in the background, on the

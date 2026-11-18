@@ -51,6 +51,7 @@ import app.roll.gallery.data.Album
 import app.roll.gallery.data.CollectionTile
 import app.roll.gallery.data.moveTile
 import app.roll.gallery.data.AlbumSort
+import app.roll.gallery.recognition.Thing
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Check
@@ -75,7 +76,7 @@ import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: [people] (Gallery Plus), then tiles for Favorites, Screenshots,
+ * The Collections tab: [people] and [things] (Gallery Plus), then tiles for Favorites, Screenshots,
  * Recently Added, the duplicate finder, the Locked folder and Trash in the [order] chosen (with
  * a Reorder button, [onReorder] getting the new order), then every folder with photos as an
  * album, pinned ones first, then by recent (camera and screenshots first) or by name
@@ -96,6 +97,8 @@ fun CollectionsTab(
     contentPadding: PaddingValues,
     people: List<Person> = emptyList(),
     onOpenPerson: (Person) -> Unit = {},
+    things: Map<Thing, List<Long>> = emptyMap(),
+    onOpenThing: (Thing) -> Unit = {},
 ) {
     val albums = remember(library) { library.albums }
     var sorting by remember { mutableStateOf(false) }
@@ -146,6 +149,11 @@ fun CollectionsTab(
         if (people.isNotEmpty()) {
             item(key = "people", span = { GridItemSpan(maxLineSpan) }) {
                 PeopleRow(people, photosById, onOpenPerson)
+            }
+        }
+        if (things.isNotEmpty()) {
+            item(key = "things", span = { GridItemSpan(maxLineSpan) }) {
+                ThingsRow(things, photosById, onOpenThing)
             }
         }
         item(key = "tiles", span = { GridItemSpan(maxLineSpan) }) {

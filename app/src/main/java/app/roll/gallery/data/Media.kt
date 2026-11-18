@@ -102,6 +102,9 @@ sealed interface MediaSet {
     /** Whatever arrived on the phone lately, by when it arrived (see [Library.recentlyAdded]). */
     data object RecentlyAdded : MediaSet
     data class Album(val id: Long) : MediaSet
+    /** Photos Gallery Plus sorted into the Thing called [name] (documents, pets, food...). */
+    data class Thing(val name: String) : MediaSet
+
     /** Today's memory named [key] (see [Memory.key] and [allMemories]). */
     data class Memory(val key: String) : MediaSet
     /** The photos of one person, by the person's key (Gallery Plus). */
@@ -113,7 +116,8 @@ sealed interface MediaSet {
 /**
  * The items of [set], newest first. [words], [locale], [zone] and [photoText] are only used by
  * searches, to read the query the way the search screen did, as is [descriptionMatches] (a
- * query's best description matches); [personPhotos] gives a person's photos by their key.
+ * query's best description matches); [personPhotos] gives a person's photos by their key, and
+ * [thingPhotos] a Thing's by its name.
  */
 fun Library.itemsIn(
     set: MediaSet,
@@ -122,6 +126,7 @@ fun Library.itemsIn(
     zone: ZoneId = ZoneId.systemDefault(),
     photoText: (Long) -> String? = { null },
     personPhotos: (String) -> Set<Long> = { emptySet() },
+    thingPhotos: (String) -> List<Long> = { emptyList() },
     descriptionMatches: (String) -> Set<Long> = { emptySet() },
 ): List<Media> = when (set) {
     MediaSet.All -> timeline
@@ -134,5 +139,6 @@ fun Library.itemsIn(
     is MediaSet.Album -> album(set.id)
     is MediaSet.Search -> searchMedia(items, set.query, words, locale, zone, descriptionMatches(set.query), photoText)
     is MediaSet.Person -> personPhotos(set.key).let { ids -> items.filter { it.id in ids } }
+    is MediaSet.Thing -> thingPhotos(set.name).toHashSet().let { ids -> items.filter { it.id in ids } }
     is MediaSet.Memory -> allMemories(items, LocalDate.now(zone), zone).firstOrNull { it.key == set.key }?.items.orEmpty()
 }

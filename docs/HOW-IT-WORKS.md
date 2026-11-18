@@ -115,6 +115,18 @@ years and months ("videos 2024") skip this. Results are still shown by date. It 
 English best. Settings → Text and people → Search by description shows how far it's got and
 can turn it off, which forgets the fingerprints.
 
+**Things (Gallery Plus).** Using the same fingerprints as search by description, Gallery Plus
+sorts photos into Things on the Collections tab: Documents, Receipts, Selfies, Pets, Food,
+Landscapes, Flowers and Cars. Each Thing is described by a few phrases; a photo goes into the
+Thing whose phrase it's most like, as long as it's close enough and not closer to a phrase for
+something else (people, rooms, buildings, streets, screenshots), which keeps near misses out.
+They're worked out again a moment after more photos are fingerprinted, and appear once there are
+photos for them. Turning off Search by description turns Things off too.
+
+**Copy text (Gallery Plus).** When text was read in a photo, the viewer's menu has Text in
+photo, which shows it to select part of or copy all of. It's the text read in the background,
+so it can have small mistakes.
+
 **People (Gallery Plus).** In the same background pass as the text, Gallery Plus looks for faces
 in every photo (not videos, never the Locked folder), on the phone. YuNet finds each face and
 where its eyes, nose and mouth are; the face is turned and scaled so those land in the same
@@ -424,6 +436,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Turning faces into people, naming them, making names searchable | `recognition/People.kt` |
 | Round face pictures | `image/Thumbnails.kt` |
 | Description fingerprints: storing, comparing, picking best matches | `recognition/Descriptions.kt` |
+| Sorting photos into Things | `recognition/Things.kt`, `ui/collections/Things.kt` |
+| Showing and copying text read in a photo | `ui/viewer/PhotoText.kt` |
 | Splitting search words into CLIP's word pieces | `recognition/ClipTokenizer.kt` |
 | TinyCLIP's image and text halves (Plus) | `app/src/plus/.../recognition/TinyClip.kt` |
 | Building the models and the cut-down runtime | `scripts/plus/build.sh`, `prepare_models.py`, `models.txt`, `ort_settings.json` |
@@ -434,6 +448,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, video trim, speed and crop maths, stacks, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, sorting into Things, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, video trim, speed and crop maths, stacks, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

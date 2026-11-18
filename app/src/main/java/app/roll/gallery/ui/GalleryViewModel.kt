@@ -32,6 +32,9 @@ import app.roll.gallery.data.orderTiles
 import app.roll.gallery.recognition.DescriptionIndex
 import app.roll.gallery.recognition.TextDescriber
 import app.roll.gallery.recognition.bestMatches
+import app.roll.gallery.recognition.Thing
+import app.roll.gallery.recognition.OTHER_PHRASES
+import app.roll.gallery.recognition.sortIntoThings
 import app.roll.gallery.recognition.FaceEntry
 import app.roll.gallery.recognition.FaceIndex
 import app.roll.gallery.recognition.PeopleNames
@@ -132,11 +135,15 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     private val faceIndex = FaceIndex(app)
     private val peopleNames = PeopleNames(app)
     private val _photoText = MutableStateFlow<Map<Long, String>>(emptyMap())
+    private val _readText = MutableStateFlow<Map<Long, String>>(emptyMap())
     private val _faces = MutableStateFlow<Map<Long, FaceEntry>>(emptyMap())
     private val _names = MutableStateFlow<Map<String, String>>(emptyMap())
 
     /** The text read in each photo so far, lower-cased for searching, by photo id (Gallery Plus). */
     val photoText: StateFlow<Map<Long, String>> = _photoText
+
+    /** The text read in each photo, as read (lines and capitals kept), for copying (Gallery Plus). */
+    val readText: StateFlow<Map<Long, String>> = _readText
 
     /** The faces found so far, by photo id, including photos found to have none (Gallery Plus). */
     val faces: StateFlow<Map<Long, FaceEntry>> = _faces
@@ -202,6 +209,25 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             _descriptionMatches.value = words to (query?.let { bestMatches(fingerprints, it).toSet() } ?: emptySet())
         }
     }
+
+    // Each Thing's phrases as fingerprints, worked out once with the text half of TinyCLIP.
+    private var phraseFingerprints: Map<String, FloatArray>? = null
+
+    /** Photos sorted into Things (documents, pets, food...), by their description fingerprints (Gallery Plus). */
+    val things: StateFlow<Map<Thing, List<Long>>> = combine(_described, describePhotos) { described, on -> if (on) described else emptyMap() }
+        .debounce(1_000)
+        .map { described ->
+            val fingerprints = described.mapNotNull { (id, packed) -> packed?.let { id to it } }.toMap()
+            if (fingerprints.isEmpty()) return@map emptyMap()
+            val phrases = phraseFingerprints ?: run {
+                val describer = textDescriber ?: runCatching { Edition.textDescriber(getApplication()) }.getOrNull()?.also { textDescriber = it }
+                    ?: return@map emptyMap()
+                (Thing.entries.flatMap { it.phrases } + OTHER_PHRASES).associateWith { describer.describe(it) }.also { phraseFingerprints = it }
+            }
+            sortIntoThings(fingerprints, phrases)
+        }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     override fun onCleared() {
         textDescriber?.close()
@@ -273,7 +299,9 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         if (!Edition.HAS_TEXT_SEARCH && !Edition.HAS_PEOPLE && !Edition.HAS_DESCRIPTIONS) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                _photoText.value = textIndex.load().mapValues { (_, entry) -> entry.text.lowercase() }
+                val text = textIndex.load()
+                _readText.value = text.mapValues { (_, entry) -> entry.text }.filterValues { it.isNotBlank() }
+                _photoText.value = text.mapValues { (_, entry) -> entry.text.lowercase() }
                 _faces.value = faceIndex.load()
                 _names.value = peopleNames.load()
                 _described.value = descriptionIndex.load().mapValues { it.value.second }

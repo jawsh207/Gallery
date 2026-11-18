@@ -26,6 +26,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.outlined.EditCalendar
+import androidx.compose.material.icons.automirrored.outlined.TextSnippet
 import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material3.TextButton
 import app.roll.gallery.ui.collections.AddToAlbumSheet
@@ -98,7 +99,8 @@ import kotlinx.coroutines.launch
  * double-tap to zoom, drag down to close and drag up for details. The bottom bar has the same
  * actions as a selection: share, favorite and trash, or restore and delete inside the trash;
  * the top bar's menu has Slideshow, Add to album, Move to Locked folder, Edit date & time,
- * Use as album cover (when opened from an album) and, for photos, Set as wallpaper. A slideshow
+ * Use as album cover (when opened from an album), Text in photo (Gallery Plus, when text was
+ * read in it) and, for photos, Set as wallpaper. A slideshow
  * starts straight away when [slideshowAtStart] (opening a memory). A motion photo's video plays
  * once when it comes up, and again from the Motion chip under the top bar. Edit opens [onEdit]
  * (the photo or video editor). In the Locked folder the actions are Move out and Delete instead, screenshots
@@ -131,11 +133,13 @@ fun ViewerScreen(
     val photoText by viewModel.searchText.collectAsStateWithLifecycle()
     val people by viewModel.people.collectAsStateWithLifecycle()
     val descriptionMatches by viewModel.descriptionMatches.collectAsStateWithLifecycle()
-    val items = remember(library, set, words, locale, photoText, people, descriptionMatches) {
+    val things by viewModel.things.collectAsStateWithLifecycle()
+    val items = remember(library, set, words, locale, photoText, people, descriptionMatches, things) {
         library.itemsIn(
             set, words, locale,
             photoText = { photoText[it] },
             personPhotos = { key -> people.firstOrNull { it.key == key }?.photoIds.orEmpty() },
+            thingPhotos = { name -> things.entries.firstOrNull { it.key.name == name }?.value.orEmpty() },
             descriptionMatches = { q -> if (descriptionMatches.first == q.trim()) descriptionMatches.second else emptySet() },
         )
     }
@@ -216,6 +220,9 @@ fun ViewerScreen(
     var addingToAlbum by remember { mutableStateOf(false) }
     var wallpaper by remember { mutableStateOf(false) }
     var editingDate by remember { mutableStateOf(false) }
+    var showingText by remember { mutableStateOf(false) }
+    val readText by viewModel.readText.collectAsStateWithLifecycle()
+    val textHere = readText[current.id]
     var newDate by remember { mutableStateOf<Long?>(null) }
     // Changing the date needs write access to the file, asked for once the new date is picked.
     val dateRequest = rememberRequestLauncher { agreed ->
@@ -230,6 +237,9 @@ fun ViewerScreen(
         if (shared) add(BarAction(Icons.Outlined.Lock, stringResource(R.string.locked_move_in)) { moveToLocked(listOf(current)) })
         if (shared && !current.isVideo) {
             add(BarAction(Icons.Outlined.Wallpaper, stringResource(R.string.set_wallpaper)) { wallpaper = true })
+        }
+        if (textHere != null) {
+            add(BarAction(Icons.AutoMirrored.Outlined.TextSnippet, stringResource(R.string.photo_text)) { showingText = true })
         }
         if (set is MediaSet.Album) {
             add(BarAction(Icons.Outlined.PhotoAlbum, stringResource(R.string.album_use_as_cover)) { viewModel.setAlbumCover(current) })
@@ -307,6 +317,7 @@ fun ViewerScreen(
         if (addingToAlbum) {
             AddToAlbumSheet(viewModel, library, listOf(current), onDismiss = { addingToAlbum = false }, onDone = { addingToAlbum = false })
         }
+        if (showingText && textHere != null) PhotoTextDialog(textHere) { showingText = false }
         if (editingDate) {
             EditDateDialog(
                 takenAt = current.takenAt,

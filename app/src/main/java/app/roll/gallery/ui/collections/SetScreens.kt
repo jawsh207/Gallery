@@ -21,6 +21,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -80,6 +81,7 @@ fun MediaSet.title(library: Library): String = when (this) {
         else -> key.removePrefix("year:").toIntOrNull()?.let { pluralStringResource(R.plurals.years_ago, it, it) }.orEmpty()
     }
     is MediaSet.Person -> stringResource(R.string.person)
+    is MediaSet.Thing -> app.roll.gallery.recognition.Thing.entries.firstOrNull { it.name == name }?.let { stringResource(thingName(it)) } ?: name
 }
 
 /**
@@ -94,7 +96,10 @@ fun SetScreen(
     onBack: () -> Unit,
     onOpen: (Media) -> Unit,
 ) {
-    val items = remember(library, set) { library.itemsIn(set) }
+    val things by viewModel.things.collectAsStateWithLifecycle()
+    val items = remember(library, set, things) {
+        library.itemsIn(set, thingPhotos = { name -> things.entries.firstOrNull { it.key.name == name }?.value.orEmpty() })
+    }
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }
     val selected = items.filter { it.id in selectedIds }

@@ -396,4 +396,17 @@
     <!-- Memories -->
     <string name="memories">Memories</string>
     <string name="memory_recent">Recent highlights</string>
+
+    <!-- Copy text and Things (Gallery Plus) -->
+    <string name="photo_text">Text in photo</string>
+    <string name="photo_text_copy">Copy all</string>
+    <string name="things">Things</string>
+    <string name="thing_documents">Documents</string>
+    <string name="thing_receipts">Receipts</string>
+    <string name="thing_selfies">Selfies</string>
+    <string name="thing_pets">Pets</string>
+    <string name="thing_food">Food</string>
+    <string name="thing_landscapes">Landscapes</string>
+    <string name="thing_flowers">Flowers</string>
+    <string name="thing_cars">Cars</string>
 </resources>

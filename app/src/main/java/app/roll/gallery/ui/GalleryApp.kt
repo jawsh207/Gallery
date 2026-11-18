@@ -325,6 +325,7 @@ private fun Home(
     val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
     val people by viewModel.people.collectAsStateWithLifecycle()
     val collectionOrder by viewModel.collectionOrder.collectAsStateWithLifecycle()
+    val things by viewModel.things.collectAsStateWithLifecycle()
     val memories = remember(library.items, showMemories) {
         if (showMemories) allMemories(library.timeline, LocalDate.now(), ZoneId.systemDefault()) else emptyList()
     }
@@ -425,6 +426,8 @@ private fun Home(
                     contentPadding = padding,
                     people = people,
                     onOpenPerson = { open(Screen.Person(it.key)) },
+                    things = things,
+                    onOpenThing = { open(Screen.Grid(MediaSet.Thing(it.name))) },
                 )
                 Tab.Create -> CreateTab(onStart = { open(Screen.Choose(it)) }, contentPadding = padding)
             }
