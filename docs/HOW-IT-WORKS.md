@@ -50,7 +50,7 @@ lost too much accuracy, so they stay as they are.
 | Settings | Photo access, Media management, On this day, Text and people (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Videos tab | Every video, newest first, in the same grid as Photos | `ui/GalleryApp.kt` |
-| Collections tab | People (Plus), reorderable tiles (Favorites, Videos, Screenshots, Recently added, Duplicates, Locked folder, Trash), and every album | `ui/collections/CollectionsTab.kt` |
+| Collections tab | People (Plus), reorderable tiles (Favorites, Screenshots, Recently added, Duplicates, Locked folder, Trash), and every album | `ui/collections/CollectionsTab.kt` |
 | Album, Favorites, Videos, Screenshots, Recently added | One set of photos as its own grid | `ui/collections/SetScreens.kt` |
 | Create tab | Collage, Animation, Video maker and Moods | `ui/create/CreateTab.kt` |
 | Choosing for Create | Picking the photos (and clips) to make something from | `ui/create/MakeScreens.kt` |
@@ -227,12 +227,13 @@ in, and, for photos, the camera and its settings (aperture, shutter speed, focal
 In the trash, the date Android will delete it for good. Gallery doesn't read where a photo was
 taken.
 
-**Collections tiles.** The top of the Collections tab has a tile each for Favorites, Videos,
+**Collections tiles.** The top of the Collections tab has a tile each for Favorites,
 Screenshots, Recently added, Duplicates, the Locked folder and Trash. Reorder (under them) lets
 you move each up or down, or reset to the usual order; the order is kept in Gallery's settings.
 Screenshots holds everything in a folder called Screenshots (or Screen recordings), wherever it
 is. Recently added holds whatever arrived on the phone in the last 30 days, whenever it was
-taken (downloads and saved photos too), grouped by the day it arrived.
+taken (downloads and saved photos too), grouped by the day it arrived. Videos have their own
+tab instead of a tile.
 
 **Create.** The Create tab makes new things from your photos, on the phone; the photos used
 aren't changed. Each starts by choosing photos in the usual grid, and what you choose is used

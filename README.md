@@ -32,7 +32,7 @@ store, so other apps see the same favorites and trash.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,
   shutter speed, ISO and focal length stored in the photo.
 - **Videos:** a tab of its own with every video, newest first, selectable like Photos.
-- **Collections:** tiles for Favorites, Videos, Screenshots, Recently added, Duplicates, the
+- **Collections:** tiles for Favorites, Screenshots, Recently added, Duplicates, the
   Locked folder and Trash, in an order you can change, then every folder with photos as an
   album (camera and screenshots first). Make new albums, and move or copy photos into albums.
 - **Create:** make a collage of 2 to 9 photos, an animation from a burst of photos, or a

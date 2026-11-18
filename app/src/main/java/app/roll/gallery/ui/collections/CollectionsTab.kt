@@ -54,7 +54,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -68,7 +67,7 @@ import app.roll.gallery.ui.components.EmptyState
 import coil3.compose.AsyncImage
 
 /**
- * The Collections tab: [people] (Gallery Plus), then tiles for Favorites, Videos, Screenshots,
+ * The Collections tab: [people] (Gallery Plus), then tiles for Favorites, Screenshots,
  * Recently Added, the duplicate finder, the Locked folder and Trash in the [order] chosen (with
  * a Reorder button, [onReorder] getting the new order), then every folder with photos as an
  * album, camera and screenshots first, with a button to make a new one ([onNewAlbum] gets its
@@ -115,7 +114,6 @@ fun CollectionsTab(
     val openTile: (CollectionTile) -> Unit = { tile ->
         when (tile) {
             CollectionTile.Favorites -> onOpenSet(MediaSet.Favorites)
-            CollectionTile.Videos -> onOpenSet(MediaSet.Videos)
             CollectionTile.Screenshots -> onOpenSet(MediaSet.Screenshots)
             CollectionTile.RecentlyAdded -> onOpenSet(MediaSet.RecentlyAdded)
             CollectionTile.Duplicates -> onOpenDuplicates()
@@ -192,7 +190,6 @@ fun CollectionsTab(
 /** A tile's icon and name. */
 private fun tileLook(tile: CollectionTile): Pair<ImageVector, Int> = when (tile) {
     CollectionTile.Favorites -> Icons.Outlined.FavoriteBorder to R.string.favorites
-    CollectionTile.Videos -> Icons.Outlined.PlayCircle to R.string.videos
     CollectionTile.Screenshots -> Icons.Outlined.Screenshot to R.string.screenshots
     CollectionTile.RecentlyAdded -> Icons.Outlined.Schedule to R.string.recently_added
     CollectionTile.Duplicates -> Icons.Outlined.ContentCopy to R.string.duplicates

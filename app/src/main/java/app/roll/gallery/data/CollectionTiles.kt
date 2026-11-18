@@ -1,12 +1,12 @@
 package app.roll.gallery.data
 
 /** The tiles at the top of the Collections tab, in their usual order. Their order can be changed. */
-enum class CollectionTile { Favorites, Videos, Screenshots, RecentlyAdded, Duplicates, Locked, Trash }
+enum class CollectionTile { Favorites, Screenshots, RecentlyAdded, Duplicates, Locked, Trash }
 
 /**
  * The tiles in the order [saved] (tile names, as kept in settings) puts them: those named first,
  * in that order, then any not named (new ones, or all of them when nothing was saved) in their
- * usual order. Unknown and repeated names are ignored.
+ * usual order. Unknown and repeated names (like Videos, which was once a tile) are ignored.
  */
 fun orderTiles(saved: List<String>): List<CollectionTile> {
     val named = saved.mapNotNull { name -> CollectionTile.entries.firstOrNull { it.name == name } }.distinct()
