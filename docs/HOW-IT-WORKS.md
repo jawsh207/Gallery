@@ -47,7 +47,9 @@ lost too much accuracy, so they stay as they are.
 | --- | --- | --- |
 | Access | Asking for permission to see photos, with a way into Android's settings | `ui/access/AccessScreen.kt` |
 | Search | Finding photos by name, album, date or kind, with shortcuts before you type | `ui/search/SearchScreen.kt` |
-| Settings | Photo access, Media management, On this day, Text and people (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
+| Settings | Photo access, Media management, On this day, Folders in Photos, Text and people (Plus), version and licenses | `ui/settings/SettingsScreen.kt` |
+| Folders in Photos | Which folders show in the Photos tab | `ui/settings/FoldersScreen.kt` |
+| Edit date & time | Picking a new date and time for a photo | `ui/viewer/EditDate.kt` |
 | Photos tab | On this day, then every photo and video under date headers; pinch to zoom, select, fast-scroll | `ui/photos/PhotosTab.kt`, `MediaGrid.kt`, `FastScroller.kt` |
 | Videos tab | Every video, newest first, in the same grid as Photos | `ui/GalleryApp.kt` |
 | Collections tab | People (Plus), reorderable tiles (Favorites, Screenshots, Recently added, Duplicates, Locked folder, Trash), and every album | `ui/collections/CollectionsTab.kt` |
@@ -159,7 +161,8 @@ the library in the usual grid, showing only the kinds the app asked for (photos,
 both). If it takes one, tapping a photo hands it back; if it takes several, tap or drag to
 select and press Done. The app gets access to just the photos you chose.
 
-**Settings.** On this day turns the memories row on or off, and in Gallery Plus the Text in
+**Settings.** On this day turns the memories row on or off, Folders in Photos picks which
+folders show in the Photos tab, and in Gallery Plus the Text in
 photos switches; these are stored in Gallery's own private settings file. Photo access shows whether Gallery sees everything or only photos you picked,
 and opens the dialog to pick more (or Android's settings, to take access back). Media
 management opens Android's switch for it and shows whether it's on. About shows the version
@@ -262,7 +265,25 @@ saving anything. New files are named after when they were made, like
 Collage_20261117_194512.jpg.
 
 **Albums.** Every folder holding photos or videos is an album, with its newest photo as the
-cover. The camera folder comes first, screenshots second, then the rest by their newest photo.
+cover unless you choose one ("Use as album cover" in the viewer's menu, when opened from that
+album). The sort button by Albums orders them by most recent (camera folder first, screenshots
+second, then the rest by their newest photo) or by name. An album's menu (top right) pins it to
+the top (pinned albums show a pin, in the order they were pinned) and has Show in Photos.
+
+**Folders in Photos.** Settings → Folders in Photos (or Show in Photos in an album's menu)
+chooses which folders are mixed into the Photos tab. A folder turned off, like downloads or a
+messaging app's pictures, stays an album and in search. These choices, pins, covers and the
+sort order are kept in Gallery's own settings, not in the files.
+
+**Undo.** After moving things to the trash, into another album or into the Locked folder, the
+message at the bottom has Undo for a few seconds. Undoing a trash asks Android to confirm (unless
+Media management is on); a move puts each item back in its old folder; the Locked folder moves
+them back out.
+
+**Editing the date.** "Edit date & time" in the viewer's menu picks a new date, then a new time,
+then asks Android for permission to change the file (unless Media management is on). For JPEG,
+PNG and WebP photos the new date is written into the photo itself, so it travels with the file;
+for other photos and videos only Android's media store is changed.
 
 **Making albums, moving and copying.** "Add to album" (for a selection, or from the viewer's
 menu) opens a list of albums with a Move or Copy switch. Moving shifts the files into that
@@ -323,7 +344,8 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Reading photos and videos from the media store, and building change requests | `data/MediaStoreSource.kt` |
 | What a photo or video is, and the sets the viewer pages through | `data/Media.kt` |
 | Grouping into days or months, header wording rules, zoom levels | `data/Timeline.kt` |
-| Building albums from folders and ordering them | `data/Albums.kt` |
+| Building albums from folders, ordering, pinning, covers and folders kept out of Photos | `data/Albums.kt` |
+| Messages with Undo, and undoing | `ui/GalleryViewModel.kt`, `ui/GalleryApp.kt` |
 | Matching search words to photos | `data/Search.kt` |
 | Reading what another app asked for, and describing a file it handed over | `intents/ExternalRequest.kt` |
 | Which kinds a pick request wants | `data/Picking.kt` |
@@ -358,7 +380,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Looking at photos in the background (text, faces and descriptions), and scheduling it | `recognition/RecognitionWorker.kt` |
 | The notification shown while photos are being looked at | `recognition/ScanNotification.kt` |
 | Asking once to show that notification (Plus) | `ui/components/AskForNotifications.kt` |
-| Dates from file names, and keeping dates on files Gallery writes | `data/FileDates.kt` |
+| Dates from file names, keeping dates on files Gallery writes, and changing a photo's date | `data/FileDates.kt` |
 | Counting the phone's performance cores | `recognition/CpuCores.kt` |
 | Loading a model with its number of processor cores (Plus) | `app/src/plus/.../recognition/Sessions.kt` |
 | Finding faces and fingerprinting them (Plus) | `app/src/plus/.../recognition/YuNetFaceFinder.kt`, `recognition/FaceFinder.kt` |

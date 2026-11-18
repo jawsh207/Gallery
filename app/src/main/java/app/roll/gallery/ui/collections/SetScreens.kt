@@ -106,7 +106,7 @@ fun SetScreen(
                 TopAppBar(
                     title = { Text(set.title(library)) },
                     navigationIcon = { BackButton(onBack) },
-                    actions = { if (set is MediaSet.Album) AlbumMenu(viewModel, library, set.albumId) },
+                    actions = { if (set is MediaSet.Album) AlbumMenu(viewModel, library, set.id) },
                     scrollBehavior = scroll,
                 )
             }
@@ -227,7 +227,7 @@ private fun AlbumMenu(viewModel: GalleryViewModel, library: Library, albumId: Lo
     val pinned = albumId in library.albumPrefs.pinned
     val inPhotos = albumId !in library.albumPrefs.hidden
     Box {
-        IconButton(onClick = { open = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more)) }
+        IconButton(onClick = { open = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options)) }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(if (pinned) R.string.album_unpin else R.string.album_pin)) },

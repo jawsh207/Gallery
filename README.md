@@ -38,6 +38,11 @@ store, so other apps see the same favorites and trash.
 - **Create:** make a collage of 2 to 9 photos, an animation from a burst of photos, or a
   slideshow video of photos and clips with music from your own audio files, all on the phone
   and saved as new files. Moods give a photo a named look, from Airy to Night lights.
+- **Undo:** trashing, moving to an album and moving into the Locked folder can be undone from
+  the message that follows.
+- **Albums:** pin albums to the top, sort them by most recent or name, choose a cover, and
+  choose which folders show in Photos (Settings → Folders in Photos).
+- **Edit date & time:** fix when a photo was taken, from the viewer's menu.
 - **Slideshow:** from the viewer's menu; a new photo every four seconds, tap to stop.
 - **Duplicates:** finds copies of the same photo and near-identical shots taken moments apart,
   suggests which to keep, and trashes the rest in one go.
