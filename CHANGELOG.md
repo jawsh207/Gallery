@@ -2,6 +2,28 @@
 
 What changed in each release, newest first. Each section becomes that release's notes.
 
+## 0.2.1
+
+### Photos and memories
+- Stacks: bursts and quick runs of shots show as one tile in Photos, with a count. Selecting the tile selects the whole stack. Can be turned off in Settings.
+- Memories now include Recent highlights (the last two weeks) and the past year's busiest days, alongside On this day.
+- Undo: trashing, moving to an album and moving into the Locked folder can be undone from the message that follows.
+
+### Albums and collections
+- Choose which folders show in Photos (Settings → Folders in Photos, or an album's menu). Hidden folders stay albums and in search.
+- Pin albums to the top, sort albums by most recent or name, and choose an album's cover from the viewer.
+- Videos has its own tab and no longer has a tile in Collections.
+
+### Editing
+- New in the photo editor: one-tap Enhance, highlights, shadows, vignette and sharpen.
+- Markup: draw with a pen or highlighter, or add text, in six colours.
+- Video editor: trim, turn, crop to a shape, change the speed, remove the sound, and save a frame as a photo. Saved as a copy beside the original.
+- Edit date & time: fix when a photo was taken, from the viewer's menu.
+
+### Gallery Plus
+- Things: photos sorted into Documents, Receipts, Selfies, Pets, Food, Landscapes, Flowers and Cars on the Collections tab.
+- Text in photo: see and copy the text read in a photo, from the viewer's menu.
+
 ## 0.2.0
 
 ### Create
