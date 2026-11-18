@@ -91,9 +91,10 @@ suspend fun exportVideo(context: Context, media: Media, edits: VideoEdits, onPro
         if (edits.muted) {
             video += SpeedChangeEffect(edits.speed)
         } else {
-            val (processor, effect) = Effects.createExperimentalSpeedChangingEffect(constantSpeed(edits.speed))
-            audio += processor
-            video += effect
+            // An Android Pair, so its parts are read by name.
+            val linked = Effects.createExperimentalSpeedChangingEffect(constantSpeed(edits.speed))
+            audio += linked.first
+            video += linked.second
         }
     }
     val edited = EditedMediaItem.Builder(item)
