@@ -46,7 +46,7 @@ import app.roll.gallery.ui.components.EmptyState
  * The Photos tab: every photo and video, newest first, in the date-grouped grid, under a row
  * of "On this day" [memories] when there are any ([onOpenMemory] plays one). With only
  * some photos shared with the app ("Select photos" access), a card at the top offers to allow
- * all of them.
+ * all of them. Stack covers show how many shots they hold ([stackSizes]).
  */
 @Composable
 fun PhotosTab(
@@ -62,6 +62,7 @@ fun PhotosTab(
     contentPadding: PaddingValues,
     memories: List<Memory> = emptyList(),
     onOpenMemory: (Memory) -> Unit = {},
+    stackSizes: Map<Long, Int> = emptyMap(),
 ) {
     if (items.isEmpty() && !partialAccess) {
         EmptyState(
@@ -81,6 +82,7 @@ fun PhotosTab(
         onOpen = onOpen,
         state = gridState,
         contentPadding = contentPadding,
+        stackSizes = stackSizes,
         header = {
             if (memories.isNotEmpty()) {
                 item(key = "memories", span = { GridItemSpan(maxLineSpan) }, contentType = "memories") {

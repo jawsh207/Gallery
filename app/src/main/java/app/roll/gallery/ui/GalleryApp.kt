@@ -105,6 +105,8 @@ import app.roll.gallery.ui.create.CreateTab
 import app.roll.gallery.ui.create.VideoMakerScreen
 import app.roll.gallery.ui.settings.FoldersScreen
 import app.roll.gallery.ui.editor.VideoEditorScreen
+import app.roll.gallery.data.buildStacks
+import app.roll.gallery.data.withoutStacked
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.outlined.Brush
 import kotlinx.coroutines.launch
@@ -300,7 +302,14 @@ private fun Home(
     var zoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var videoZoom by rememberSaveable { mutableStateOf(GridZoom.Days) }
     var selectedIds by remember { mutableStateOf(emptySet<Long>()) }
-    val selected = library.items.filter { it.id in selectedIds }
+    // Quick runs of shots show as one tile in Photos; selecting it selects the whole stack.
+    val stackOn by viewModel.stackPhotos.collectAsStateWithLifecycle()
+    val stacks = remember(library.timeline, stackOn) { if (stackOn) buildStacks(library.timeline) else emptyList() }
+    val photosGrid = remember(library.timeline, stacks) { withoutStacked(library.timeline, stacks) }
+    val stackSizes = remember(stacks) { stacks.associate { it.cover.id to it.members.size } }
+    val stackMembers = remember(stacks) { stacks.associate { stack -> stack.cover.id to stack.members.map { it.id } } }
+    val selectedWithStacks = if (tab == Tab.Photos) selectedIds + selectedIds.flatMap { stackMembers[it].orEmpty() } else selectedIds
+    val selected = library.items.filter { it.id in selectedWithStacks }
     val selecting = selected.isNotEmpty() && (tab == Tab.Photos || tab == Tab.Videos)
     // A selection belongs to the tab it was made on.
     LaunchedEffect(tab) { selectedIds = emptySet() }
@@ -365,7 +374,8 @@ private fun Home(
         AnimatedContent(targetState = tab, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "tab") { shown ->
             when (shown) {
                 Tab.Photos -> PhotosTab(
-                    items = library.timeline,
+                    items = photosGrid,
+                    stackSizes = stackSizes,
                     partialAccess = partialAccess,
                     onAllowAll = onAllowAll,
                     zoom = zoom,

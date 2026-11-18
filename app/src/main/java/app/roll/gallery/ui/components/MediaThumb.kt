@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.BurstMode
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +42,8 @@ import app.roll.gallery.image.thumbnail
 import coil3.compose.AsyncImage
 
 /**
- * One square of the photo grid. Videos show their length, favorites a heart. While selecting,
+ * One square of the photo grid. Videos show their length, favorites a heart, and a stack's
+ * cover how many shots it holds ([stack]). While selecting,
  * each square shows a check circle, and a selected one shrinks into a rounded tile, as in
  * other gallery apps.
  */
@@ -52,6 +54,7 @@ fun MediaThumb(
     selecting: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    stack: Int = 0,
 ) {
     val inset by animateDpAsState(if (selected) 10.dp else 0.dp, label = "inset")
     val corner by animateDpAsState(if (selected) 14.dp else 0.dp, label = "corner")
@@ -85,6 +88,13 @@ fun MediaThumb(
                 Text(formatDuration(media.durationMs), style = shadow)
                 Spacer(Modifier.width(4.dp))
                 Icon(Icons.Rounded.PlayCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+        }
+        if (stack > 1) {
+            Row(Modifier.align(Alignment.TopEnd).padding(6.dp + inset), verticalAlignment = Alignment.CenterVertically) {
+                Text(stack.toString(), style = shadow)
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Rounded.BurstMode, contentDescription = stringResource(R.string.stacked), tint = Color.White, modifier = Modifier.size(16.dp))
             }
         }
         if (media.isFavorite && !selecting) {

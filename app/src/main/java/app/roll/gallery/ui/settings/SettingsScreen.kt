@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Switch
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.BurstMode
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -86,6 +87,7 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit, onOpenFolder
     }
     var showLicenses by remember { mutableStateOf(false) }
     val showMemories by viewModel.showMemories.collectAsStateWithLifecycle()
+    val stackPhotos by viewModel.stackPhotos.collectAsStateWithLifecycle()
     val readText by viewModel.readText.collectAsStateWithLifecycle()
     val onlyCharging by viewModel.readTextOnlyCharging.collectAsStateWithLifecycle()
     val photoText by viewModel.photoText.collectAsStateWithLifecycle()
@@ -162,7 +164,7 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit, onOpenFolder
                     icon = Icons.Outlined.History,
                     title = stringResource(R.string.settings_memories),
                     summary = stringResource(R.string.settings_memories_summary),
-                    shape = segmentShape(0, 2),
+                    shape = segmentShape(0, 3),
                     onClick = { viewModel.setShowMemories(!showMemories) },
                     trailing = { Switch(checked = showMemories, onCheckedChange = viewModel::setShowMemories) },
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -173,8 +175,19 @@ fun SettingsScreen(viewModel: GalleryViewModel, onBack: () -> Unit, onOpenFolder
                     icon = Icons.Outlined.FolderOpen,
                     title = stringResource(R.string.settings_folders),
                     summary = stringResource(R.string.settings_folders_summary),
-                    shape = segmentShape(1, 2),
+                    shape = segmentShape(1, 3),
                     onClick = onOpenFolders,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            item(key = "stacks") {
+                ListRow(
+                    icon = Icons.Outlined.BurstMode,
+                    title = stringResource(R.string.settings_stacks),
+                    summary = stringResource(R.string.settings_stacks_summary),
+                    shape = segmentShape(2, 3),
+                    onClick = { viewModel.setStackPhotos(!stackPhotos) },
+                    trailing = { Switch(checked = stackPhotos, onCheckedChange = viewModel::setStackPhotos) },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }

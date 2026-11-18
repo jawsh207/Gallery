@@ -79,6 +79,7 @@ sealed interface GridEntry {
  *
  * [header] adds anything that should scroll above the photos (a banner, an intro line).
  * [groupBy] picks the date the headers go by: when taken, or (for Recently Added) when it arrived.
+ * [stackSizes] marks stack covers (by id) with how many shots they hold.
  */
 @Composable
 fun MediaGrid(
@@ -93,6 +94,7 @@ fun MediaGrid(
     contentPadding: PaddingValues = PaddingValues(),
     header: LazyGridScope.() -> Unit = {},
     groupBy: GroupBy = GroupBy.Taken,
+    stackSizes: Map<Long, Int> = emptyMap(),
 ) {
     val today = remember { LocalDate.now() }
     val zone = remember { ZoneId.systemDefault() }
@@ -241,6 +243,7 @@ fun MediaGrid(
                             media = media,
                             selected = media.id in selection,
                             selecting = selecting,
+                            stack = stackSizes[media.id] ?: 0,
                             onClick = {
                                 if (selecting) {
                                     select(if (media.id in selection) selection - media.id else selection + media.id)

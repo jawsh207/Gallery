@@ -88,6 +88,12 @@ folder) keep the date they had. Photos are grouped by day:
 "Today", "Yesterday", the weekday for the past week, then dates, with the year only for other
 years. Videos show their length and favorites a heart.
 
+**Stacks.** Photos taken in quick succession in the same folder (each within two seconds of the
+one before), like a camera burst or several tries at a shot, show as one tile in Photos with a
+count. The cover is the shot the camera marked as the burst's cover, or the newest. Opening it
+shows every shot, and selecting it selects the whole stack. Settings → Stack similar shots turns
+this off. Albums and search always show every shot.
+
 **Search.** The bar at the top of the main screen opens search; the gear on its right opens
 Settings. Every word you type must match. A word can be a kind ("videos", "photos",
 "favorites", "screenshots"), a year ("2024"), a month ("June" or "Jun", in your phone's
@@ -163,7 +169,7 @@ both). If it takes one, tapping a photo hands it back; if it takes several, tap 
 select and press Done. The app gets access to just the photos you chose.
 
 **Settings.** On this day turns the memories row on or off, Folders in Photos picks which
-folders show in the Photos tab, and in Gallery Plus the Text in
+folders show in the Photos tab, Stack similar shots turns stacks on or off, and in Gallery Plus the Text in
 photos switches; these are stored in Gallery's own private settings file. Photo access shows whether Gallery sees everything or only photos you picked,
 and opens the dialog to pick more (or Android's settings, to take access back). Media
 management opens Android's switch for it and shows whether it's on. About shows the version
@@ -364,6 +370,7 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | What a photo or video is, and the sets the viewer pages through | `data/Media.kt` |
 | Grouping into days or months, header wording rules, zoom levels | `data/Timeline.kt` |
 | Building albums from folders, ordering, pinning, covers and folders kept out of Photos | `data/Albums.kt` |
+| Grouping quick runs of shots into stacks | `data/Stacks.kt` |
 | Messages with Undo, and undoing | `ui/GalleryViewModel.kt`, `ui/GalleryApp.kt` |
 | Matching search words to photos | `data/Search.kt` |
 | Reading what another app asked for, and describing a file it handed over | `intents/ExternalRequest.kt` |
@@ -420,6 +427,6 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 
 ## Tests
 
-The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, video trim, speed and crop maths, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
+The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, video trim, speed and crop maths, stacks, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
 drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
 They run before every build.

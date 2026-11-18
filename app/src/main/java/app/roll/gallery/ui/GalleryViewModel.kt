@@ -229,6 +229,14 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settings.updateAlbumPrefs(change) }
     }
 
+    /** Whether the Photos grid stacks quick runs of shots. */
+    val stackPhotos: StateFlow<Boolean> = settings.stackPhotos.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** Turns stacking in the Photos grid on or off. */
+    fun setStackPhotos(on: Boolean) {
+        viewModelScope.launch { settings.setStackPhotos(on) }
+    }
+
     /** Keeps [tiles] as the Collections tab's order. */
     fun setCollectionOrder(tiles: List<CollectionTile>) {
         viewModelScope.launch { settings.setCollectionOrder(tiles) }

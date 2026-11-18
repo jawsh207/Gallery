@@ -74,6 +74,14 @@ class AppSettings(private val context: Context) {
         context.settingsStore.edit { it[COLLECTION_ORDER] = tiles.joinToString(",") { tile -> tile.name } }
     }
 
+    /** Whether the Photos grid stacks quick runs of shots into one tile. On unless turned off. */
+    val stackPhotos: Flow<Boolean> = context.settingsStore.data.map { it[STACK_PHOTOS] ?: true }
+
+    /** Turns stacking in the Photos grid on or off. */
+    suspend fun setStackPhotos(on: Boolean) {
+        context.settingsStore.edit { it[STACK_PHOTOS] = on }
+    }
+
     /** The choices made about albums: kept out of Photos, pinned, covers and order. */
     val albumPrefs: Flow<AlbumPrefs> = context.settingsStore.data.map { albumPrefsIn(it) }
 
@@ -101,6 +109,7 @@ class AppSettings(private val context: Context) {
     private fun ids(text: String?): List<Long> = text.orEmpty().split(',').mapNotNull { it.toLongOrNull() }
 
     private companion object {
+        val STACK_PHOTOS = booleanPreferencesKey("stack_photos")
         val HIDDEN_ALBUMS = stringPreferencesKey("hidden_albums")
         val PINNED_ALBUMS = stringPreferencesKey("pinned_albums")
         val ALBUM_COVERS = stringPreferencesKey("album_covers")
