@@ -2,6 +2,21 @@
 
 What changed in each release, newest first. Each section becomes that release's notes.
 
+## 0.2.0
+
+### Create
+- New Create tab in the bottom bar for making new things from your photos, on the phone. The photos used aren't changed.
+- Collage: put 2 to 9 photos in one picture. Choose a layout, a square, portrait, story or landscape shape, the spacing, rounded corners and a white or black background; tap two photos to swap them. Saved to Pictures/Gallery.
+- Animation: turn a burst of photos into a short looping clip, with a speed control and an option to play there and back. Saved to Movies/Gallery.
+- Video maker: a slideshow video of photos and clips, in a landscape, portrait or square frame, with music from your own audio files if you like. Saved to Movies/Gallery.
+- Moods: eight new looks in the editor (Airy, Golden hour, Night lights, Film, Pastel, Crisp, Matte, and Teal & orange), also reachable from Create.
+
+### Collections
+- Tiles for Favorites, Videos, Screenshots, Recently added, Duplicates, the Locked folder and Trash at the top of Collections.
+- Screenshots gathers your screenshots and screen recordings in one place.
+- Recently added shows what arrived on your phone in the last 30 days, by the day it arrived.
+- Reorder lets you put the tiles in the order you like.
+
 ## 0.1.0
 
 The first release of Gallery: a local photo and video gallery for Android 16 and up, with no account, no cloud, no internet access and no Google services. It comes in two editions with the same app id: Gallery, and Gallery Plus, which adds on-device recognition for search. Either installs over the other.
