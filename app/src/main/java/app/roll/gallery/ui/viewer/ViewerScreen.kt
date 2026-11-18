@@ -221,8 +221,8 @@ fun ViewerScreen(
     var wallpaper by remember { mutableStateOf(false) }
     var editingDate by remember { mutableStateOf(false) }
     var showingText by remember { mutableStateOf(false) }
-    val readText by viewModel.readText.collectAsStateWithLifecycle()
-    val textHere = readText[current.id]
+    val textAsRead by viewModel.textAsRead.collectAsStateWithLifecycle()
+    val textHere = textAsRead[current.id]
     var newDate by remember { mutableStateOf<Long?>(null) }
     // Changing the date needs write access to the file, asked for once the new date is picked.
     val dateRequest = rememberRequestLauncher { agreed ->

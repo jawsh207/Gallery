@@ -135,7 +135,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     private val faceIndex = FaceIndex(app)
     private val peopleNames = PeopleNames(app)
     private val _photoText = MutableStateFlow<Map<Long, String>>(emptyMap())
-    private val _readText = MutableStateFlow<Map<Long, String>>(emptyMap())
+    private val _textAsRead = MutableStateFlow<Map<Long, String>>(emptyMap())
     private val _faces = MutableStateFlow<Map<Long, FaceEntry>>(emptyMap())
     private val _names = MutableStateFlow<Map<String, String>>(emptyMap())
 
@@ -143,7 +143,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     val photoText: StateFlow<Map<Long, String>> = _photoText
 
     /** The text read in each photo, as read (lines and capitals kept), for copying (Gallery Plus). */
-    val readText: StateFlow<Map<Long, String>> = _readText
+    val textAsRead: StateFlow<Map<Long, String>> = _textAsRead
 
     /** The faces found so far, by photo id, including photos found to have none (Gallery Plus). */
     val faces: StateFlow<Map<Long, FaceEntry>> = _faces
@@ -300,7 +300,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val text = textIndex.load()
-                _readText.value = text.mapValues { (_, entry) -> entry.text }.filterValues { it.isNotBlank() }
+                _textAsRead.value = text.mapValues { (_, entry) -> entry.text }.filterValues { it.isNotBlank() }
                 _photoText.value = text.mapValues { (_, entry) -> entry.text.lowercase() }
                 _faces.value = faceIndex.load()
                 _names.value = peopleNames.load()
