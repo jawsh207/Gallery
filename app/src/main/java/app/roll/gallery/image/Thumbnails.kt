@@ -24,10 +24,10 @@ import coil3.size.pxOrElse
  * new thumbnail. Files in the Locked folder aren't in Android's catalogue, so for those
  * ([uri] is a file address) the thumbnail is made from the file, which is where [isVideo] matters.
  */
-data class Thumbnail(val uri: Uri, val modifiedAt: Long, val isVideo: Boolean = false)
+data class Thumbnail(val uri: Uri, val modifiedAt: Long, val isVideo: Boolean = false, val sizeBytes: Long = 0)
 
 /** The grid thumbnail for this item. */
-fun Media.thumbnail(): Thumbnail = Thumbnail(uri, modifiedAt, isVideo)
+fun Media.thumbnail(): Thumbnail = Thumbnail(uri, modifiedAt, isVideo, sizeBytes)
 
 /**
  * The thumbnail size to ask for: the next of 256, 512 or 1024 pixels up from what's being
@@ -43,7 +43,7 @@ fun thumbnailBucket(px: Int): Int = when {
 /** Lets Coil keep [Thumbnail]s in its memory cache, keyed by file, change time and size. */
 class ThumbnailKeyer : Keyer<Thumbnail> {
     override fun key(data: Thumbnail, options: Options): String =
-        "thumb:${data.uri}:${data.modifiedAt}:${thumbnailBucket(options.longestSide())}"
+        "thumb:${data.uri}:${data.modifiedAt}:${data.sizeBytes}:${thumbnailBucket(options.longestSide())}"
 }
 
 /** Loads a [Thumbnail] through Android's own thumbnail cache (or from the file, for locked items). Coil runs this off the main thread. */

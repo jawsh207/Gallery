@@ -361,9 +361,10 @@ internal fun TopControls(takenAt: Long, onBack: () -> Unit, menu: List<BarAction
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)))
+            // A dark band behind the controls that fades out below them, so they read on any photo.
+            .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.75f), 0.6f to Color.Black.copy(alpha = 0.5f), 1f to Color.Transparent))
             .statusBarsPadding()
-            .padding(4.dp),
+            .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
@@ -437,9 +438,10 @@ internal fun BottomControls(actions: List<BarAction>) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))))
+            .background(Brush.verticalGradient(0f to Color.Transparent, 0.4f to Color.Black.copy(alpha = 0.5f), 1f to Color.Black.copy(alpha = 0.75f)))
+            .padding(top = 28.dp)
             .navigationBarsPadding()
-            .padding(vertical = 8.dp),
+            .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         for (action in actions) {

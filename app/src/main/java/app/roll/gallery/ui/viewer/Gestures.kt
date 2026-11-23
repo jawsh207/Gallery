@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
@@ -46,6 +47,8 @@ class ZoomState(private val aspect: Float) {
 
     /** Applies a pinch: [zoom] around [centroid], plus a [pan], all in screen pixels. */
     fun transform(zoom: Float, pan: Offset, centroid: Offset) {
+        // A position that isn't a number would move the photo off the screen for good.
+        if (!centroid.isSpecified || zoom.isNaN() || !pan.isValid()) return
         val newScale = (scale * zoom).coerceIn(1f, MAX_SCALE)
         val factor = newScale / scale
         val c = centroid - center()
@@ -66,6 +69,7 @@ class ZoomState(private val aspect: Float) {
 
     /** Snaps back inside the edges after a gesture ends. */
     fun settle() {
+        if (!offset.isValid()) offset = Offset.Zero
         if (!isZoomed) {
             scale = 1f
             offset = Offset.Zero
@@ -141,7 +145,12 @@ fun Modifier.viewerGestures(
                     val fingers = event.changes.count { it.pressed }
                     if (zoom != null && mode != Mode.Vertical && (fingers >= 2 || zoom.isZoomed)) {
                         mode = Mode.Transform
-                        zoom.transform(event.calculateZoom(), event.calculatePan(), event.calculateCentroid(useCurrent = true))
+                        // The event that lifts the last finger has no fingers down, so no centre
+                        // (it comes back unspecified, not a number); nothing moves on that one.
+                        val centroid = event.calculateCentroid(useCurrent = true)
+                        if (fingers > 0 && centroid.isSpecified) {
+                            zoom.transform(event.calculateZoom(), event.calculatePan(), centroid)
+                        }
                         event.changes.forEach { if (it.positionChanged()) it.consume() }
                     } else if (mode == Mode.Undecided) {
                         travel += event.changes.first().positionChange()

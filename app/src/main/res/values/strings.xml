@@ -409,4 +409,7 @@
     <string name="thing_landscapes">Landscapes</string>
     <string name="thing_flowers">Flowers</string>
     <string name="thing_cars">Cars</string>
+
+    <!-- The share sheet's name for sending a photo to Gallery to edit -->
+    <string name="share_to_edit">Edit in Gallery</string>
 </resources>

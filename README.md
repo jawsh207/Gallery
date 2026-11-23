@@ -30,6 +30,8 @@ store, so other apps see the same favorites and trash.
   brightness, contrast, saturation, warmth, highlights, shadows, vignette, sharpen, filters and
   moods, and Markup (pen, highlighter and text), with a live preview; hold the photo to compare. Save over the original
   or as a copy beside it.
+- **Edit from other apps:** "Edit" on a screenshot opens Gallery's editor, and photos can be
+  shared to "Edit in Gallery".
 - **Video editor:** trim, turn, cut to a shape, change the speed, remove the sound, and save
   a frame as a photo; saved as a new copy beside the original.
 - **Details:** date and time, file name, folder, size, resolution, and the camera, aperture,

@@ -78,8 +78,11 @@ fun PhotoPage(
     val density = LocalDensity.current
     val longSide = with(density) { maxOf(configuration.screenWidthDp, configuration.screenHeightDp).dp.roundToPx() }
     val target = (longSide * 2).coerceAtMost(4096)
-    val request = remember(media.uri, media.modifiedAt, target) {
-        ImageRequest.Builder(context).data(media.uri).size(target, target).build()
+    // Keyed by when the file changed and its size too, so a photo just edited and saved over
+    // isn't shown from Coil's cache as it was.
+    val request = remember(media.uri, media.modifiedAt, media.sizeBytes, target) {
+        val key = "${media.uri}#${media.modifiedAt}#${media.sizeBytes}"
+        ImageRequest.Builder(context).data(media.uri).size(target, target).memoryCacheKey(key).diskCacheKey(key).build()
     }
     var loaded by remember(media.id) { mutableStateOf(false) }
     Box(

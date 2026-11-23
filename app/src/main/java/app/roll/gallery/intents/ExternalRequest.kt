@@ -17,6 +17,13 @@ sealed interface ExternalRequest {
      */
     data class View(val uri: Uri, val mimeType: String?) : ExternalRequest
 
+    /**
+     * Edit a photo another app handed over: "Edit" on a new screenshot, or Gallery chosen from
+     * a share sheet. [canWrite] when that app allowed changing the original (Edit usually
+     * does); otherwise the edit can only be saved as a copy.
+     */
+    data class Edit(val uri: Uri, val mimeType: String?, val canWrite: Boolean) : ExternalRequest
+
     /** Choose photos or videos and hand them back; [multiple] when the app accepts several. */
     data class Pick(val kinds: PickKinds, val multiple: Boolean) : ExternalRequest
 }
@@ -27,6 +34,10 @@ fun parseRequest(context: Context, intent: Intent?): ExternalRequest? {
     return when (intent.action) {
         Intent.ACTION_VIEW, MediaStore.ACTION_REVIEW, MediaStore.ACTION_REVIEW_SECURE ->
             intent.data?.let { ExternalRequest.View(it, intent.resolveType(context)) }
+        Intent.ACTION_EDIT -> intent.data?.let { ExternalRequest.Edit(it, intent.resolveType(context), canWrite(context, it)) }
+        Intent.ACTION_SEND -> intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)?.let {
+            ExternalRequest.Edit(it, intent.type, canWrite(context, it))
+        }
         Intent.ACTION_GET_CONTENT, Intent.ACTION_PICK -> {
             val types = listOfNotNull(intent.resolveType(context)) +
                 intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES).orEmpty()
@@ -35,6 +46,11 @@ fun parseRequest(context: Context, intent: Intent?): ExternalRequest? {
         else -> null
     }
 }
+
+/** Whether Gallery was allowed to change the file at [uri] (the app that handed it over said so). */
+private fun canWrite(context: Context, uri: Uri): Boolean =
+    context.checkUriPermission(uri, android.os.Process.myPid(), android.os.Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION) ==
+        android.content.pm.PackageManager.PERMISSION_GRANTED
 
 /**
  * Describes a file another app handed over, from what its provider will say: the name and size

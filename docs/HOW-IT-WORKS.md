@@ -248,6 +248,11 @@ leaves the original and adds "name-edited" next to it (or in Pictures/Edited if 
 can't hold photos). Saving works on the full-size photo, up to 8192 pixels on its longer side,
 and carries over the date and camera details. Leaving with unsaved edits asks first.
 
+**Edit from other apps.** "Edit" on a new screenshot (and in other apps that offer it) can open
+Gallery's editor, and the share sheet has "Edit in Gallery" for photos. When the other app
+allows changing the original (Edit usually does), Save writes over it; otherwise the edit is
+saved as a copy in Pictures/Edited. Closing the editor goes back to the other app.
+
 **Editing videos.** Edit in the viewer opens the video editor for videos. Drag the two ends of
 the bar under the video to trim it; the kept part plays on a loop. The turn button turns it a
 quarter clockwise; the shape chips cut it to square, 16:9, 9:16 or 4:3 around the middle (after

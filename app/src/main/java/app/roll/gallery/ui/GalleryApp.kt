@@ -120,7 +120,8 @@ enum class Tab(@param:StringRes val label: Int, val icon: ImageVector, val selec
 }
 
 /**
- * The whole app. A file opened from another app goes straight to its viewer; otherwise it asks
+ * The whole app. A file opened from another app goes straight to its viewer, and one handed over
+ * to edit (a screenshot's Edit, or a share) straight to the editor; otherwise it asks
  * for photo access, then shows either the picker (when another app asked to choose photos) or
  * the screen on top of the back stack. [finish] ends a request from another app, handing back
  * what was chosen (null when cancelled).
@@ -135,6 +136,12 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
     if (request is ExternalRequest.View) {
         val media = remember(request) { externalMedia(context, request.uri, request.mimeType) }
         ExternalViewer(media, viewModel, onClose = { finish(null) })
+        return
+    }
+    // Likewise a photo handed over to edit ("Edit" on a screenshot, or a share).
+    if (request is ExternalRequest.Edit) {
+        val media = remember(request) { externalMedia(context, request.uri, request.mimeType) }
+        EditorScreen(viewModel, media, onClose = { finish(null) }, canWriteHandedOver = request.canWrite)
         return
     }
     var access by remember { mutableStateOf(context.photoAccess()) }

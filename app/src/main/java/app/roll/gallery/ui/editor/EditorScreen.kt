@@ -153,10 +153,18 @@ private fun colorFilterOf(matrix: FloatArray): ColorFilter = ColorFilter.colorMa
  * original. Opened from Create → Moods ([moods]) it starts on the looks, scrolled to the moods.
  * Save writes over the original (after Android's write confirmation) when its format allows,
  * or Save as copy keeps the original and adds an "-edited" file beside it. Nothing is changed
- * until then; leaving with unsaved edits asks first.
+ * until then; leaving with unsaved edits asks first. A photo another app handed over (a
+ * screenshot's Edit, or a share) is saved over only if that app allowed it
+ * ([canWriteHandedOver]); otherwise as a copy, in Pictures/Edited.
  */
 @Composable
-fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit, moods: Boolean = false) {
+fun EditorScreen(
+    viewModel: GalleryViewModel,
+    media: Media,
+    onClose: () -> Unit,
+    moods: Boolean = false,
+    canWriteHandedOver: Boolean = false,
+) {
     val preview by produceState<Bitmap?>(null, media.id) { value = viewModel.editPreview(media) }
     var edits by remember(media.id) { mutableStateOf(Edits()) }
     var tab by rememberSaveable { mutableStateOf(if (moods) EditTab.Filters else EditTab.Crop) }
@@ -205,6 +213,10 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit,
         }
     }
     val writeAccess = rememberRequestLauncher { agreed -> if (agreed) finishSave(false) }
+    // A photo another app handed over can be saved over only if that app allowed it; it isn't
+    // in the media store's own list, so there's no write request to ask with.
+    val handedOver = media.externalUri != null
+    val overwrite = canOverwrite(media.mimeType) && (!handedOver || canWriteHandedOver)
     val leave: () -> Unit = { if (edits.isUnchanged) onClose() else confirmLeave = true }
     BackHandler(onBack = leave)
 
@@ -215,16 +227,16 @@ fun EditorScreen(viewModel: GalleryViewModel, media: Media, onClose: () -> Unit,
                 Spacer(Modifier.weight(1f))
                 Box {
                     Button(
-                        onClick = { if (canOverwrite(media.mimeType)) saveMenu = true else finishSave(true) },
+                        onClick = { if (overwrite) saveMenu = true else finishSave(true) },
                         enabled = !edits.isUnchanged && !saving && source != null,
                         modifier = Modifier.padding(end = 8.dp),
-                    ) { Text(stringResource(if (canOverwrite(media.mimeType)) R.string.save else R.string.save_copy)) }
+                    ) { Text(stringResource(if (overwrite) R.string.save else R.string.save_copy)) }
                     DropdownMenu(expanded = saveMenu, onDismissRequest = { saveMenu = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.save)) },
                             onClick = {
                                 saveMenu = false
-                                writeAccess(viewModel.writeRequest(listOf(media)))
+                                if (handedOver) finishSave(false) else writeAccess(viewModel.writeRequest(listOf(media)))
                             },
                         )
                         DropdownMenuItem(

@@ -578,6 +578,14 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     fun saveEdits(media: Media, edits: Edits, asCopy: Boolean, onSaved: (Boolean) -> Unit) {
         viewModelScope.launch {
             val saved = withContext(Dispatchers.Default) { renderer.save(media, edits, asCopy) } != null
+            // Loads the library again once Android has looked the saved file over, in case its
+            // change notice is slow, so the edit shows at once.
+            if (saved) {
+                launch {
+                    kotlinx.coroutines.delay(700)
+                    accessChanged.value++
+                }
+            }
             val app = getApplication<Application>()
             _messages.emit(Message(app.getString(if (!saved) R.string.edit_save_failed else if (asCopy) R.string.edit_saved_copy else R.string.edit_saved)))
             onSaved(saved)

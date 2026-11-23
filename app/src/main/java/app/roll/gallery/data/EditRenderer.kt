@@ -94,7 +94,14 @@ class EditRenderer(private val context: Context) {
                 check(result.compress(format.compress, 95, requireNotNull(out)))
             }
             if (format.mimeType == "image/jpeg" && sourceExif != null) copyExif(sourceExif, target)
-            if (asCopy) resolver.update(target, ContentValues().apply { put(MediaColumns.IS_PENDING, 0) }, null, null)
+            if (asCopy) {
+                resolver.update(target, ContentValues().apply { put(MediaColumns.IS_PENDING, 0) }, null, null)
+            } else if (media.path.isNotEmpty()) {
+                // Has Android look the file over now, so its change time and size update at
+                // once and the new version shows straight away.
+                val file = java.io.File(android.os.Environment.getExternalStorageDirectory(), media.path + media.fileName)
+                android.media.MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
+            }
         } catch (e: Exception) {
             if (asCopy) resolver.delete(target, null, null)
             throw e
