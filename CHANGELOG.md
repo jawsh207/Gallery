@@ -2,6 +2,16 @@
 
 What changed in each release, newest first. Each section becomes that release's notes.
 
+## 0.3.1
+
+### Fixes
+- Zooming into a photo no longer turns the screen black.
+- Edits saved over a photo now show straight away, in the viewer and the grid.
+
+### Improvements
+- "Edit" on a new screenshot can open Gallery's editor, and photos can be shared to "Edit in Gallery". The edit is saved over the original when the other app allows it, otherwise as a copy.
+- The viewer's top and bottom bars sit on a darker band, so they're easier to read over bright photos.
+
 ## 0.3.0
 
 ### Photos and memories
