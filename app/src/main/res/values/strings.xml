@@ -412,4 +412,22 @@
 
     <!-- The share sheet's name for sending a photo to Gallery to edit -->
     <string name="share_to_edit">Edit in Gallery</string>
+
+    <!-- Home-screen widgets -->
+    <string name="widget_memories">Memories</string>
+    <string name="widget_memories_description">Today\'s memory, or a favorite on days without one</string>
+    <string name="widget_frame">Photo frame</string>
+    <string name="widget_frame_description">A photo from your favorites or an album, changing every few hours</string>
+    <string name="widget_frame_setup">Show photos from</string>
+    <string name="widget_frame_favorites_summary">Every photo until you have favorites</string>
+    <string name="widget_frame_all">All photos</string>
+    <string name="widget_loading">Loading\u2026</string>
+    <string name="widget_no_access">Tap to let Gallery see your photos</string>
+    <string name="widget_failed">Couldn\'t show this photo</string>
+
+    <!-- Shortcuts from long-pressing the app icon -->
+    <string name="shortcut_search">Search</string>
+    <string name="shortcut_collage">Collage</string>
+    <string name="shortcut_collage_long">Make a collage</string>
+    <string name="shortcut_locked">Locked</string>
 </resources>

@@ -71,7 +71,8 @@ fun decodeMediaSet(text: String): MediaSet? = when {
     else -> null
 }
 
-private fun Screen.encode(): String = when (this) {
+/** [Screen] as text, for saving the back stack and for widgets and shortcuts that open one. */
+fun Screen.encode(): String = when (this) {
     Screen.Home -> "home"
     Screen.Trash -> "trash"
     Screen.Search -> "search"
@@ -88,7 +89,8 @@ private fun Screen.encode(): String = when (this) {
     is Screen.Viewer -> "viewer|$id|${set.encode()}|$slideshow"
 }
 
-private fun decode(text: String): Screen? {
+/** The [Screen] [text] was saved as (see [Screen.encode]), or null if it can't be read. */
+fun decodeScreen(text: String): Screen? {
     val parts = text.split('|')
     return when (parts[0]) {
         "home" -> Screen.Home
@@ -122,6 +124,6 @@ private fun decode(text: String): Screen? {
 fun rememberBackStack(): SnapshotStateList<Screen> = rememberSaveable(
     saver = listSaver(
         save = { stack -> stack.map { it.encode() } },
-        restore = { saved -> saved.mapNotNull(::decode).ifEmpty { listOf(Screen.Home) }.toMutableStateList() },
+        restore = { saved -> saved.mapNotNull(::decodeScreen).ifEmpty { listOf(Screen.Home) }.toMutableStateList() },
     ),
 ) { listOf<Screen>(Screen.Home).toMutableStateList() }

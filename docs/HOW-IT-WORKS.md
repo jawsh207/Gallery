@@ -69,6 +69,7 @@ lost too much accuracy, so they stay as they are.
 | Locked folder | Photos and videos hidden behind the screen lock | `ui/locked/LockedScreen.kt` |
 | Person | One person's photos, and giving them a name (Plus) | `ui/people/People.kt` |
 | Details sheet | When it was taken, file, folder, size and camera settings | `ui/viewer/InfoSheet.kt` |
+| Photo frame setup | Choosing where a Photo frame widget takes its photos from | `widgets/FrameSetupActivity.kt` |
 
 The main screen (the search bar with its Settings button, the three tabs — Photos, Videos and
 Collections — and the bottom bar) and moving between screens are in
@@ -374,6 +375,26 @@ plus a small note of its name, type, dates, size and original folder.
 **Wallpaper.** The viewer's menu (top right) has "Set as wallpaper" for photos: home screen,
 lock screen, or both. Android fits the photo to the screen.
 
+**Widgets.** Two home-screen widgets, added from the home screen's widget list. **Memories**
+shows today's memory, On this day first, then Recent highlights, then a busy day, as its cover
+photo with its name; tapping it plays the memory as a slideshow. On days without a memory it
+shows a favorite, a different one each day. It shows memories even when the On this day
+setting hides them in Photos. **Photo frame** shows one photo filling the widget and moves on
+to another every three hours, going through every photo of its set before any comes round
+again; two frames on the same set show different photos. When you place it, it asks where its
+photos come from: Favorites (every photo until you have favorites), all photos in the Photos
+tab, or one album. Long-press the widget and open its settings to change that. Tapping it
+opens the photo in the viewer. Both widgets are resizable, take their corners and colours from
+the home screen and wallpaper, and redraw themselves every three hours. They only look at the
+media store, so Locked folder items and the trash never appear in them. Without photo access
+they say so, and a tap opens Gallery to ask.
+
+**Shortcuts.** Long-press Gallery's icon for Search, Favorites, Collage (choosing photos for a
+new collage) and the Locked folder, which still asks for your screen lock. Each opens over
+Photos, so Back goes to Photos. They can be dragged onto the home screen as icons of their own.
+Gallery sets them up each time it opens. Other apps can't use the same route to open Locked
+folder photos directly.
+
 **Trash.** This is Android's own trash, shared with other apps. Android deletes items for good
 30 days after they're trashed. From the trash you can restore or delete items one at a time,
 by selection, or empty it all at once after confirming.
@@ -450,9 +471,14 @@ dark. Text is set in Google Sans Flex, bundled with the app.
 | Finding the video inside a motion photo | `data/MotionPhotos.kt` |
 | Playing it out of the photo file | `ui/viewer/MotionPlayer.kt` |
 | Hiding and showing Android's bars in the viewer | `ui/viewer/ViewerScreen.kt` |
+| Which memory the Memories widget shows, where a frame's photos come from, and which photo it shows now | `data/Widgets.kt` |
+| Drawing the widgets, reading the library for them, and what their taps open | `widgets/PhotoWidget.kt`, `MemoriesWidget.kt`, `PhotoFrameWidget.kt` |
+| The widgets' sizes, update period and layout | `res/xml/memories_widget_info.xml`, `res/xml/photo_frame_widget_info.xml`, `res/layout/widget_photo.xml` |
+| The shortcuts on Gallery's icon | `Shortcuts.kt` |
+| Opening a screen from a widget or shortcut | `intents/OpenScreen.kt`, `ui/GalleryApp.kt` |
 
 ## Tests
 
 The rules that don't need a phone (day and month grouping, header wording, album order, search matching, pick requests, album names and folders, memories, motion photo metadata, the text finder's boxes and reader's characters, the text file's lines, face finding, straightening, grouping and naming, the faces file's lines, description fingerprints and matching, sorting into Things, the word-piece splitter (checked against CLIP's own when the Plus models are built), duplicate fingerprints and grouping, collage layouts, gaps and crops, video trim, speed and crop maths, stacks, animation timing, the Collections tiles' order, Screenshots and Recently added, editing maths and saved-file names, highlights, shadows and Enhance, where locked items go back to, the
-drag-to-select range, number and size formatting, camera names) have tests in `app/src/test/`.
+drag-to-select range, number and size formatting, camera names, and the widgets' choices of memory and photo) have tests in `app/src/test/`.
 They run before every build.

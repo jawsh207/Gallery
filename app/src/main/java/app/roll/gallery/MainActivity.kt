@@ -9,16 +9,20 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import app.roll.gallery.ui.GalleryApp
 import app.roll.gallery.ui.theme.GalleryTheme
+import kotlin.concurrent.thread
 
 /**
  * The app's only screen holder; everything inside it is drawn by [GalleryApp]. It opens from
- * the launcher and also handles other apps' requests: showing a file, or choosing photos and
- * handing them back.
+ * the launcher, from Gallery's widgets and icon shortcuts (which name a screen to open), and
+ * also handles other apps' requests: showing a file, or choosing photos and handing them back.
+ * Each time it opens it publishes the icon shortcuts again (see [publishShortcuts]).
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Off the main thread: it's a call into the system, and the shortcuts change rarely.
+        if (savedInstanceState == null) thread { publishShortcuts(applicationContext) }
         setContent {
             GalleryTheme {
                 GalleryApp(intent, finish = ::finishWith)

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Photo frame widget (widgets/PhotoFrameWidget.kt). Asks where its photos come from when
+     placed, can be asked again from the widget's settings, and moves on to another photo every
+     3 hours (FRAME_CHANGE_HOURS in data/Widgets.kt). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="app.roll.gallery.widgets.FrameSetupActivity"
+    android:widgetFeatures="reconfigurable"
+    android:description="@string/widget_frame_description"
+    android:initialLayout="@layout/widget_photo"
+    android:previewLayout="@layout/widget_preview"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="50dp"
+    android:minResizeHeight="50dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="10800000"
+    android:widgetCategory="home_screen" />

@@ -79,5 +79,34 @@
                 <data android:mimeType="vnd.android.cursor.dir/video" />
             </intent-filter>
         </activity>
+        <!-- Home-screen widgets (widgets/). Only the home screen sends their updates. -->
+        <receiver
+            android:name=".widgets.MemoriesWidget"
+            android:exported="false"
+            android:label="@string/widget_memories">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/memories_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.PhotoFrameWidget"
+            android:exported="false"
+            android:label="@string/widget_frame">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/photo_frame_widget_info" />
+        </receiver>
+        <!-- Choosing a photo frame's photos; the home screen opens it, so it must be exported. -->
+        <activity
+            android:name=".widgets.FrameSetupActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:label="@string/widget_frame">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

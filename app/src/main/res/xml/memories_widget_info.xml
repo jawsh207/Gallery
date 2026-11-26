@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Memories widget (widgets/MemoriesWidget.kt). Redrawn every 3 hours, which also picks up
+     a new day's memory. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_memories_description"
+    android:initialLayout="@layout/widget_photo"
+    android:previewLayout="@layout/widget_preview"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="50dp"
+    android:minResizeHeight="50dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="10800000"
+    android:widgetCategory="home_screen" />

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The locked shortcut's icon (long-press Gallery's icon), shaped like the launcher's other icons. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/widget_surface" />
+    <foreground android:drawable="@drawable/ic_shortcut_locked_glyph" />
+</adaptive-icon>

@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import app.roll.gallery.intents.ExternalRequest
 import app.roll.gallery.intents.externalMedia
 import app.roll.gallery.intents.parseRequest
+import app.roll.gallery.intents.EXTRA_SCREEN
+import app.roll.gallery.intents.screenToOpen
 import app.roll.gallery.ui.pick.PickScreen
 import app.roll.gallery.ui.viewer.ExternalViewer
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -120,7 +122,8 @@ enum class Tab(@param:StringRes val label: Int, val icon: ImageVector, val selec
 }
 
 /**
- * The whole app. A file opened from another app goes straight to its viewer, and one handed over
+ * The whole app. A screen named by a widget or icon shortcut opens over Photos once the library
+ * has loaded. A file opened from another app goes straight to its viewer, and one handed over
  * to edit (a screenshot's Edit, or a share) straight to the editor; otherwise it asks
  * for photo access, then shows either the picker (when another app asked to choose photos) or
  * the screen on top of the back stack. [finish] ends a request from another app, handing back
@@ -194,6 +197,14 @@ fun GalleryApp(intent: Intent?, finish: (List<Uri>?) -> Unit, viewModel: Gallery
         }
     }
     BackHandler(enabled = stack.size > 1, onBack = back)
+    // A widget or icon shortcut named a screen: open it over Photos, once. The extra is taken off
+    // so going back to Photos and recomposing doesn't open it again; the check against the top of
+    // the stack covers the stack being restored with it already open.
+    LaunchedEffect(intent) {
+        val target = screenToOpen(intent) ?: return@LaunchedEffect
+        intent?.removeExtra(EXTRA_SCREEN)
+        if (stack.lastOrNull() != target) stack.add(target)
+    }
 
     AskForNotifications(viewModel)
 

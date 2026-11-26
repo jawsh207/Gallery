@@ -56,6 +56,11 @@ store, so other apps see the same favorites and trash.
   (fingerprint, face, PIN, pattern or password). They're hidden from your photos and other
   apps, screenshots are blocked there, and it locks again when you leave the app. The folder
   stays on the phone: it isn't backed up and is deleted if Gallery is uninstalled.
+- **Widgets:** Memories shows today's memory (or a favorite on days without one) and plays
+  it as a slideshow when tapped. Photo frame shows a photo from Favorites, all photos or an
+  album you choose, changing every three hours. Both are resizable and take the wallpaper's
+  colours. The Locked folder and trash never appear in them.
+- **Shortcuts:** long-press the app icon for Search, Favorites, Collage and the Locked folder.
 - **Wallpaper:** set a photo as the home screen, lock screen or both, from the viewer's menu.
 - **Other apps:** "Open with Gallery" and the camera's thumbnail open a photo or video in
   Gallery's viewer, even without photo access. Apps that ask to choose photos or videos can
