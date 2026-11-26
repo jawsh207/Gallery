@@ -2,6 +2,14 @@
 
 What changed in each release, newest first. Each section becomes that release's notes.
 
+## 0.4.0
+
+### Home screen
+- Memories widget: today's memory (On this day, Recent highlights or a busy day) with its name; tap to play it as a slideshow. On days without a memory it shows a favorite, a different one each day.
+- Photo frame widget: a photo from your favorites, all photos or an album you choose, changing every three hours. Long-press it and open its settings to choose again; tap to open the photo.
+- Both widgets can be resized and take their colours from your wallpaper. The Locked folder and trash never appear in them.
+- Shortcuts: long-press Gallery's icon for Search, Favorites, Collage and the Locked folder.
+
 ## 0.3.1
 
 ### Fixes
